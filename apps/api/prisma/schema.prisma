@@ -66,6 +66,8 @@ model Pipeline {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   stages    Stage[]
+  campaignId String?  @unique
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -75,7 +77,7 @@ model Stage {
   name       String
   order      Int
   pipelineId String
-  pipeline   Pipeline @relation(fields: [pipelineId], references: [id])
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   cards      Card[]
   agents     Agent[]
   leadForms  LeadForm[]
@@ -87,7 +89,7 @@ model Card {
   id           String   @id @default(uuid())
   title        String
   stageId      String
-  stage        Stage    @relation(fields: [stageId], references: [id])
+  stage        Stage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
   contactId    String?
   contact      Contact? @relation(fields: [contactId], references: [id])
   assigneeId   String?
@@ -194,6 +196,7 @@ model Campaign {
   tenant          Tenant          @relation(fields: [tenantId], references: [id])
   steps           CampaignStep[]
   sequenceRuns    SequenceRun[]
+  pipeline        Pipeline?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -282,7 +285,7 @@ model Agent {
   profile         Json?
   isActive        Boolean             @default(true)
   stageId         String?
-  stage           Stage?              @relation(fields: [stageId], references: [id])
+  stage           Stage?              @relation(fields: [stageId], references: [id], onDelete: Cascade)
   knowledgeBaseId String?
   knowledgeBase   KnowledgeBase?      @relation(fields: [knowledgeBaseId], references: [id])
   tenantId        String
@@ -410,7 +413,7 @@ model LeadForm {
   isActive          Boolean              @default(true)
   fields            Json
   stageId           String
-  stage             Stage                @relation(fields: [stageId], references: [id])
+  stage             Stage                @relation(fields: [stageId], references: [id], onDelete: Cascade)
   tenantId          String
   tenant            Tenant               @relation(fields: [tenantId], references: [id])
   submissions       LeadFormSubmission[]

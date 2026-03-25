@@ -12,6 +12,8 @@ interface Props {
   pipelineId?: string;
   onCardSelect?: (cardId: string) => void;
   selectedCardId?: string | null;
+  onAddCard?: (stageId: string) => void;
+  onEditCard?: (card: Card) => void;
 }
 
 function getConversation(card: Card) {
@@ -178,8 +180,22 @@ function getInitials(value?: string | null) {
     .join('');
 }
 
-export default function KanbanBoard({ pipelineId, onCardSelect, selectedCardId }: Props) {
-  const { pipeline, isLoading, error, fetchPipeline, moveCardLocally, moveCardApi } = useKanbanStore();
+export default function KanbanBoard({ 
+  pipelineId, 
+  onCardSelect, 
+  selectedCardId,
+  onAddCard,
+  onEditCard
+}: Props) {
+  const { 
+    pipeline, 
+    isLoading, 
+    error, 
+    fetchPipeline, 
+    moveCardLocally, 
+    moveCardApi,
+    toggleAutopilot 
+  } = useKanbanStore();
   useUIMode();
   const [isMounted, setIsMounted] = useState(false);
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
@@ -205,21 +221,14 @@ export default function KanbanBoard({ pipelineId, onCardSelect, selectedCardId }
   };
 
   const handleAutopilotToggle = async (card: Card) => {
-    if (!pipelineId) {
-      return;
-    }
-
     const conversation = getConversation(card);
-    if (!conversation) {
-      return;
-    }
+    if (!conversation) return;
 
     setBusyCardId(card.id);
     try {
-      await api.patch(`/agents/conversations/${conversation.id}/status`, {
-        status: conversation.status === 'OPEN' ? 'HANDOFF_REQUIRED' : 'OPEN',
-      });
-      await fetchPipeline(pipelineId);
+      await toggleAutopilot(conversation.id, conversation.status);
+    } catch (err) {
+      console.error('Failed to toggle autopilot', err);
     } finally {
       setBusyCardId(null);
     }
@@ -272,6 +281,7 @@ export default function KanbanBoard({ pipelineId, onCardSelect, selectedCardId }
                       </span>
                       <button
                         type="button"
+                        onClick={() => onAddCard?.(stage.id)}
                         className="flex h-6 w-6 items-center justify-center text-[#a0aec0] transition hover:text-[#718096]"
                         aria-label={`Adicionar card em ${stage.name}`}
                       >
@@ -331,15 +341,28 @@ export default function KanbanBoard({ pipelineId, onCardSelect, selectedCardId }
                                       ))}
                                     </div>
 
-                                    <button
-                                      type="button"
-                                      aria-label={`Arrastar card ${card.title}`}
-                                      onClick={(event) => event.stopPropagation()}
-                                      {...provided.dragHandleProps}
-                                      className="rounded-md border border-[#f0f0f0] bg-white p-1.5 text-[#777777] transition hover:bg-[#fafafa]"
-                                    >
-                                      <GripVertical className="h-3.5 w-3.5" />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onEditCard?.({ ...card, stageId: stage.id });
+                                        }}
+                                        className="rounded-md border border-[#f0f0f0] bg-white p-1.5 text-[#777777] transition hover:bg-[#fafafa] hover:text-[#594ded]"
+                                        title="Editar Card"
+                                      >
+                                        <Plus className="h-3.5 w-3.5 rotate-45" /> {/* Using Plus rotated for 'edit' or I can use Pencil if I import it */}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        aria-label={`Arrastar card ${card.title}`}
+                                        onClick={(event) => event.stopPropagation()}
+                                        {...provided.dragHandleProps}
+                                        className="rounded-md border border-[#f0f0f0] bg-white p-1.5 text-[#777777] transition hover:bg-[#fafafa]"
+                                      >
+                                        <GripVertical className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
                                   </div>
 
                                   <div className="mt-4">

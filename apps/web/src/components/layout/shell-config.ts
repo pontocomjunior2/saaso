@@ -11,6 +11,7 @@ import {
   Wand2,
   Users,
   Workflow,
+  Tag,
 } from 'lucide-react';
 
 export interface ShellNavChild {
@@ -58,25 +59,21 @@ export const mainNavigation: ShellNavItem[] = [
   },
   {
     label: 'Clientes',
+    href: '/contatos',
     icon: Users,
-    description: 'Base comercial agrupando contatos, empresas e contexto relacional.',
-    children: [
-      {
-        label: 'Contatos',
-        href: '/contatos',
-        description: 'Pessoas, decisores e historico comercial.',
-      },
-      {
-        label: 'Empresas',
-        href: '/empresas',
-        description: 'Contas, segmentos e relacionamento por empresa.',
-      },
-      {
-        label: 'Segmentos',
-        href: '/segmentos',
-        description: 'Leitura rápida de tags, cargos e indústrias que estruturam a base comercial.',
-      },
-    ],
+    description: 'Base central de contatos, empresas e historico operacional.',
+  },
+  {
+    label: 'Empresas',
+    href: '/empresas',
+    icon: Building2,
+    description: 'Contas, segmentos e relacionamento por empresa.',
+  },
+  {
+    label: 'Segmentos',
+    href: '/segmentos',
+    icon: Tag,
+    description: 'Leitura rápida de tags, cargos e indústrias que estruturam a base comercial.',
   },
   {
     label: 'Agentes',
@@ -129,6 +126,12 @@ export const simpleNavigation: ShellNavItem[] = [
     href: '/inbox',
     icon: MessageSquare,
     description: 'Conversas em andamento, takeover manual e retomada do piloto automatico.',
+  },
+  {
+    label: 'Clientes',
+    href: '/contatos',
+    icon: Users,
+    description: 'Gestao da base de clientes e leads.',
   },
   {
     label: 'Kanban',

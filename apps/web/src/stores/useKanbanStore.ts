@@ -4,6 +4,7 @@ import api from '../lib/api';
 export interface Card {
   id: string;
   title: string;
+  stageId: string;
   position: number;
   automation?: {
     status:
@@ -93,6 +94,10 @@ interface KanbanState {
   fetchPipeline: (id: string) => Promise<void>;
   moveCardLocally: (cardId: string, sourceStageId: string, destStageId: string, sourceIndex: number, destIndex: number) => void;
   moveCardApi: (cardId: string, destStageId: string, destIndex: number) => Promise<void>;
+  createCard: (stageId: string, title: string) => Promise<void>;
+  updateCard: (cardId: string, patch: any) => Promise<void>;
+  deleteCard: (cardId: string) => Promise<void>;
+  toggleAutopilot: (conversationId: string, currentStatus: string) => Promise<void>;
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -107,6 +112,51 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       set({ pipeline: response.data, isLoading: false });
     } catch (error: any) {
       set({ error: error?.response?.data?.message || 'Erro ao carregar o pipeline', isLoading: false });
+    }
+  },
+
+  createCard: async (stageId, title) => {
+    try {
+      await api.post('/cards', { stageId, title });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao criar card' });
+      throw error;
+    }
+  },
+
+  updateCard: async (cardId, patch) => {
+    try {
+      await api.patch(`/cards/${cardId}`, patch);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao atualizar card' });
+      throw error;
+    }
+  },
+
+  deleteCard: async (cardId) => {
+    try {
+      await api.delete(`/cards/${cardId}`);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao deletar card' });
+      throw error;
+    }
+  },
+
+  toggleAutopilot: async (conversationId, currentStatus) => {
+    try {
+      const nextStatus = currentStatus === 'OPEN' ? 'HANDOFF_REQUIRED' : 'OPEN';
+      await api.patch(`/agents/conversations/${conversationId}/status`, { status: nextStatus });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao alterar piloto automático' });
+      throw error;
     }
   },
 

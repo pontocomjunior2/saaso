@@ -323,6 +323,7 @@ export class TenantService {
           channel: primaryChannel,
           status: CampaignStatus.ACTIVE,
           messageTemplate: flattenedSteps[0]?.messageTemplate ?? null,
+          pipelineId: pipeline.id, // Vínculo direto para deleção em cascata
           steps: {
             create: flattenedSteps.map((step, index) => ({
               order: index + 1,
@@ -336,6 +337,12 @@ export class TenantService {
         include: {
           steps: true,
         },
+      });
+
+      // Atualizar o pipeline com o ID da campanha (opcional se já tiver o pipelineId na campanha, mas mantemos bidirecional no código se necessário)
+      await tx.pipeline.update({
+        where: { id: pipeline.id },
+        data: { campaignId: campaign.id },
       });
 
       const { nodes, edges } = this.buildJourneyGraph(
@@ -459,6 +466,7 @@ export class TenantService {
             name:
               this.normalizeOptionalText(dto.pipelineName) ??
               `${dto.clientName.trim()} · Operacao`,
+            campaignId: campaignId, // Vínculo para deleção em cascata
           },
         });
       }
@@ -612,6 +620,7 @@ export class TenantService {
           channel: primaryChannel,
           status: CampaignStatus.ACTIVE,
           messageTemplate: flattenedSteps[0]?.messageTemplate ?? null,
+          pipelineId: resources.pipeline?.id ?? null, // Vínculo na campanha
           steps: {
             create: flattenedSteps.map((step, index) => ({
               order: index + 1,

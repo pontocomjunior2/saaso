@@ -1,6 +1,8 @@
 'use client';
 
 import KanbanBoard from '@/components/board/KanbanBoard';
+import KanbanListView from '@/components/board/KanbanListView';
+import { CardFormModal } from '@/components/board/CardFormModal';
 import { CardDetailSheet } from '@/components/board/CardDetailSheet';
 import type { DetailedCard, PipelineSummary } from '@/components/board/board-types';
 import api from '@/lib/api';
@@ -18,6 +20,11 @@ export default function PipelinesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCardLoading, setIsCardLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados para novas funcionalidades
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<{ id: string; title: string; stageId: string } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -121,7 +128,10 @@ export default function PipelinesPage() {
             </div>
 
             <button
-              onClick={() => {}}
+              onClick={() => {
+                setEditingCard(null);
+                setIsModalOpen(true);
+              }}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#594ded] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#594ded]/20 transition hover:bg-[#4d42cc]"
             >
               <Plus className="h-4 w-4" />
@@ -153,10 +163,20 @@ export default function PipelinesPage() {
                 );
               })}
               
-              <button disabled className="mt-1 flex items-center gap-2 border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-[#a0aec0] transition-colors hover:text-[#718096]">
+              <button 
+                onClick={() => setViewMode('kanban')}
+                className={`mt-1 flex items-center gap-2 border-b-2 px-1 pb-4 text-sm font-medium transition-colors ${
+                  viewMode === 'kanban' ? 'border-[#594ded] text-[#594ded]' : 'border-transparent text-[#718096] hover:text-[#1a202c]'
+                }`}
+              >
                 <LayoutGrid className="h-[18px] w-[18px]" /> Board
               </button>
-              <button disabled className="mt-1 flex items-center gap-2 border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-[#a0aec0] transition-colors hover:text-[#718096]">
+              <button 
+                onClick={() => setViewMode('list')}
+                className={`mt-1 flex items-center gap-2 border-b-2 px-1 pb-4 text-sm font-medium transition-colors ${
+                  viewMode === 'list' ? 'border-[#594ded] text-[#594ded]' : 'border-transparent text-[#718096] hover:text-[#1a202c]'
+                }`}
+              >
                 <List className="h-[18px] w-[18px]" /> List
               </button>
               <button disabled className="mt-1 flex items-center gap-2 border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-[#a0aec0] transition-colors hover:text-[#718096]">
@@ -186,12 +206,31 @@ export default function PipelinesPage() {
             Carregando board principal...
           </div>
         ) : selectedPipelineId ? (
-          <div className="rounded-[30px] bg-transparent">
-            <KanbanBoard
-              pipelineId={selectedPipelineId}
-              selectedCardId={selectedCardId}
-              onCardSelect={(cardId) => setSelectedCardId(cardId)}
-            />
+          <div className="rounded-[30px] bg-transparent min-h-[46rem]">
+            {viewMode === 'kanban' ? (
+              <KanbanBoard
+                pipelineId={selectedPipelineId}
+                selectedCardId={selectedCardId}
+                onCardSelect={(cardId) => setSelectedCardId(cardId)}
+                onAddCard={(stageId) => {
+                  setEditingCard(null);
+                  setIsModalOpen(true);
+                  // Pass initialStageId to modal if needed, but the modal already handles it via initialStageId prop
+                }}
+                onEditCard={(card) => {
+                  setEditingCard({ id: card.id, title: card.title, stageId: card.stageId });
+                  setIsModalOpen(true);
+                }}
+              />
+            ) : (
+              <KanbanListView 
+                onCardSelect={(cardId) => setSelectedCardId(cardId)}
+                onEditCard={(card) => {
+                  setEditingCard({ id: card.id, title: card.title, stageId: card.stageId });
+                  setIsModalOpen(true);
+                }}
+              />
+            )}
           </div>
         ) : (
           <div className="flex min-h-[42rem] items-center justify-center rounded-[30px] border border-[#f0f0f0] bg-white px-6 text-center text-[#9e9e9e]">
@@ -208,6 +247,18 @@ export default function PipelinesPage() {
           setSelectedCardId(null);
           setSelectedCard(null);
         }}
+      />
+
+      <CardFormModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingCard(null);
+        }}
+        pipelineId={selectedPipelineId || ''}
+        cardId={editingCard?.id}
+        initialTitle={editingCard?.title}
+        initialStageId={editingCard?.stageId}
       />
     </>
   );

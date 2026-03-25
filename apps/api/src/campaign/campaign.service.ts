@@ -434,12 +434,23 @@ export class CampaignService {
     return this.mapCampaignResponse(updated);
   }
 
-  public async removeCampaign(tenantId: string, id: string): Promise<Campaign> {
-    await this.findCampaign(tenantId, id);
+  public async removeCampaign(tenantId: string, id: string): Promise<CampaignResponse> {
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id, tenantId },
+      include: campaignInclude,
+    });
 
-    return this.prisma.campaign.delete({
+    if (!campaign) {
+      throw new NotFoundException(
+        `Erro no Backend: Campanha com ID '${id}' nao encontrada neste tenant.`,
+      );
+    }
+
+    const removed = await this.prisma.campaign.delete({
       where: { id },
     });
+
+    return this.mapCampaignResponse(removed as any);
   }
 
   private async validateAudienceOwnership(
