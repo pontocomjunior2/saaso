@@ -1,0 +1,6 @@
+interface:
+  display_name: "Antigravity Codex Bridge"
+  short_description: "Bridge skill for the Codex-adapted Antigravity pack."
+  default_prompt: "Use $antigravity-codex-bridge for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

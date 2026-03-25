@@ -1,0 +1,6 @@
+interface:
+  display_name: "I18n Localization"
+  short_description: "Internationalization and localization patterns. Detecting har..."
+  default_prompt: "Use $i18n-localization for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

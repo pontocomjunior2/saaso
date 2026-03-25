@@ -1,0 +1,6 @@
+interface:
+  display_name: "Bash Linux"
+  short_description: "Bash/Linux terminal patterns. Critical commands, piping, erro..."
+  default_prompt: "Use $bash-linux for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestrator"
+  short_description: "Multi-agent coordination and task orchestration. Use when a t..."
+  default_prompt: "Use $orchestrator for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

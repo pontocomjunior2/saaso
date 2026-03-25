@@ -1,0 +1,152 @@
+import { create } from 'zustand';
+import api from '../lib/api';
+
+export interface Card {
+  id: string;
+  title: string;
+  position: number;
+  automation?: {
+    status:
+      | 'TAKEOVER'
+      | 'NO_AGENT'
+      | 'AGENT_PAUSED'
+      | 'RUNNING'
+      | 'WAITING_DELAY'
+      | 'COMPLETED'
+      | 'FAILED'
+      | 'AUTOPILOT'
+      | 'IDLE';
+    label: string;
+    description: string;
+    nextAction: string;
+  };
+  updatedAt?: string;
+  contact?: {
+    id: string;
+    name: string;
+  } | null;
+  assignee?: {
+    id: string;
+    name: string;
+  } | null;
+  activities?: Array<{
+    id: string;
+    type: string;
+    content: string;
+    createdAt: string;
+  }>;
+  agentConversations?: Array<{
+    id: string;
+    status: 'OPEN' | 'HANDOFF_REQUIRED' | 'CLOSED';
+    updatedAt: string;
+    lastMessageAt: string | null;
+    summary: string | null;
+    agent: {
+      id: string;
+      name: string;
+      isActive: boolean;
+    };
+  }>;
+  sequenceRuns?: Array<{
+    id: string;
+    status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELED';
+    currentStepIndex: number;
+    nextRunAt: string | null;
+    updatedAt: string;
+    campaign: {
+      id: string;
+      name: string;
+    };
+    steps: Array<{
+      id: string;
+      order: number;
+      status: 'PENDING' | 'QUEUED' | 'RUNNING' | 'SENT' | 'FAILED' | 'SKIPPED';
+      scheduledFor: string;
+      completedAt: string | null;
+      channel: 'WHATSAPP' | 'EMAIL';
+    }>;
+  }>;
+}
+
+export interface Stage {
+  id: string;
+  name: string;
+  order: number;
+  agents?: Array<{
+    id: string;
+    name: string;
+    isActive: boolean;
+  }>;
+  cards: Card[];
+}
+
+export interface Pipeline {
+  id: string;
+  name: string;
+  stages: Stage[];
+}
+
+interface KanbanState {
+  pipeline: Pipeline | null;
+  isLoading: boolean;
+  error: string | null;
+  fetchPipeline: (id: string) => Promise<void>;
+  moveCardLocally: (cardId: string, sourceStageId: string, destStageId: string, sourceIndex: number, destIndex: number) => void;
+  moveCardApi: (cardId: string, destStageId: string, destIndex: number) => Promise<void>;
+}
+
+export const useKanbanStore = create<KanbanState>((set, get) => ({
+  pipeline: null,
+  isLoading: false,
+  error: null,
+
+  fetchPipeline: async (id: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get(`/pipelines/${id}`);
+      set({ pipeline: response.data, isLoading: false });
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao carregar o pipeline', isLoading: false });
+    }
+  },
+
+  moveCardLocally: (cardId, sourceStageId, destStageId, sourceIndex, destIndex) => {
+    const pipeline = get().pipeline;
+    if (!pipeline) return;
+
+    const sourceStage = pipeline.stages.find((s) => s.id === sourceStageId);
+    const destStage = pipeline.stages.find((s) => s.id === destStageId);
+
+    if (!sourceStage || !destStage) return;
+
+    const sourceCards = [...(sourceStage.cards ?? [])];
+    const destCards = sourceStageId === destStageId ? sourceCards : [...(destStage.cards ?? [])];
+
+    const [movedCard] = sourceCards.splice(sourceIndex, 1);
+    destCards.splice(destIndex, 0, movedCard);
+
+    set((state) => {
+      if (!state.pipeline) return state;
+      const newStages = state.pipeline.stages.map((stage) => {
+        if (stage.id === sourceStageId) return { ...stage, cards: sourceCards };
+        if (stage.id === destStageId) return { ...stage, cards: destCards };
+        return stage;
+      });
+
+      return { pipeline: { ...state.pipeline, stages: newStages } };
+    });
+  },
+
+  moveCardApi: async (cardId, destStageId, destIndex) => {
+    try {
+      await api.patch(`/cards/${cardId}/move`, {
+        destinationStageId: destStageId,
+        destinationIndex: destIndex,
+      });
+    } catch (error: any) {
+      console.error('Failed to move card in API', error);
+      // Aqui poderíamos reverter o state (optimistic rollback)
+      set({ error: 'Erro ao salvar a nova posição do card.' });
+    }
+  },
+}));

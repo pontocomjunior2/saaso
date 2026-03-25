@@ -1,0 +1,6 @@
+interface:
+  display_name: "Game Development"
+  short_description: "Game development orchestrator. Routes to platform-specific sk..."
+  default_prompt: "Use $game-development for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Deployment Procedures"
+  short_description: "Production deployment principles and decision-making. Safe de..."
+  default_prompt: "Use $deployment-procedures for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

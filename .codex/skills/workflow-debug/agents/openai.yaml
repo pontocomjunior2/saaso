@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workflow Debug"
+  short_description: "Antigravity workflow adapted for Codex. Debugging command. Ac..."
+  default_prompt: "Use $workflow-debug for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workflow Preview"
+  short_description: "Antigravity workflow adapted for Codex. Preview server start,..."
+  default_prompt: "Use $workflow-preview for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Brainstorming"
+  short_description: "Socratic questioning protocol + user communication. MANDATORY..."
+  default_prompt: "Use $brainstorming for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

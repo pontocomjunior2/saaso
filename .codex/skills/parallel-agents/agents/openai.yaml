@@ -1,0 +1,6 @@
+interface:
+  display_name: "Parallel Agents"
+  short_description: "Multi-agent orchestration patterns. Use when multiple indepen..."
+  default_prompt: "Use $parallel-agents for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

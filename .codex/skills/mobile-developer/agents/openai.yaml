@@ -1,0 +1,6 @@
+interface:
+  display_name: "Mobile Developer"
+  short_description: "Expert in React Native and Flutter mobile development. Use fo..."
+  default_prompt: "Use $mobile-developer for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

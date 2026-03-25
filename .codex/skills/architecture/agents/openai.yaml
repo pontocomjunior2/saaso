@@ -1,0 +1,6 @@
+interface:
+  display_name: "Architecture"
+  short_description: "Architectural decision-making framework. Requirements analysi..."
+  default_prompt: "Use $architecture for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

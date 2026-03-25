@@ -1,0 +1,6 @@
+interface:
+  display_name: "Mcp Builder"
+  short_description: "MCP (Model Context Protocol) server building principles. Tool..."
+  default_prompt: "Use $mcp-builder for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Planner"
+  short_description: "Smart project planning agent. Breaks down user requests into..."
+  default_prompt: "Use $project-planner for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

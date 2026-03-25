@@ -1,0 +1,6 @@
+interface:
+  display_name: "Product Manager"
+  short_description: "Expert in product requirements, user stories, and acceptance..."
+  default_prompt: "Use $product-manager for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

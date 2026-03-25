@@ -1,0 +1,6 @@
+interface:
+  display_name: "Mobile Design"
+  short_description: "Mobile-first design thinking and decision-making for iOS and..."
+  default_prompt: "Use $mobile-design for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

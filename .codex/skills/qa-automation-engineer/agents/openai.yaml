@@ -1,0 +1,6 @@
+interface:
+  display_name: "Qa Automation Engineer"
+  short_description: "Specialist in test automation infrastructure and E2E testing...."
+  default_prompt: "Use $qa-automation-engineer for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

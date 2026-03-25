@@ -1,0 +1,6 @@
+interface:
+  display_name: "Api Patterns"
+  short_description: "API design principles and decision-making. REST vs GraphQL vs..."
+  default_prompt: "Use $api-patterns for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

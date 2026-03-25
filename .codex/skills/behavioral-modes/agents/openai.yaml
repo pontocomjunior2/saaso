@@ -1,0 +1,6 @@
+interface:
+  display_name: "Behavioral Modes"
+  short_description: "AI operational modes (brainstorm, implement, debug, review, t..."
+  default_prompt: "Use $behavioral-modes for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

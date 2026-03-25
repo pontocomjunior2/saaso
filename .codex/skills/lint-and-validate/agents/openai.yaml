@@ -1,0 +1,6 @@
+interface:
+  display_name: "Lint And Validate"
+  short_description: "Automatic quality control, linting, and static analysis proce..."
+  default_prompt: "Use $lint-and-validate for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

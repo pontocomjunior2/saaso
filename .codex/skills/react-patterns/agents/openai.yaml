@@ -1,0 +1,6 @@
+interface:
+  display_name: "React Patterns"
+  short_description: "Modern React patterns and principles. Hooks, composition, per..."
+  default_prompt: "Use $react-patterns for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

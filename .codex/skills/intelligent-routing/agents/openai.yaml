@@ -1,0 +1,6 @@
+interface:
+  display_name: "Intelligent Routing"
+  short_description: "Automatic agent selection and intelligent task routing. Analy..."
+  default_prompt: "Use $intelligent-routing for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

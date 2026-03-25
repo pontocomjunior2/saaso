@@ -1,0 +1,6 @@
+interface:
+  display_name: "Frontend Specialist"
+  short_description: "Senior Frontend Architect who builds maintainable React/Next...."
+  default_prompt: "Use $frontend-specialist for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Red Team Tactics"
+  short_description: "Red team tactics principles based on MITRE ATT&CK. Attack pha..."
+  default_prompt: "Use $red-team-tactics for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

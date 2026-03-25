@@ -1,0 +1,6 @@
+interface:
+  display_name: "Webapp Testing"
+  short_description: "Web application testing principles. E2E, Playwright, deep aud..."
+  default_prompt: "Use $webapp-testing for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

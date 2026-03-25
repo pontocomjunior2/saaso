@@ -1,0 +1,6 @@
+interface:
+  display_name: "Test Engineer"
+  short_description: "Expert in testing, TDD, and test automation. Use for writing..."
+  default_prompt: "Use $test-engineer for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

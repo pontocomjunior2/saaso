@@ -1,0 +1,6 @@
+interface:
+  display_name: "Seo Fundamentals"
+  short_description: "SEO fundamentals, E-E-A-T, Core Web Vitals, and Google algori..."
+  default_prompt: "Use $seo-fundamentals for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

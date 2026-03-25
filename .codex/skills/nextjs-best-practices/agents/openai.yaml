@@ -1,0 +1,6 @@
+interface:
+  display_name: "Nextjs Best Practices"
+  short_description: "Next.js App Router principles. Server Components, data fetchi..."
+  default_prompt: "Use $nextjs-best-practices for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

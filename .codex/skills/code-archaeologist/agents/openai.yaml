@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Archaeologist"
+  short_description: "Expert in legacy code, refactoring, and understanding undocum..."
+  default_prompt: "Use $code-archaeologist for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

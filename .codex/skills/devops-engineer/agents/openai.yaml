@@ -1,0 +1,6 @@
+interface:
+  display_name: "Devops Engineer"
+  short_description: "Expert in deployment, server management, CI/CD, and productio..."
+  default_prompt: "Use $devops-engineer for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

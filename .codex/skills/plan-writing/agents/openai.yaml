@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan Writing"
+  short_description: "Structured task planning with clear breakdowns, dependencies,..."
+  default_prompt: "Use $plan-writing for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

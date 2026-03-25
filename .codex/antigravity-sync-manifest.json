@@ -1,0 +1,272 @@
+{
+  "generated": {
+    "antigravity-codex-bridge": {
+      "kind": "bridge",
+      "source": "generated"
+    },
+    "api-patterns": {
+      "kind": "skill",
+      "source": ".agent/skills/api-patterns/SKILL.md"
+    },
+    "app-builder": {
+      "kind": "skill",
+      "source": ".agent/skills/app-builder/SKILL.md"
+    },
+    "architecture": {
+      "kind": "skill",
+      "source": ".agent/skills/architecture/SKILL.md"
+    },
+    "backend-specialist": {
+      "kind": "agent",
+      "source": ".agent/agents/backend-specialist.md"
+    },
+    "bash-linux": {
+      "kind": "skill",
+      "source": ".agent/skills/bash-linux/SKILL.md"
+    },
+    "behavioral-modes": {
+      "kind": "skill",
+      "source": ".agent/skills/behavioral-modes/SKILL.md"
+    },
+    "brainstorming": {
+      "kind": "skill",
+      "source": ".agent/skills/brainstorming/SKILL.md"
+    },
+    "clean-code": {
+      "kind": "skill",
+      "source": ".agent/skills/clean-code/SKILL.md"
+    },
+    "code-archaeologist": {
+      "kind": "agent",
+      "source": ".agent/agents/code-archaeologist.md"
+    },
+    "code-review-checklist": {
+      "kind": "skill",
+      "source": ".agent/skills/code-review-checklist/SKILL.md"
+    },
+    "database-architect": {
+      "kind": "agent",
+      "source": ".agent/agents/database-architect.md"
+    },
+    "database-design": {
+      "kind": "skill",
+      "source": ".agent/skills/database-design/SKILL.md"
+    },
+    "debugger": {
+      "kind": "agent",
+      "source": ".agent/agents/debugger.md"
+    },
+    "deployment-procedures": {
+      "kind": "skill",
+      "source": ".agent/skills/deployment-procedures/SKILL.md"
+    },
+    "devops-engineer": {
+      "kind": "agent",
+      "source": ".agent/agents/devops-engineer.md"
+    },
+    "documentation-templates": {
+      "kind": "skill",
+      "source": ".agent/skills/documentation-templates/SKILL.md"
+    },
+    "documentation-writer": {
+      "kind": "agent",
+      "source": ".agent/agents/documentation-writer.md"
+    },
+    "explorer-agent": {
+      "kind": "agent",
+      "source": ".agent/agents/explorer-agent.md"
+    },
+    "frontend-design": {
+      "kind": "skill",
+      "source": ".agent/skills/frontend-design/SKILL.md"
+    },
+    "frontend-specialist": {
+      "kind": "agent",
+      "source": ".agent/agents/frontend-specialist.md"
+    },
+    "game-developer": {
+      "kind": "agent",
+      "source": ".agent/agents/game-developer.md"
+    },
+    "game-development": {
+      "kind": "skill",
+      "source": ".agent/skills/game-development/SKILL.md"
+    },
+    "geo-fundamentals": {
+      "kind": "skill",
+      "source": ".agent/skills/geo-fundamentals/SKILL.md"
+    },
+    "i18n-localization": {
+      "kind": "skill",
+      "source": ".agent/skills/i18n-localization/SKILL.md"
+    },
+    "intelligent-routing": {
+      "kind": "skill",
+      "source": ".agent/skills/intelligent-routing/SKILL.md"
+    },
+    "lint-and-validate": {
+      "kind": "skill",
+      "source": ".agent/skills/lint-and-validate/SKILL.md"
+    },
+    "mcp-builder": {
+      "kind": "skill",
+      "source": ".agent/skills/mcp-builder/SKILL.md"
+    },
+    "mobile-design": {
+      "kind": "skill",
+      "source": ".agent/skills/mobile-design/SKILL.md"
+    },
+    "mobile-developer": {
+      "kind": "agent",
+      "source": ".agent/agents/mobile-developer.md"
+    },
+    "nextjs-best-practices": {
+      "kind": "skill",
+      "source": ".agent/skills/nextjs-best-practices/SKILL.md"
+    },
+    "nodejs-best-practices": {
+      "kind": "skill",
+      "source": ".agent/skills/nodejs-best-practices/SKILL.md"
+    },
+    "orchestrator": {
+      "kind": "agent",
+      "source": ".agent/agents/orchestrator.md"
+    },
+    "parallel-agents": {
+      "kind": "skill",
+      "source": ".agent/skills/parallel-agents/SKILL.md"
+    },
+    "penetration-tester": {
+      "kind": "agent",
+      "source": ".agent/agents/penetration-tester.md"
+    },
+    "performance-optimizer": {
+      "kind": "agent",
+      "source": ".agent/agents/performance-optimizer.md"
+    },
+    "performance-profiling": {
+      "kind": "skill",
+      "source": ".agent/skills/performance-profiling/SKILL.md"
+    },
+    "plan-writing": {
+      "kind": "skill",
+      "source": ".agent/skills/plan-writing/SKILL.md"
+    },
+    "powershell-windows": {
+      "kind": "skill",
+      "source": ".agent/skills/powershell-windows/SKILL.md"
+    },
+    "product-manager": {
+      "kind": "agent",
+      "source": ".agent/agents/product-manager.md"
+    },
+    "project-planner": {
+      "kind": "agent",
+      "source": ".agent/agents/project-planner.md"
+    },
+    "python-patterns": {
+      "kind": "skill",
+      "source": ".agent/skills/python-patterns/SKILL.md"
+    },
+    "qa-automation-engineer": {
+      "kind": "agent",
+      "source": ".agent/agents/qa-automation-engineer.md"
+    },
+    "react-patterns": {
+      "kind": "skill",
+      "source": ".agent/skills/react-patterns/SKILL.md"
+    },
+    "red-team-tactics": {
+      "kind": "skill",
+      "source": ".agent/skills/red-team-tactics/SKILL.md"
+    },
+    "security-auditor": {
+      "kind": "agent",
+      "source": ".agent/agents/security-auditor.md"
+    },
+    "seo-fundamentals": {
+      "kind": "skill",
+      "source": ".agent/skills/seo-fundamentals/SKILL.md"
+    },
+    "seo-specialist": {
+      "kind": "agent",
+      "source": ".agent/agents/seo-specialist.md"
+    },
+    "server-management": {
+      "kind": "skill",
+      "source": ".agent/skills/server-management/SKILL.md"
+    },
+    "systematic-debugging": {
+      "kind": "skill",
+      "source": ".agent/skills/systematic-debugging/SKILL.md"
+    },
+    "tailwind-patterns": {
+      "kind": "skill",
+      "source": ".agent/skills/tailwind-patterns/SKILL.md"
+    },
+    "tdd-workflow": {
+      "kind": "skill",
+      "source": ".agent/skills/tdd-workflow/SKILL.md"
+    },
+    "test-engineer": {
+      "kind": "agent",
+      "source": ".agent/agents/test-engineer.md"
+    },
+    "testing-patterns": {
+      "kind": "skill",
+      "source": ".agent/skills/testing-patterns/SKILL.md"
+    },
+    "vulnerability-scanner": {
+      "kind": "skill",
+      "source": ".agent/skills/vulnerability-scanner/SKILL.md"
+    },
+    "webapp-testing": {
+      "kind": "skill",
+      "source": ".agent/skills/webapp-testing/SKILL.md"
+    },
+    "workflow-brainstorm": {
+      "kind": "workflow",
+      "source": ".agent/workflows/brainstorm.md"
+    },
+    "workflow-create": {
+      "kind": "workflow",
+      "source": ".agent/workflows/create.md"
+    },
+    "workflow-debug": {
+      "kind": "workflow",
+      "source": ".agent/workflows/debug.md"
+    },
+    "workflow-deploy": {
+      "kind": "workflow",
+      "source": ".agent/workflows/deploy.md"
+    },
+    "workflow-enhance": {
+      "kind": "workflow",
+      "source": ".agent/workflows/enhance.md"
+    },
+    "workflow-orchestrate": {
+      "kind": "workflow",
+      "source": ".agent/workflows/orchestrate.md"
+    },
+    "workflow-plan": {
+      "kind": "workflow",
+      "source": ".agent/workflows/plan.md"
+    },
+    "workflow-preview": {
+      "kind": "workflow",
+      "source": ".agent/workflows/preview.md"
+    },
+    "workflow-status": {
+      "kind": "workflow",
+      "source": ".agent/workflows/status.md"
+    },
+    "workflow-test": {
+      "kind": "workflow",
+      "source": ".agent/workflows/test.md"
+    },
+    "workflow-ui-ux-pro-max": {
+      "kind": "workflow",
+      "source": ".agent/workflows/ui-ux-pro-max.md"
+    }
+  }
+}

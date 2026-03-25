@@ -1,0 +1,6 @@
+interface:
+  display_name: "Database Design"
+  short_description: "Database design principles and decision-making. Schema design..."
+  default_prompt: "Use $database-design for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

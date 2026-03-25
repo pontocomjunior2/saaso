@@ -1,0 +1,6 @@
+interface:
+  display_name: "Explorer Agent"
+  short_description: "Advanced codebase discovery, deep architectural analysis, and..."
+  default_prompt: "Use $explorer-agent for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

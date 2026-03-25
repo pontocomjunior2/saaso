@@ -1,0 +1,6 @@
+interface:
+  display_name: "Server Management"
+  short_description: "Server management principles and decision-making. Process man..."
+  default_prompt: "Use $server-management for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

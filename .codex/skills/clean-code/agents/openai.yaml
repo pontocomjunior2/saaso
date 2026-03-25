@@ -1,0 +1,6 @@
+interface:
+  display_name: "Clean Code"
+  short_description: "Pragmatic coding standards - concise, direct, no over-enginee..."
+  default_prompt: "Use $clean-code for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Frontend Design"
+  short_description: "Design thinking and decision-making for web UI. Use when desi..."
+  default_prompt: "Use $frontend-design for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

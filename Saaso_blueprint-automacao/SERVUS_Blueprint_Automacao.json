@@ -1,0 +1,592 @@
+{
+  "meta": {
+    "produto": "SERVUS — Copiloto Clínico com IA",
+    "versao": "1.0",
+    "data": "2026-03-17",
+    "descricao": "Blueprint completo de automação: fluxos, réguas de nutrição e templates por etapa do funil"
+  },
+  "pricing": {
+    "copiloto": {
+      "mensal": 497,
+      "anual": 4970,
+      "anual_nota": "Paga 10, leva 12 (~R$414/mês)"
+    },
+    "copiloto_pro": {
+      "mensal": 697,
+      "anual": 6970,
+      "anual_nota": "Paga 10, leva 12 (~R$581/mês)"
+    },
+    "early_adopter": {
+      "desconto": "35%",
+      "copiloto_anual_ea": 3230,
+      "copiloto_pro_anual_ea": 4531
+    }
+  },
+  "pipeline": [
+    {
+      "id": 1,
+      "nome": "Lead",
+      "descricao": "Pessoa que demonstrou interesse mas ainda não foi qualificada",
+      "agente": "Automação (ManyChat)",
+      "canais": ["WhatsApp", "Email"],
+      "duracao_maxima_dias": 90,
+      "objetivo": "Engajar e qualificar",
+      "regua_nutricao": [
+        {
+          "timing": "Imediato",
+          "condicao": "Entrada do lead (clicou no link, respondeu broadcast, veio do Instagram)",
+          "canal": "WhatsApp",
+          "tipo": "Boas-vindas + Gancho",
+          "template": "Oi, Dr(a). {{nome}}! Aqui é da equipe SERVUS. Vi que você se interessou pelo copiloto clínico. Posso te mostrar como funciona na prática? Leva 2 minutos. 👇",
+          "botoes": ["Quero ver", "Agora não"]
+        },
+        {
+          "timing": "Imediato (se clicou 'Quero ver')",
+          "condicao": "Lead clicou no botão 'Quero ver'",
+          "canal": "WhatsApp",
+          "tipo": "Vídeo demo 90s",
+          "template": "Olha esse caso: paciente chega com dor torácica atípica + dispneia. Veja o que o SERVUS identificou em 10 segundos 👇",
+          "anexos": ["video_demo_90s"],
+          "botoes": ["Quero testar"]
+        },
+        {
+          "timing": "D+1",
+          "condicao": "Assistiu o vídeo mas não clicou no link",
+          "canal": "WhatsApp",
+          "tipo": "Follow-up suave",
+          "template": "Dr(a). {{nome}}, viu o vídeo? Se tiver alguma dúvida sobre como o SERVUS funciona no plantão, é só mandar aqui que te explico."
+        },
+        {
+          "timing": "D+3",
+          "condicao": "Não respondeu",
+          "canal": "WhatsApp",
+          "tipo": "Prova social",
+          "template": "Tá tudo bem se não for o momento. Mas caso mude de ideia, olha o que o Dr. {{nome_ea}} falou depois de 1 semana usando:",
+          "anexos": ["depoimento_curto"]
+        },
+        {
+          "timing": "D+7",
+          "condicao": "Sem resposta",
+          "canal": "Email",
+          "tipo": "Conteúdo educativo",
+          "assunto": "Esse caso no PA te lembra algo?",
+          "template": "Caso clínico narrativo → como o SERVUS atuaria → CTA para demo"
+        },
+        {
+          "timing": "D+14",
+          "condicao": "Sem resposta — última tentativa automática antes do SDR",
+          "canal": "WhatsApp",
+          "tipo": "Reengajamento",
+          "template": "Dr(a). {{nome}}, estou passando aqui pela última vez. Se quiser conhecer o SERVUS, é só responder 'SIM' que agendo uma demo de 10 min com a equipe. Sem compromisso.",
+          "gatilho_resposta": "Se respondeu 'SIM' → tag 'interessado' → fila do SDR"
+        },
+        {
+          "timing": "D+30",
+          "condicao": "Nutrição passiva",
+          "canal": "Email",
+          "tipo": "Conteúdo educativo (não venda)",
+          "assunto": "3 erros comuns na triagem de dor torácica",
+          "template": "Conteúdo educativo puro, CTA suave no final"
+        },
+        {
+          "timing": "D+60",
+          "condicao": "Nutrição passiva",
+          "canal": "Email",
+          "tipo": "Conteúdo educativo (não venda)",
+          "template": "Artigos, casos, novidades do SERVUS"
+        }
+      ],
+      "transicao": {
+        "avanca_para": "Lead Qualificado",
+        "condicoes": [
+          "Respondeu 'SIM' ou 'Quero ver' e assistiu o vídeo",
+          "Clicou no link de agendamento",
+          "Respondeu qualquer mensagem demonstrando interesse"
+        ],
+        "gatilho_automatico": "Tag 'interessado' no ManyChat → entra na fila do SDR"
+      },
+      "regra_saida": {
+        "vai_para": "Perdido",
+        "condicoes": [
+          "90 dias sem nenhuma interação",
+          "Respondeu 'não tenho interesse' ou pediu para parar",
+          "Email bounced + WhatsApp não entrega"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "nome": "Lead Qualificado",
+      "descricao": "Lead que demonstrou interesse ativo — SDR assume o contato humano",
+      "agente": "SDR (humano + automação)",
+      "canais": ["WhatsApp (SDR)", "Email"],
+      "duracao_maxima_dias": 30,
+      "objetivo": "Qualificar e agendar demo",
+      "regua_nutricao": [
+        {
+          "timing": "Imediato",
+          "condicao": "Lead entrou na fila do SDR",
+          "canal": "WhatsApp",
+          "responsavel": "SDR",
+          "tipo": "Contato humano",
+          "template": "Oi, Dr(a). {{nome}}! Aqui é {{nome_sdr}} da equipe do Dr. Márcio. Vi que você se interessou pelo SERVUS. Posso te mostrar como funciona na prática? Leva 5 minutos pelo WhatsApp mesmo."
+        },
+        {
+          "timing": "Se respondeu",
+          "condicao": "Lead respondeu à mensagem do SDR",
+          "canal": "WhatsApp",
+          "responsavel": "SDR",
+          "tipo": "Qualificação (3 perguntas)",
+          "script_qualificacao": [
+            "Quantos pacientes você atende por dia, em média?",
+            "Já teve casos onde sentiu falta de um segundo par de olhos pra decisão clínica?",
+            "Se pudesse ter um copiloto de IA acessível pelo WhatsApp, usaria no dia a dia?"
+          ],
+          "regra_decisao": {
+            "sim_3_perguntas": "Agenda demo com Closer",
+            "nao_em_alguma": "Continua nutrindo"
+          }
+        },
+        {
+          "timing": "D+1",
+          "condicao": "Não respondeu à primeira mensagem",
+          "canal": "WhatsApp",
+          "responsavel": "SDR",
+          "tipo": "Follow-up",
+          "template": "Dr(a). {{nome}}, mandei uma mensagem ontem sobre o SERVUS. Sei que o plantão é corrido. Quer que eu te mande um vídeo rápido de 1 minuto mostrando como funciona?"
+        },
+        {
+          "timing": "D+3",
+          "condicao": "Não respondeu ao follow-up",
+          "canal": "WhatsApp",
+          "responsavel": "SDR",
+          "tipo": "Ângulo diferente",
+          "template": "Dr(a). {{nome}}, outros médicos que estão usando me disseram que a parte que mais gostam é ter o respaldo na hora do diagnóstico diferencial. Se quiser ver um exemplo real, é só dizer."
+        },
+        {
+          "timing": "D+7",
+          "condicao": "Não respondeu no WhatsApp",
+          "canal": "Email",
+          "responsavel": "Automação",
+          "tipo": "Email formal",
+          "assunto": "Dr(a). {{nome}}, convite para conhecer o SERVUS",
+          "template": "Explicação profissional + link para agendar demo de 15 min"
+        },
+        {
+          "timing": "D+14",
+          "condicao": "Sem resposta em nenhum canal",
+          "canal": "WhatsApp",
+          "responsavel": "SDR",
+          "tipo": "Última tentativa SDR",
+          "template": "Dr(a). {{nome}}, entendo se não é o momento. Vou parar de mandar mensagem, mas se algum dia quiser conhecer o SERVUS, é só responder aqui que eu retomo. Tudo de bom nos plantões! 💪"
+        },
+        {
+          "timing": "D+15 a D+30",
+          "condicao": "Voltou para nutrição automática",
+          "canal": "Email",
+          "responsavel": "Automação",
+          "tipo": "Nutrição passiva",
+          "frequencia": "A cada 7 dias",
+          "template": "Conteúdo educativo (não venda)"
+        }
+      ],
+      "transicao": {
+        "avanca_para": "Em Negociação",
+        "condicoes": [
+          "Respondeu SIM nas 3 perguntas de qualificação",
+          "Pediu para agendar demo ou falar com alguém",
+          "Perguntou sobre preço (sinal forte de intenção)"
+        ],
+        "gatilho": "SDR move manualmente para fila do Closer + agenda horário"
+      },
+      "regra_saida": {
+        "cenarios": [
+          {
+            "condicao": "30 dias sem resposta",
+            "destino": "Lead",
+            "acao": "Volta para nutrição passiva"
+          },
+          {
+            "condicao": "Disse explicitamente que não tem interesse",
+            "destino": "Perdido",
+            "acao": "Entra na régua de reativação em 60 dias"
+          },
+          {
+            "condicao": "Não é médico / perfil incorreto",
+            "destino": null,
+            "acao": "Remove do funil"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "nome": "Em Negociação",
+      "descricao": "Lead qualificado com demo agendada ou em andamento — Closer assume",
+      "agente": "Closer (humano)",
+      "canais": ["WhatsApp", "Call"],
+      "duracao_maxima_dias": 15,
+      "objetivo": "Fechar assinatura (prioridade anual)",
+      "regua_nutricao": [
+        {
+          "timing": "D0",
+          "condicao": "Demo agendada",
+          "canal": "WhatsApp",
+          "responsavel": "Closer",
+          "tipo": "Confirmação da demo",
+          "template": "Dr(a). {{nome}}, aqui é {{nome_closer}}. Tá confirmado nosso papo {{dia}} às {{hora}}? Vou te mostrar o SERVUS funcionando ao vivo com um caso clínico real. Vai ser rápido, 15 min."
+        },
+        {
+          "timing": "Demo (ao vivo)",
+          "condicao": "Horário confirmado",
+          "canal": "WhatsApp + Call",
+          "responsavel": "Closer",
+          "tipo": "Demo ao vivo (15 min)",
+          "roteiro": {
+            "etapa_1": "Caso clínico real no WhatsApp — mostrar Triagem + CSE",
+            "etapa_2": "Apresentar planos",
+            "script_fechamento": "Apresentar Copiloto Pro (R$697) primeiro → âncora. Depois Copiloto (R$497). Oferecer anual (paga 10, leva 12). Se early adopter: 35% off."
+          }
+        },
+        {
+          "timing": "D+1 pós-demo",
+          "condicao": "Não fechou na hora",
+          "canal": "WhatsApp",
+          "responsavel": "Closer",
+          "tipo": "Follow-up pós-demo",
+          "template": "Dr(a). {{nome}}, gostou do que viu ontem? Alguma dúvida sobre o SERVUS? Se quiser ativar, é só me dizer que mando o link e te configuro hoje."
+        },
+        {
+          "timing": "D+3 pós-demo",
+          "condicao": "Sem resposta ao follow-up",
+          "canal": "WhatsApp",
+          "responsavel": "Closer",
+          "tipo": "Urgência suave + benefício anual",
+          "template": "Dr(a). {{nome}}, só passando pra lembrar: no plano anual você paga 10 meses e usa 12. Isso dá R$414/mês no Copiloto — menos que um plantão noturno. Quer que eu ative pra você?"
+        },
+        {
+          "timing": "D+7 pós-demo",
+          "condicao": "Sem resposta",
+          "canal": "WhatsApp",
+          "responsavel": "Closer",
+          "tipo": "Último contato Closer",
+          "template": "Dr(a). {{nome}}, respeito seu tempo. Se não for agora, sem problema. Mas quero que saiba: o SERVUS vai estar aqui quando você precisar. Se mudar de ideia, é só chamar aqui."
+        },
+        {
+          "timing": "No-show",
+          "condicao": "Não apareceu na demo",
+          "canal": "WhatsApp",
+          "responsavel": "Closer",
+          "tipo": "Reagendamento",
+          "template": "Dr(a). {{nome}}, não consegui te encontrar no horário combinado. Sei que plantão é imprevisível! Quer remarcar? Posso {{dia1}} ou {{dia2}}, o que for melhor pra você."
+        }
+      ],
+      "transicao": {
+        "avanca_para": "Cliente Novo",
+        "condicoes": [
+          "Pagamento confirmado (mensal ou anual)",
+          "Contrato assinado (Closer envia antes da cobrança)"
+        ],
+        "gatilho_automatico": "Pagamento no checkout → automação move para 'Cliente Novo' + dispara onboarding"
+      },
+      "regra_saida": {
+        "cenarios": [
+          {
+            "condicao": "15 dias sem resposta pós-demo",
+            "destino": "Lead Qualificado",
+            "acao": "SDR tenta novamente em 30 dias"
+          },
+          {
+            "condicao": "Disse que não quer",
+            "destino": "Perdido",
+            "acao": "Entra na régua de reativação em 60 dias"
+          },
+          {
+            "condicao": "No-show 2x",
+            "destino": "Lead",
+            "acao": "Volta para nutrição passiva"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "nome": "Cliente Novo",
+      "descricao": "Pagou e precisa ser ativado — primeiros 30 dias são críticos",
+      "agente": "Onboarding (automação + Marcos)",
+      "canais": ["WhatsApp", "Email"],
+      "duracao_dias": 30,
+      "objetivo": "Ativar uso + garantir 1º sucesso",
+      "regua_nutricao": [
+        {
+          "timing": "D0",
+          "condicao": "Pagamento confirmado",
+          "canal": "WhatsApp",
+          "tipo": "Boas-vindas + acesso",
+          "template": "Dr(a). {{nome}}, seja bem-vindo(a) ao SERVUS! 🎉 Seu copiloto clínico está ativo. Aqui está seu tutorial de 2 minutos pra usar no próximo plantão:",
+          "anexos": ["video_tutorial", "pdf_guia_rapido"]
+        },
+        {
+          "timing": "D+1",
+          "condicao": "Após ativação",
+          "canal": "WhatsApp",
+          "tipo": "Primeiro caso guiado",
+          "template": "Dr(a). {{nome}}, pronto(a) pro primeiro caso? Tenta enviar o seguinte cenário pro SERVUS e veja o que ele te retorna: 'Paciente masculino, 45 anos, dor torácica há 2h, sudorese...' Depois me diz o que achou!"
+        },
+        {
+          "timing": "D+3",
+          "condicao": "Após primeiro caso",
+          "canal": "WhatsApp",
+          "tipo": "Cases de uso práticos",
+          "template": "Dr(a). {{nome}}, aqui estão 3 situações em que outros médicos mais usam o SERVUS no plantão:\n1. Diagnóstico diferencial em dor abdominal\n2. Verificação de interação medicamentosa\n3. Protocolo de sepse\nJá testou algum desses?"
+        },
+        {
+          "timing": "D+7",
+          "condicao": "1 semana de uso",
+          "canal": "WhatsApp",
+          "tipo": "Check-in",
+          "template": "Dr(a). {{nome}}, faz 1 semana que você tem o SERVUS. Tá conseguindo usar nos plantões? Alguma dúvida ou sugestão? Estamos aqui pra ajudar."
+        },
+        {
+          "timing": "D+14",
+          "condicao": "2 semanas de uso",
+          "canal": "WhatsApp",
+          "tipo": "NPS + Convite grupo VIP",
+          "template": "Dr(a). {{nome}}, de 0 a 10, o quanto você recomendaria o SERVUS para um colega?",
+          "botoes": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+          "template_complemento": "Aliás, temos um grupo fechado com outros médicos que usam o SERVUS. Quer entrar?"
+        },
+        {
+          "timing": "D+30",
+          "condicao": "Fim do onboarding",
+          "canal": ["WhatsApp", "Email"],
+          "tipo": "Relatório do primeiro mês",
+          "template": "Dr(a). {{nome}}, seu primeiro mês com SERVUS! 🎯 Você consultou o copiloto {{total_usos}} vezes. Sabia que no plano anual você economiza 2 meses? Quer saber mais?"
+        }
+      ],
+      "transicao": {
+        "avanca_para": "Cliente Ativo",
+        "condicoes": [
+          "Usou o SERVUS pelo menos 3x nos primeiros 30 dias",
+          "Completou o onboarding (assistiu tutorial + fez caso guiado)"
+        ],
+        "gatilho_automatico": "D+30 → move para Cliente Ativo"
+      },
+      "regra_saida": {
+        "alertas": [
+          {
+            "condicao": "0 usos em 14 dias",
+            "acao": "Alerta pro SDR/Closer ligar e ajudar"
+          },
+          {
+            "condicao": "0 usos em 30 dias",
+            "destino": "Em Risco",
+            "acao": "Move para 'Em Risco' imediatamente"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "nome": "Cliente Ativo",
+      "descricao": "Usando o produto regularmente — foco em retenção, valor e upsell",
+      "agente": "Sucesso (automação)",
+      "canais": ["WhatsApp", "Email"],
+      "duracao": "Enquanto ativo",
+      "objetivo": "Reter + upsell + indicação",
+      "regua_nutricao": [
+        {
+          "timing": "Mensal",
+          "canal": "Email",
+          "tipo": "Relatório mensal de uso",
+          "descricao": "Métricas de consultas, casos mais frequentes, tempo economizado"
+        },
+        {
+          "timing": "A cada 15 dias",
+          "canal": "WhatsApp",
+          "tipo": "Conteúdo de valor",
+          "template": "Dr(a). {{nome}}, novidade no SERVUS: agora o copiloto tem protocolo atualizado de {{especialidade}}. Testa no próximo plantão!"
+        },
+        {
+          "timing": "Mês 2",
+          "canal": "WhatsApp",
+          "responsavel": "Closer",
+          "tipo": "Upsell mensal → anual",
+          "condicao": "Cliente está no plano mensal",
+          "template": "Dr(a). {{nome}}, vi que você tá usando bastante o SERVUS. Sabia que no plano anual você paga 10 meses e ganha 12? Economia de quase R$1.000. Quer que eu migre pra você?"
+        },
+        {
+          "timing": "Mês 3",
+          "canal": "WhatsApp",
+          "tipo": "Upsell Copiloto → Pro",
+          "condicao": "Cliente está no plano Copiloto (não Pro)",
+          "template": "Dr(a). {{nome}}, você já é craque no SERVUS. Conheça o Copiloto Pro: relatórios automáticos dos seus padrões clínicos + mentoria ao vivo com Dr. Alexandre. Quer saber mais?"
+        },
+        {
+          "timing": "Trimestral",
+          "canal": "WhatsApp",
+          "tipo": "Programa de indicação",
+          "template": "Dr(a). {{nome}}, tem algum colega que faz plantão e poderia se beneficiar do SERVUS? Se indicar e ele assinar, você ganha 1 mês grátis. É só me mandar o WhatsApp dele."
+        },
+        {
+          "timing": "Semestral",
+          "canal": "WhatsApp",
+          "tipo": "NPS",
+          "descricao": "Pesquisa de satisfação"
+        }
+      ],
+      "regra_saida": {
+        "move_para": "Em Risco",
+        "condicoes": [
+          "Sem uso por 14+ dias consecutivos",
+          "NPS < 6",
+          "Não renovou (se mensal, não pagou no vencimento)"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "nome": "Em Risco",
+      "descricao": "Cliente que parou de usar ou deu sinais de insatisfação — ação urgente",
+      "agente": "Retenção (SDR ou Closer)",
+      "canais": ["WhatsApp", "Ligação"],
+      "duracao_maxima_dias": 15,
+      "objetivo": "Salvar o cliente",
+      "regua_nutricao": [
+        {
+          "timing": "Imediato",
+          "canal": "WhatsApp",
+          "tipo": "Check-in pessoal",
+          "template": "Dr(a). {{nome}}, notei que faz um tempo que você não usa o SERVUS. Tá tudo bem? Aconteceu algo? Quero entender se posso te ajudar de alguma forma."
+        },
+        {
+          "timing": "D+3",
+          "canal": "WhatsApp",
+          "responsavel": "SDR/Closer",
+          "tipo": "Ligação/áudio",
+          "template": "Dr(a). {{nome}}, aqui é {{nome_responsavel}}. Vou mandar um áudio rápido porque quero realmente entender o que aconteceu...",
+          "formato": "Áudio personalizado 30-60s"
+        },
+        {
+          "timing": "D+7",
+          "canal": "WhatsApp",
+          "tipo": "Oferta de resgate",
+          "condicao": "Se o motivo for preço",
+          "template": "Dr(a). {{nome}}, sei que o investimento pesa. Que tal eu te fazer uma condição especial por mais 3 meses? Quero que você continue tendo o copiloto no plantão."
+        },
+        {
+          "timing": "D+15",
+          "canal": "WhatsApp",
+          "tipo": "Despedida respeitosa",
+          "template": "Dr(a). {{nome}}, respeito sua decisão. Se algum dia quiser voltar, o SERVUS vai estar aqui. Cuida-se e bons plantões. 💪"
+        }
+      ],
+      "transicao": {
+        "volta_para": "Cliente Ativo",
+        "condicoes": [
+          "Voltou a usar o produto",
+          "Renovou/pagou pendência",
+          "Respondeu positivamente ao contato de retenção"
+        ]
+      },
+      "regra_saida": {
+        "move_para": "Churned",
+        "condicoes": [
+          "Cancelou a assinatura",
+          "Pagamento não realizado + 15 dias sem resposta",
+          "Pediu explicitamente para sair"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "nome": "Perdido / Churned",
+      "descricao": "Lead que nunca converteu ou cliente que cancelou — tentativa de reativação após quarentena",
+      "agente": "Reativação (automação)",
+      "canais": ["Email", "WhatsApp (pontual)"],
+      "quarentena_dias": 60,
+      "duracao_maxima_dias": 120,
+      "objetivo": "Reativar se possível",
+      "regua_nutricao": [
+        {
+          "timing": "D+60",
+          "condicao": "Após 60 dias de quarentena",
+          "canal": "Email",
+          "tipo": "Reativação suave",
+          "assunto": "Dr(a). {{nome}}, o SERVUS evoluiu",
+          "template": "Mostrar novas funcionalidades, melhorias, depoimentos recentes. CTA suave."
+        },
+        {
+          "timing": "D+90",
+          "condicao": "Para ex-clientes (churned)",
+          "canal": "WhatsApp",
+          "tipo": "Oferta especial de retorno",
+          "template": "Dr(a). {{nome}}, sentimos sua falta no SERVUS. Desde que saiu, adicionamos {{feature_nova}}. Quer voltar com uma condição especial? {{oferta}}"
+        },
+        {
+          "timing": "D+120",
+          "condicao": "Não respondeu a nenhuma tentativa",
+          "canal": "Email",
+          "tipo": "Última tentativa",
+          "assunto": "Última mensagem nossa, Dr(a). {{nome}}",
+          "template": "Breve, respeitoso. 'Se quiser voltar algum dia, estamos aqui.'"
+        }
+      ],
+      "regra_saida": {
+        "cenarios": [
+          {
+            "condicao": "120 dias sem resposta",
+            "acao": "Remove do funil ativo (fica só em lista de email geral)"
+          },
+          {
+            "condicao": "Pediu explicitamente para parar",
+            "acao": "Remove de tudo"
+          }
+        ],
+        "excecao": "Lançamento de feature importante → 1 email de retomada permitido por trimestre"
+      }
+    }
+  ],
+  "ferramentas": [
+    {
+      "nome": "ManyChat",
+      "etapas": [1, 4, 5],
+      "funcao": "Automação WhatsApp, fluxos, tags, gatilhos"
+    },
+    {
+      "nome": "CRM (Pipedrive/HubSpot)",
+      "etapas": [2, 3, 6],
+      "funcao": "Pipeline de vendas, agendamento, follow-up"
+    },
+    {
+      "nome": "Email (SendGrid/Mailchimp)",
+      "etapas": [1, 5, 7],
+      "funcao": "Nutrição passiva, relatórios, reativação"
+    },
+    {
+      "nome": "Checkout (Asaas/Stripe)",
+      "etapas": [3, 5],
+      "funcao": "Pagamento, recorrência, link de assinatura"
+    },
+    {
+      "nome": "Analytics interno",
+      "etapas": [4, 5, 6],
+      "funcao": "Monitorar uso do SERVUS por médico"
+    }
+  ],
+  "variaveis_template": {
+    "{{nome}}": "Nome do médico (ex: João)",
+    "{{nome_sdr}}": "Nome do SDR responsável",
+    "{{nome_closer}}": "Nome do Closer responsável",
+    "{{nome_responsavel}}": "Nome de quem está fazendo contato",
+    "{{nome_ea}}": "Nome de um Early Adopter para depoimento",
+    "{{dia}}": "Data da demo ou reagendamento",
+    "{{hora}}": "Hora da demo",
+    "{{dia1}}": "Opção 1 de reagendamento",
+    "{{dia2}}": "Opção 2 de reagendamento",
+    "{{especialidade}}": "Especialidade do novo protocolo adicionado",
+    "{{total_usos}}": "Número de vezes que o médico usou o SERVUS no período",
+    "{{feature_nova}}": "Nova funcionalidade adicionada ao SERVUS",
+    "{{oferta}}": "Condição especial de retorno (desconto ou benefício)"
+  }
+}

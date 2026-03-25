@@ -1,0 +1,6 @@
+interface:
+  display_name: "Security Auditor"
+  short_description: "Elite cybersecurity expert. Think like an attacker, defend li..."
+  default_prompt: "Use $security-auditor for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

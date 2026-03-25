@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workflow Brainstorm"
+  short_description: "Antigravity workflow adapted for Codex. Structured brainstorm..."
+  default_prompt: "Use $workflow-brainstorm for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

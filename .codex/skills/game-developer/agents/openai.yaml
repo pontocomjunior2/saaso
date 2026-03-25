@@ -1,0 +1,6 @@
+interface:
+  display_name: "Game Developer"
+  short_description: "Game development across all platforms (PC, Web, Mobile, VR/AR..."
+  default_prompt: "Use $game-developer for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Review Checklist"
+  short_description: "Code review guidelines covering code quality, security, and b..."
+  default_prompt: "Use $code-review-checklist for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

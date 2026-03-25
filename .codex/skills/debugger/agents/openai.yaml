@@ -1,0 +1,6 @@
+interface:
+  display_name: "Debugger"
+  short_description: "Expert in systematic debugging, root cause analysis, and cras..."
+  default_prompt: "Use $debugger for the current task in this repository."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workflow Enhance"
+  short_description: "Antigravity workflow adapted for Codex. Add or update feature..."
+  default_prompt: "Use $workflow-enhance for the current task in this repository."
+policy:
+  allow_implicit_invocation: true
