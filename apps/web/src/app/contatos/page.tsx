@@ -218,14 +218,14 @@ export default function ContactsPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-8 p-6 lg:p-10">
       {/* Header Section */}
-      <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight text-[#1a202c]">Gestao de Clientes</h1>
-          <p className="mt-2.5 text-base text-[#718096]">
+      <section className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-2">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-3xl font-bold tracking-tight text-[#1a202c]">Gestao de Clientes</h1>
+          <p className="mt-1.5 text-base text-[#718096]">
             Base unificada de contatos e historico operacional. Gerencie oportunidades e leads no funil.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <button
             onClick={() => setIsManualSheetOpen(true)}
             className="inline-flex items-center gap-2.5 rounded-2xl bg-white border border-[#e2e8f0] px-6 py-3.5 text-sm font-bold text-[#4a5568] shadow-sm transition hover:bg-[#f7fafc] active:translate-y-0.5"

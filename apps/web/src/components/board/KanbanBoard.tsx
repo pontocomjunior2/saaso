@@ -367,6 +367,15 @@ export default function KanbanBoard({
 
                                   <div className="mt-4">
                                     <p className="text-[15px] font-bold leading-snug text-[#1a202c]">{card.title}</p>
+                                    
+                                    {card.contact && (
+                                      <p className="mt-1 text-[13px] font-semibold text-[#594ded]">
+                                        {card.contact.name}
+                                        {/* @ts-ignore - company exists in the expanded card object from include */}
+                                        {card.contact.company?.name && <span className="text-[#a0aec0] font-normal"> · {card.contact.company.name}</span>}
+                                      </p>
+                                    )}
+
                                     <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-[#a0aec0]">
                                       {ruleSummary.nextAction}
                                     </p>

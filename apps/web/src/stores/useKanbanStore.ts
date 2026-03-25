@@ -25,6 +25,10 @@ export interface Card {
   contact?: {
     id: string;
     name: string;
+    company?: {
+      id: string;
+      name: string;
+    } | null;
   } | null;
   assignee?: {
     id: string;
@@ -95,6 +99,14 @@ interface KanbanState {
   moveCardLocally: (cardId: string, sourceStageId: string, destStageId: string, sourceIndex: number, destIndex: number) => void;
   moveCardApi: (cardId: string, destStageId: string, destIndex: number) => Promise<void>;
   createCard: (stageId: string, title: string) => Promise<void>;
+  createCardWithContact: (data: {
+    stageId: string;
+    contactName: string;
+    cardTitle?: string;
+    email?: string;
+    phone?: string;
+    companyName?: string;
+  }) => Promise<void>;
   updateCard: (cardId: string, patch: any) => Promise<void>;
   deleteCard: (cardId: string) => Promise<void>;
   toggleAutopilot: (conversationId: string, currentStatus: string) => Promise<void>;
@@ -122,6 +134,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       if (pipelineId) await get().fetchPipeline(pipelineId);
     } catch (error: any) {
       set({ error: error?.response?.data?.message || 'Erro ao criar card' });
+      throw error;
+    }
+  },
+
+  createCardWithContact: async (data) => {
+    try {
+      await api.post('/contacts/manual-entry', data);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao criar card com contato' });
       throw error;
     }
   },

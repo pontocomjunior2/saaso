@@ -25,6 +25,7 @@ import {
   MessageSquareText,
   Pencil,
   Plus,
+  Save,
   Search,
   Send,
   Trash2,
@@ -175,19 +176,19 @@ function getCampaignStatusMeta(status: Campaign['status']) {
     case 'ACTIVE':
       return {
         label: 'Ativa',
-        className: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100',
+        className: 'border-emerald-100 bg-emerald-50 text-emerald-700',
         icon: Send,
       };
     case 'PAUSED':
       return {
         label: 'Pausada',
-        className: 'border-amber-300/20 bg-amber-300/10 text-amber-100',
+        className: 'border-amber-100 bg-amber-50 text-amber-700',
         icon: CirclePause,
       };
     default:
       return {
         label: 'Rascunho',
-        className: 'border-white/10 bg-white/5 text-slate-200',
+        className: 'border-slate-100 bg-slate-50 text-slate-600',
         icon: Pencil,
       };
   }
@@ -227,11 +228,11 @@ function getAudienceKindMeta(kind: Audience['kind']) {
   return kind === 'MANUAL'
     ? {
         label: 'Lista manual',
-        className: 'border-amber-300/20 bg-amber-300/10 text-amber-100',
+        className: 'border-amber-100 bg-amber-50 text-amber-700',
       }
     : {
         label: 'Dinamica',
-        className: 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100',
+        className: 'border-indigo-100 bg-indigo-50 text-[#594ded]',
       };
 }
 
@@ -590,63 +591,61 @@ export default function CampaignsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-6 p-6 lg:p-8">
-      <section className="rounded-[30px] border border-white/10 bg-[rgba(7,16,29,0.88)] p-5 shadow-[0_20px_72px_rgba(0,0,0,0.22)] lg:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">
-              Campanhas
+      <section className="rounded-[32px] border border-[#f0f0f0] bg-white p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] lg:p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#594ded]">
+              Campanhas e Audiencias
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white lg:text-[2rem]">
-              Fundacao de outbound com audiencias dinamicas e campanhas
-              operacionais.
+            <h2 className="mt-2.5 text-2xl font-bold tracking-tight text-[#1a202c] lg:text-4xl">
+              Fundacao de outbound com audiencias dinamicas.
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-400">
+            <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#718096]">
               Este corte abre a camada de campanhas sem fingir engine completa:
               o workspace monta audiencias a partir da base real e prepara
               campanhas ligadas ao canal e ao template de mensagem.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 xl:max-w-[44rem] xl:justify-end">
-            <div className="grid min-w-[12rem] gap-2 rounded-[24px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                  Campanhas
+          <div className="flex flex-wrap gap-4 xl:justify-end">
+            <div className="flex items-center gap-4 rounded-2xl border border-[#f0f0f0] bg-[#fafafb]/50 px-5 py-4">
+              <div className="grid gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
+                  ATIVIDADE
                 </span>
-                <span className="text-lg font-semibold text-white">
-                  {metrics.campaigns}
-                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-[#1a202c]">
+                    {metrics.campaigns}
+                  </span>
+                  <span className="text-xs font-semibold text-[#594ded]">Campanhas</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
-                <span>{metrics.activeCampaigns} ativas</span>
-                <span>{metrics.scheduledCampaigns} agendadas</span>
-              </div>
-            </div>
-            <div className="grid min-w-[12rem] gap-2 rounded-[24px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] uppercase tracking-[0.28em] text-slate-500">
-                  Audiencias
+              <div className="h-10 w-px bg-[#f0f0f0]" />
+              <div className="grid gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
+                  ALCANCE
                 </span>
-                <span className="text-lg font-semibold text-white">
-                  {metrics.audiences}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
-                <span>{metrics.reachableContacts} contatos no recorte</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-[#1a202c]">
+                    {metrics.reachableContacts}
+                  </span>
+                  <span className="text-xs font-semibold text-[#594ded]">Contatos</span>
+                </div>
               </div>
             </div>
+
             <button
               onClick={() => openAudiencePanel()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-100 transition hover:border-white/20 hover:bg-white/[0.08]"
+              className="inline-flex items-center justify-center gap-2.5 rounded-2xl border border-[#e2e8f0] bg-white px-6 py-4 text-sm font-bold text-[#4a5568] shadow-sm transition hover:bg-[#f7fafc] active:translate-y-0.5"
             >
-              <Users className="h-4 w-4" />
+              <Users className="h-4.5 w-4.5 text-[#594ded]" />
               Nova audiencia
             </button>
             <button
               onClick={() => openCampaignPanel()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:translate-y-[-1px]"
+              className="inline-flex items-center justify-center gap-2.5 rounded-2xl bg-[#594ded] px-6 py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(89,77,237,0.25)] transition hover:translate-y-[-2px] hover:shadow-[0_12px_32px_rgba(89,77,237,0.3)] active:translate-y-0"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4.5 w-4.5" />
               Nova campanha
             </button>
           </div>
@@ -659,22 +658,22 @@ export default function CampaignsPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="flex min-h-[42rem] flex-col rounded-[28px] border border-white/10 bg-[rgba(7,16,29,0.86)] shadow-[0_20px_72px_rgba(0,0,0,0.2)]">
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 p-5">
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="flex min-h-[42rem] flex-col rounded-[32px] border border-[#f0f0f0] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div className="flex items-center justify-between gap-4 border-b border-[#f0f0f0] bg-[#fafafb]/50 p-6">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">
-                Campanhas
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
+                OPERACIONAL
               </p>
-              <h3 className="mt-2 text-xl font-semibold text-white">
+              <h3 className="mt-1 text-lg font-bold text-[#1a202c]">
                 Estado operacional
               </h3>
             </div>
             <button
               onClick={() => openCampaignPanel()}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-slate-100 transition hover:border-white/20 hover:bg-white/[0.08]"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#e2e8f0] bg-white px-4 py-2 text-sm font-bold text-[#4a5568] transition hover:bg-[#f7fafc]"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 text-[#594ded]" />
               Criar
             </button>
           </div>
@@ -699,43 +698,43 @@ export default function CampaignsPage() {
                 return (
                   <article
                     key={campaign.id}
-                    className="rounded-[24px] border border-white/10 bg-black/15 p-5 transition hover:border-white/20 hover:bg-black/20"
+                    className="group relative rounded-[24px] border border-[#f0f0f0] bg-white p-6 transition-all hover:translate-y-[-2px] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)]"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-lg font-semibold text-white">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h4 className="text-lg font-bold text-[#1a202c]">
                             {campaign.name}
                           </h4>
                           <span
                             className={cn(
-                              'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
+                              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider',
                               statusMeta.className,
                             )}
                           >
-                            <StatusIcon className="h-3.5 w-3.5" />
+                            <StatusIcon className="h-3 w-3" />
                             {statusMeta.label}
                           </span>
                         </div>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                        <p className="mt-2 text-sm leading-relaxed text-[#718096] max-w-2xl">
                           {campaign.description ||
-                            'Campanha sem descricao operacional definida.'}
+                            'Sem descricao operacional definida.'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/wizard?campaignId=${campaign.id}`}
-                          className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-2.5 text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-300/15"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#4a5568] transition hover:border-[#594ded] hover:bg-indigo-50 hover:text-[#594ded]"
                           aria-label={`Editar campanha ${campaign.name} no wizard`}
                         >
-                          <LayoutTemplate className="h-4 w-4" />
+                          <LayoutTemplate className="h-4.5 w-4.5" />
                         </Link>
                         <button
                           onClick={() => openCampaignPanel(campaign)}
-                          className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#4a5568] transition hover:border-[#594ded] hover:bg-indigo-50 hover:text-[#594ded]"
                           aria-label={`Editar campanha ${campaign.name}`}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4.5 w-4.5" />
                         </button>
                         <button
                           onClick={async () => {
@@ -746,78 +745,61 @@ export default function CampaignsPage() {
                             ) {
                               return;
                             }
-
                             try {
                               await deleteCampaign(campaign.id);
-                            } catch (deleteError) {
-                              setPanelError(
-                                deleteError instanceof Error
-                                  ? deleteError.message
-                                  : 'Erro ao remover campanha',
-                              );
+                            } catch (error) {
+                              setPanelError('Erro ao remover campanha');
                             }
                           }}
-                          className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-2.5 text-rose-100 transition hover:bg-rose-500/20"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#fee2e2] bg-white text-rose-500 transition hover:bg-rose-50"
                           aria-label={`Excluir campanha ${campaign.name}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4.5 w-4.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
                           <ChannelIcon className="h-3.5 w-3.5" />
                           Canal
                         </div>
-                        <p className="mt-2 text-sm font-medium text-white">
+                        <p className="mt-1.5 text-sm font-bold text-[#1a202c]">
                           {channelMeta.label}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+                      <div className="rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
                           <Users className="h-3.5 w-3.5" />
                           Audiencia
                         </div>
-                        <p className="mt-2 text-sm font-medium text-white">
-                          {campaign.audience
-                            ? campaign.audience.name
-                            : 'Nao vinculada'}
+                        <p className="mt-1.5 text-sm font-bold text-[#1a202c] truncate">
+                          {campaign.audience ? campaign.audience.name : 'Nao vinculada'}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {campaign.audience
-                            ? `${campaign.audience.contactCount} contatos no recorte`
-                            : 'Sem recorte dinamico ligado'}
+                        <p className="mt-0.5 text-[11px] font-medium text-[#718096]">
+                          {campaign.audience ? `${campaign.audience.contactCount} contatos` : 'Sem recorte'}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+                      <div className="rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
                           <CalendarClock className="h-3.5 w-3.5" />
                           Agenda
                         </div>
-                        <p className="mt-2 text-sm font-medium text-white">
+                        <p className="mt-1.5 text-sm font-bold text-[#1a202c]">
                           {formatDateTime(campaign.launchAt)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-3">
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                        <Megaphone className="h-3.5 w-3.5" />
-                        Template base
+                    {campaign.messageTemplate?.trim() && (
+                      <div className="mt-3 rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/30 p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#a0aec0] mb-2">Mensagem do Step 1</p>
+                        <p className="text-xs italic leading-relaxed text-[#718096] line-clamp-2">
+                          "{campaign.messageTemplate.trim()}"
+                        </p>
                       </div>
-                      <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
-                        {campaign.steps.length > 0
-                          ? `${campaign.steps.length} etapa(s) | 1o touch ${formatStepDelay(campaign.steps[0], 0)}`
-                          : 'Sem cadencia definida ainda'}
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        {campaign.messageTemplate?.trim()
-                          ? campaign.messageTemplate
-                          : 'Sem mensagem definida ainda. Este rascunho prepara o canal e a audiencia para a phase seguinte.'}
-                      </p>
-                    </div>
+                    )}
                   </article>
                 );
               })
@@ -825,21 +807,21 @@ export default function CampaignsPage() {
           </div>
         </div>
 
-        <div className="flex min-h-[42rem] flex-col rounded-[28px] border border-white/10 bg-[rgba(7,16,29,0.86)] shadow-[0_20px_72px_rgba(0,0,0,0.2)]">
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 p-5">
+        <div className="flex min-h-[42rem] flex-col rounded-[32px] border border-[#f0f0f0] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div className="flex items-center justify-between gap-4 border-b border-[#f0f0f0] bg-[#fafafb]/50 p-6">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">
-                Audiencias
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
+                AUDIENCIAS
               </p>
-              <h3 className="mt-2 text-xl font-semibold text-white">
+              <h3 className="mt-1 text-lg font-bold text-[#1a202c]">
                 Recortes e listas da base
               </h3>
             </div>
             <button
               onClick={() => openAudiencePanel()}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-slate-100 transition hover:border-white/20 hover:bg-white/[0.08]"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#e2e8f0] bg-white px-4 py-2 text-sm font-bold text-[#4a5568] transition hover:bg-[#f7fafc]"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 text-[#594ded]" />
               Criar
             </button>
           </div>
@@ -850,7 +832,7 @@ export default function CampaignsPage() {
                 Carregando audiencias...
               </div>
             ) : audiences.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-white/10 bg-black/15 p-6 text-sm text-slate-400">
+              <div className="rounded-[24px] border border-dashed border-[#e2e8f0] bg-[#fafafb] p-6 text-sm text-[#718096]">
                 Nenhuma audiencia criada ainda. O usuario pode comecar com
                 filtros dinamicos da base ou montar listas manuais para
                 campanhas mais taticas.
@@ -867,35 +849,35 @@ export default function CampaignsPage() {
                 return (
                   <article
                     key={audience.id}
-                    className="rounded-[24px] border border-white/10 bg-black/15 p-5 transition hover:border-white/20 hover:bg-black/20"
+                    className="group relative rounded-[24px] border border-[#f0f0f0] bg-white p-6 transition-all hover:translate-y-[-2px] hover:shadow-[0_12px_24px_rgba(0,0,0,0.04)]"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-lg font-semibold text-white">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h4 className="text-lg font-bold text-[#1a202c]">
                             {audience.name}
                           </h4>
                           <span
                             className={cn(
-                              'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
+                              'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider',
                               audienceKindMeta.className,
                             )}
                           >
-                            <Layers3 className="h-3.5 w-3.5" />
+                            <Layers3 className="h-3 w-3" />
                             {audienceKindMeta.label}
                           </span>
                         </div>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                        <p className="mt-2 text-sm leading-relaxed text-[#718096] max-w-2xl">
                           {audienceDescription}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openAudiencePanel(audience)}
-                          className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#4a5568] transition hover:border-[#594ded] hover:bg-indigo-50 hover:text-[#594ded]"
                           aria-label={`Editar audiencia ${audience.name}`}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4.5 w-4.5" />
                         </button>
                         <button
                           onClick={async () => {
@@ -906,63 +888,59 @@ export default function CampaignsPage() {
                             ) {
                               return;
                             }
-
                             try {
                               await deleteAudience(audience.id);
-                            } catch (deleteError) {
-                              setPanelError(
-                                deleteError instanceof Error
-                                  ? deleteError.message
-                                  : 'Erro ao remover audiencia',
-                              );
+                            } catch (error) {
+                              setPanelError('Erro ao remover audiencia');
                             }
                           }}
-                          className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-2.5 text-rose-100 transition hover:bg-rose-500/20"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#fee2e2] bg-white text-rose-500 transition hover:bg-rose-50"
                           aria-label={`Excluir audiencia ${audience.name}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4.5 w-4.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
                           <Users className="h-3.5 w-3.5" />
                           Alcance
                         </div>
-                        <p className="mt-2 text-lg font-semibold text-white">
+                        <p className="mt-1.5 text-lg font-bold text-[#1a202c]">
                           {audience.contactCount}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-0.5 text-[11px] font-medium text-[#718096]">
                           contatos no recorte atual
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+                      <div className="rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
                           <Megaphone className="h-3.5 w-3.5" />
                           Campanhas
                         </div>
-                        <p className="mt-2 text-lg font-semibold text-white">
+                        <p className="mt-1.5 text-lg font-bold text-[#1a202c]">
                           {audience.campaignCount}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-0.5 text-[11px] font-medium text-[#718096]">
                           campanha(s) vinculada(s)
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
-                          <CalendarClock className="h-3.5 w-3.5" />
-                          Atualizacao
-                        </div>
-                        <p className="mt-2 text-sm font-medium text-white">
-                          {formatDateTime(audience.updatedAt)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-3">
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+                    <div className="mt-3 rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        Atualizacao
+                      </div>
+                      <p className="mt-1.5 text-sm font-bold text-[#1a202c]">
+                        {formatDateTime(audience.updatedAt)}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 rounded-[18px] border border-[#f0f0f0] bg-[#fafafb]/50 p-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0]">
                         <Filter className="h-3.5 w-3.5" />
                         {audience.kind === 'MANUAL'
                           ? 'Selecao da lista'
@@ -1013,745 +991,456 @@ export default function CampaignsPage() {
           </div>
         </div>
       </section>
-
-      {panel ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/70 backdrop-blur-sm">
-          <button
-            type="button"
-            className="flex-1"
+        {/* Panels (Sheets) */}
+        {panel ? (
+          <div
+            className={cn(
+              'fixed inset-0 z-50 flex items-center justify-end bg-slate-900/40 backdrop-blur-[2px] transition-all duration-300',
+              panel ? 'opacity-100 visible' : 'opacity-0 invisible'
+            )}
             onClick={closePanel}
-            aria-label="Fechar painel"
-          />
-
-          <div className="h-full w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-[rgba(4,10,20,0.98)] p-6 shadow-[-30px_0_80px_rgba(0,0,0,0.45)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">
-                  {panel.type === 'campaign' ? 'Campanha' : 'Audiencia'}
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">
-                  {panel.type === 'campaign'
-                    ? selectedCampaign
-                      ? 'Editar campanha'
-                      : 'Nova campanha'
-                    : selectedAudience
-                      ? 'Editar audiencia'
-                      : 'Nova audiencia'}
-                </h3>
-                <p className="mt-2 max-w-xl text-sm leading-7 text-slate-400">
-                  {panel.type === 'campaign'
-                    ? 'Prepare nome, canal, status e mensagem base. A execucao em escala entra na proxima evolucao do modulo.'
-                    : 'Escolha entre filtros dinamicos da base ou uma lista manual de contatos para campanhas mais taticas.'}
-                </p>
-              </div>
-
-              <button
-                onClick={closePanel}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5 text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {panelError ? (
-              <div className="mt-6 rounded-3xl border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">
-                {panelError}
-              </div>
-            ) : null}
-
-            {panel.type === 'campaign' ? (
-              <form onSubmit={handleCampaignSubmit} className="mt-8 grid gap-5">
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-slate-200">
-                    Nome da campanha
-                  </span>
-                  <input
-                    value={campaignDraft.name}
-                    onChange={(event) =>
-                      setCampaignDraft((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    placeholder="Ex.: Reengajamento de leads mornos"
-                  />
-                </label>
-
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-slate-200">
-                    Descricao operacional
-                  </span>
-                  <textarea
-                    rows={3}
-                    value={campaignDraft.description ?? ''}
-                    onChange={(event) =>
-                      setCampaignDraft((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
-                    }
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    placeholder="O que esta campanha tenta mover e em qual momento do funil."
-                  />
-                </label>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-slate-200">
-                      Canal
-                    </span>
-                    <select
-                      value={campaignDraft.channel}
-                      onChange={(event) =>
-                        setCampaignDraft((current) => ({
-                          ...current,
-                          channel: event.target.value as CampaignDraft['channel'],
-                        }))
-                      }
-                      className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    >
-                      <option value="WHATSAPP">WhatsApp</option>
-                      <option value="EMAIL">Email</option>
-                    </select>
-                  </label>
-
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-slate-200">
-                      Status
-                    </span>
-                    <select
-                      value={campaignDraft.status}
-                      onChange={(event) =>
-                        setCampaignDraft((current) => ({
-                          ...current,
-                          status: event.target.value as CampaignDraft['status'],
-                        }))
-                      }
-                      className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    >
-                      <option value="DRAFT">Rascunho</option>
-                      <option value="ACTIVE">Ativa</option>
-                      <option value="PAUSED">Pausada</option>
-                    </select>
-                  </label>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-slate-200">
-                      Audiencia
-                    </span>
-                    <select
-                      value={campaignDraft.audienceId ?? ''}
-                      onChange={(event) =>
-                        setCampaignDraft((current) => ({
-                          ...current,
-                          audienceId: event.target.value || null,
-                        }))
-                      }
-                      className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    >
-                      <option value="">Sem audiencia vinculada</option>
-                      {audiences.map((audience) => (
-                        <option key={audience.id} value={audience.id}>
-                          {audience.name} ({audience.contactCount})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-slate-200">
-                      Agendar para
-                    </span>
-                    <input
-                      type="datetime-local"
-                      value={campaignDraft.launchAt ?? ''}
-                      onChange={(event) =>
-                        setCampaignDraft((current) => ({
-                          ...current,
-                          launchAt: event.target.value,
-                        }))
-                      }
-                      className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    />
-                  </label>
-                </div>
-
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-slate-200">
-                    Mensagem base
-                  </span>
-                  <textarea
-                    rows={7}
-                    value={campaignDraft.messageTemplate ?? ''}
-                    onChange={(event) =>
-                      setCampaignDraft((current) => ({
-                        ...current,
-                        messageTemplate: event.target.value,
-                      }))
-                    }
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    placeholder="Mensagem inicial ou template que esta campanha vai usar quando o runtime de sequencia estiver ativo."
-                  />
-                </label>
-
-                <div className="grid gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-100">
-                        Cadencia inicial
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Fundacao do `SequenceRun`: cada etapa define atraso,
-                        canal e mensagem antes do runtime outbound.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={addCampaignStep}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-slate-100 transition hover:border-white/20 hover:bg-white/[0.08]"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Adicionar etapa
-                    </button>
+          >
+            <aside
+              className={cn(
+                'h-full w-full max-w-[600px] border-l border-[#f0f0f0] bg-white shadow-2xl transition-transform duration-300 transform',
+                panel ? 'translate-x-0' : 'translate-x-full'
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-[#f0f0f0] p-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-[#1a202c]">
+                      {panel.type === 'campaign'
+                        ? selectedCampaign
+                          ? 'Editar Campanha'
+                          : 'Nova Campanha'
+                        : selectedAudience
+                          ? 'Editar Audiencia'
+                          : 'Nova Audiencia'}
+                    </h2>
+                    <p className="mt-1 text-sm text-[#718096]">
+                      {panel.type === 'campaign'
+                        ? 'Configure o canal e a cadencia de mensagens.'
+                        : 'Defina os filtros dinamicos ou escolha os contatos.'}
+                    </p>
                   </div>
-
-                  {campaignDraft.steps.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-5 text-sm text-slate-500">
-                      Nenhuma etapa definida ainda. O runtime de cadencia vai
-                      usar esta estrutura no próximo corte.
-                    </div>
-                  ) : (
-                    <div className="grid gap-3">
-                      {campaignDraft.steps.map((step, index) => (
-                        <div
-                          key={step.id ?? `${step.order ?? index + 1}-${index}`}
-                          className="grid gap-4 rounded-[22px] border border-white/10 bg-black/15 p-4"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-white">
-                                Etapa {index + 1}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {index === 0
-                                  ? 'Primeiro toque da cadencia.'
-                                  : 'Follow-up adicional da campanha.'}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeCampaignStep(index)}
-                              disabled={campaignDraft.steps.length === 1}
-                              className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              Remover
-                            </button>
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-[0.9fr_0.7fr_0.7fr]">
-                            <label className="grid gap-2">
-                              <span className="text-sm font-medium text-slate-200">
-                                Canal da etapa
-                              </span>
-                              <select
-                                value={step.channel}
-                                onChange={(event) =>
-                                  updateCampaignStep(index, {
-                                    channel: event.target
-                                      .value as CampaignDraft['channel'],
-                                  })
-                                }
-                                className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                              >
-                                <option value="WHATSAPP">WhatsApp</option>
-                                <option value="EMAIL">Email</option>
-                              </select>
-                            </label>
-
-                            <label className="grid gap-2">
-                              <span className="text-sm font-medium text-slate-200">
-                                Espera
-                              </span>
-                              <input
-                                type="number"
-                                min={0}
-                                max={720}
-                                value={step.delayAmount}
-                                onChange={(event) =>
-                                  updateCampaignStep(index, {
-                                    delayAmount: Number(event.target.value) || 0,
-                                  })
-                                }
-                                className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                              />
-                            </label>
-
-                            <label className="grid gap-2">
-                              <span className="text-sm font-medium text-slate-200">
-                                Unidade
-                              </span>
-                              <select
-                                value={step.delayUnit}
-                                onChange={(event) =>
-                                  updateCampaignStep(index, {
-                                    delayUnit: event.target
-                                      .value as CampaignDraft['steps'][number]['delayUnit'],
-                                  })
-                                }
-                                className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                              >
-                                <option value="MINUTES">Minutos</option>
-                                <option value="HOURS">Horas</option>
-                                <option value="DAYS">Dias</option>
-                              </select>
-                            </label>
-                          </div>
-
-                          <label className="grid gap-2">
-                            <span className="text-sm font-medium text-slate-200">
-                              Mensagem da etapa
-                            </span>
-                            <textarea
-                              rows={4}
-                              value={step.messageTemplate}
-                              onChange={(event) =>
-                                updateCampaignStep(index, {
-                                  messageTemplate: event.target.value,
-                                })
-                              }
-                              className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                              placeholder={
-                                index === 0
-                                  ? 'Primeira mensagem da campanha.'
-                                  : 'Follow-up desta etapa.'
-                              }
-                            />
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
-                  <p className="text-sm text-slate-500">
-                    Este corte salva campanha, audiencia, mensagem base e os
-                    steps iniciais da cadencia. O runtime de `SequenceRun`
-                    entra na evolucao seguinte.
-                  </p>
                   <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={closePanel}
+                    className="rounded-xl border border-[#f0f0f0] p-2 hover:bg-[#fafafb]"
                   >
-                    {isSubmitting ? (
-                      <LoaderCircle className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4" />
-                    )}
-                    {selectedCampaign ? 'Salvar campanha' : 'Criar campanha'}
+                    <X className="h-5 w-5 text-[#a0aec0]" />
                   </button>
                 </div>
-              </form>
-            ) : (
-              <form onSubmit={handleAudienceSubmit} className="mt-8 grid gap-5">
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-slate-200">
-                    Nome da audiencia
-                  </span>
-                  <input
-                    value={audienceDraft.name}
-                    onChange={(event) =>
-                      setAudienceDraft((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    placeholder="Ex.: Clinicas privadas com urgencia alta"
-                  />
-                </label>
 
-                <label className="grid gap-2">
-                  <span className="text-sm font-medium text-slate-200">
-                    Descricao
-                  </span>
-                  <textarea
-                    rows={3}
-                    value={audienceDraft.description ?? ''}
-                    onChange={(event) =>
-                      setAudienceDraft((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
-                    }
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                    placeholder="Que recorte esta sendo isolado e para qual uso comercial."
-                  />
-                </label>
-
-                <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-100">
-                        Tipo de audiencia
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Filtro dinamico da base ou lista manual curada.
-                      </p>
+                <div className="flex-1 overflow-y-auto p-6">
+                  {panelError ? (
+                    <div className="mb-6 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-medium text-rose-600">
+                      {panelError}
                     </div>
-                    <span className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      {getAudienceKindMeta(audienceDraft.kind).label}
-                    </span>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => handleAudienceKindChange('DYNAMIC')}
-                      className={cn(
-                        'rounded-[22px] border px-4 py-4 text-left transition',
-                        audienceDraft.kind === 'DYNAMIC'
-                          ? 'border-cyan-300/40 bg-cyan-300/10'
-                          : 'border-white/10 bg-black/15 hover:border-white/20 hover:bg-black/20',
-                      )}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium text-white">
-                        <Filter className="h-4 w-4" />
-                        Dinamica
-                      </div>
-                      <p className="mt-2 text-xs leading-6 text-slate-500">
-                        Recalcula o alcance conforme tags, cargos, empresas e
-                        prontidao de canal mudam no workspace.
-                      </p>
-                    </button>
+                  ) : null}
 
-                    <button
-                      type="button"
-                      onClick={() => handleAudienceKindChange('MANUAL')}
-                      className={cn(
-                        'rounded-[22px] border px-4 py-4 text-left transition',
-                        audienceDraft.kind === 'MANUAL'
-                          ? 'border-amber-300/40 bg-amber-300/10'
-                          : 'border-white/10 bg-black/15 hover:border-white/20 hover:bg-black/20',
-                      )}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium text-white">
-                        <Users className="h-4 w-4" />
-                        Lista manual
-                      </div>
-                      <p className="mt-2 text-xs leading-6 text-slate-500">
-                        Selecione contatos um a um para campanhas mais
-                        cirurgicas, sem depender de segmentacao automatica.
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                {audienceDraft.kind === 'DYNAMIC' ? (
-                  <>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-slate-200">
-                        Busca livre
-                      </span>
-                      <input
-                        value={audienceDraft.filters.search ?? ''}
-                        onChange={(event) =>
-                          setAudienceDraft((current) => ({
-                            ...current,
-                            filters: {
-                              ...current.filters,
-                              search: event.target.value,
-                            },
-                          }))
-                        }
-                        className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.08]"
-                        placeholder="Busca por nome, email, telefone ou empresa"
-                      />
-                    </label>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium text-white">
-                            Somente com telefone
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Filtra contatos prontos para WhatsApp.
-                          </p>
-                        </div>
+                  {panel.type === 'campaign' ? (
+                    <form onSubmit={handleCampaignSubmit} className="space-y-6">
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-[#718096] ml-1">Nome da campanha</label>
                         <input
-                          type="checkbox"
-                          checked={Boolean(audienceDraft.filters.onlyWithPhone)}
-                          onChange={(event) =>
-                            setAudienceDraft((current) => ({
-                              ...current,
-                              filters: {
-                                ...current.filters,
-                                onlyWithPhone: event.target.checked,
-                              },
-                            }))
-                          }
-                          className="h-4 w-4 rounded border-white/20 bg-transparent text-cyan-300"
+                          value={campaignDraft.name}
+                          onChange={(event) => setCampaignDraft((current) => ({ ...current, name: event.target.value }))}
+                          className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          placeholder="Ex.: Reengajamento de leads"
+                          required
                         />
-                      </label>
-
-                      <label className="flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium text-white">
-                            Somente com email
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Filtra contatos prontos para campanhas de email.
-                          </p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(audienceDraft.filters.onlyWithEmail)}
-                          onChange={(event) =>
-                            setAudienceDraft((current) => ({
-                              ...current,
-                              filters: {
-                                ...current.filters,
-                                onlyWithEmail: event.target.checked,
-                              },
-                            }))
-                          }
-                          className="h-4 w-4 rounded border-white/20 bg-transparent text-cyan-300"
-                        />
-                      </label>
-                    </div>
-
-                    <FilterChipGroup
-                      label="Tags"
-                      buckets={segments.tags}
-                      selected={audienceDraft.filters.tags ?? []}
-                      onToggle={(value) => handleToggleFilterValue('tags', value)}
-                    />
-
-                    <FilterChipGroup
-                      label="Industrias"
-                      buckets={segments.industries}
-                      selected={audienceDraft.filters.industries ?? []}
-                      onToggle={(value) =>
-                        handleToggleFilterValue('industries', value)
-                      }
-                    />
-
-                    <FilterChipGroup
-                      label="Cargos"
-                      buckets={segments.positions}
-                      selected={audienceDraft.filters.positions ?? []}
-                      onToggle={(value) =>
-                        handleToggleFilterValue('positions', value)
-                      }
-                    />
-
-                    <div className="grid gap-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-slate-200">
-                          Empresas
-                        </p>
-                        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                          {(audienceDraft.filters.companyIds ?? []).length}{' '}
-                          selecionada(s)
-                        </span>
                       </div>
-                      <div className="max-h-56 overflow-y-auto rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
-                        <div className="grid gap-2">
-                          {companies.length === 0 ? (
-                            <span className="text-xs text-slate-500">
-                              Nenhuma empresa cadastrada ainda.
-                            </span>
-                          ) : (
-                            companies.map((company) => {
-                              const isSelected = (
-                                audienceDraft.filters.companyIds ?? []
-                              ).includes(company.id);
 
-                              return (
-                                <label
-                                  key={company.id}
-                                  className={cn(
-                                    'flex items-center justify-between gap-3 rounded-2xl border px-3 py-2 transition',
-                                    isSelected
-                                      ? 'border-cyan-300/40 bg-cyan-300/10'
-                                      : 'border-white/10 bg-black/15 hover:border-white/20 hover:bg-black/20',
-                                  )}
-                                >
-                                  <div>
-                                    <p className="text-sm font-medium text-white">
-                                      {company.name}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      {company.industry || 'Sem industria'}
-                                    </p>
-                                  </div>
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() =>
-                                      handleToggleFilterValue(
-                                        'companyIds',
-                                        company.id,
-                                      )
-                                    }
-                                    className="h-4 w-4 rounded border-white/20 bg-transparent text-cyan-300"
-                                  />
-                                </label>
-                              );
-                            })
-                          )}
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-[#718096] ml-1">Descricao operacional</label>
+                        <textarea
+                          rows={3}
+                          value={campaignDraft.description ?? ''}
+                          onChange={(event) => setCampaignDraft((current) => ({ ...current, description: event.target.value }))}
+                          className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          placeholder="Objetivo comercial desta campanha..."
+                        />
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-bold text-[#718096] ml-1">Canal</label>
+                          <select
+                            value={campaignDraft.channel}
+                            onChange={(event) => setCampaignDraft((current) => ({ ...current, channel: event.target.value as CampaignDraft['channel'] }))}
+                            className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          >
+                            <option value="WHATSAPP">WhatsApp</option>
+                            <option value="EMAIL">Email</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-bold text-[#718096] ml-1">Status</label>
+                          <select
+                            value={campaignDraft.status}
+                            onChange={(event) => setCampaignDraft((current) => ({ ...current, status: event.target.value as CampaignDraft['status'] }))}
+                            className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          >
+                            <option value="DRAFT">Rascunho</option>
+                            <option value="ACTIVE">Ativa</option>
+                            <option value="PAUSED">Pausada</option>
+                          </select>
                         </div>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="grid gap-4">
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                      <input
-                        value={manualContactSearch}
-                        onChange={(event) =>
-                          setManualContactSearch(event.target.value)
-                        }
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] py-3 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-amber-300/40 focus:bg-white/[0.08]"
-                        placeholder="Buscar contato por nome, cargo, empresa, email ou telefone"
-                      />
-                    </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-                      <span>
-                        {audienceDraft.contactIds.length} contato(s)
-                        selecionado(s)
-                      </span>
-                      <span className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                        {filteredManualContacts.length} no resultado
-                      </span>
-                    </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-bold text-[#718096] ml-1">Audiencia</label>
+                          <select
+                            value={campaignDraft.audienceId ?? ''}
+                            onChange={(event) => setCampaignDraft((current) => ({ ...current, audienceId: event.target.value || null }))}
+                            className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          >
+                            <option value="">Sem audiencia vinculada</option>
+                            {audiences.map((audience) => (
+                              <option key={audience.id} value={audience.id}>
+                                {audience.name} ({audience.contactCount})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                    <div className="max-h-[28rem] overflow-y-auto rounded-[24px] border border-white/10 bg-white/[0.03] p-3">
-                      <div className="grid gap-2">
-                        {contacts.length === 0 ? (
-                          <div className="rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-5 text-sm text-slate-500">
-                            Nenhum contato cadastrado ainda para montar uma
-                            lista manual.
+                        <div className="space-y-1.5">
+                          <label className="text-[13px] font-bold text-[#718096] ml-1">Agendar para</label>
+                          <input
+                            type="datetime-local"
+                            value={campaignDraft.launchAt ?? ''}
+                            onChange={(event) => setCampaignDraft((current) => ({ ...current, launchAt: event.target.value }))}
+                            className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-4">
+                        <div className="mb-4 flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-bold text-[#1a202c]">Cadencia de Mensagens</h4>
+                            <p className="text-xs text-[#718096]">Defina a sequencia de toques automáticos.</p>
                           </div>
-                        ) : filteredManualContacts.length === 0 ? (
-                          <div className="rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-5 text-sm text-slate-500">
-                            Nenhum contato encontrado com esta busca.
+                          <button
+                            type="button"
+                            onClick={addCampaignStep}
+                            className="flex items-center gap-1.5 rounded-xl border border-[#f0f0f0] bg-white px-3 py-2 text-xs font-bold text-[#594ded] transition hover:bg-[#594ded]/5"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Nova Etapa
+                          </button>
+                        </div>
+
+                        {campaignDraft.steps.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-[#f0f0f0] bg-[#fafafb] px-4 py-8 text-center text-sm text-[#a0aec0]">
+                            Nenhuma etapa definida. Clique em "Nova Etapa" para começar.
                           </div>
                         ) : (
-                          filteredManualContacts.map((contact) => {
-                            const isSelected = audienceDraft.contactIds.includes(
-                              contact.id,
-                            );
-
-                            return (
-                              <label
-                                key={contact.id}
-                                className={cn(
-                                  'flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition',
-                                  isSelected
-                                    ? 'border-amber-300/40 bg-amber-300/10'
-                                    : 'border-white/10 bg-black/15 hover:border-white/20 hover:bg-black/20',
-                                )}
-                              >
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium text-white">
-                                    {contact.name}
-                                  </p>
-                                  <p className="mt-1 truncate text-xs text-slate-500">
-                                    {contact.company?.name || 'Sem empresa'} |{' '}
-                                    {contact.position || 'Sem cargo'}
-                                  </p>
-                                  <p className="mt-1 truncate text-xs text-slate-500">
-                                    {formatContactChannel(contact)}
-                                  </p>
+                          <div className="space-y-4">
+                            {campaignDraft.steps.map((step, index) => (
+                              <div key={step.id ?? index} className="rounded-2xl border border-[#f0f0f0] bg-white p-4 shadow-sm">
+                                <div className="mb-4 flex items-center justify-between">
+                                  <span className="text-xs font-bold uppercase tracking-wider text-[#a0aec0]">Etapa {index + 1}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCampaignStep(index)}
+                                    className="rounded-lg p-1.5 text-[#a0aec0] transition hover:bg-rose-50 hover:text-rose-500"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
                                 </div>
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() =>
-                                    handleToggleManualContact(contact.id)
-                                  }
-                                  className="h-4 w-4 rounded border-white/20 bg-transparent text-amber-300"
-                                />
-                              </label>
-                            );
-                          })
+
+                                <div className="grid gap-4 md:grid-cols-3">
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-bold uppercase text-[#a0aec0] ml-1">Canal</label>
+                                    <select
+                                      value={step.channel}
+                                      onChange={(event) => updateCampaignStep(index, { channel: event.target.value as CampaignDraft['channel'] })}
+                                      className="w-full rounded-xl border border-[#f0f0f0] bg-[#fafafb]/50 px-3 py-2 text-xs text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                                    >
+                                      <option value="WHATSAPP">WhatsApp</option>
+                                      <option value="EMAIL">Email</option>
+                                    </select>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-bold uppercase text-[#a0aec0] ml-1">Espera</label>
+                                    <input
+                                      type="number"
+                                      value={step.delayAmount}
+                                      onChange={(event) => updateCampaignStep(index, { delayAmount: Number(event.target.value) || 0 })}
+                                      className="w-full rounded-xl border border-[#f0f0f0] bg-[#fafafb]/50 px-3 py-2 text-xs text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px] font-bold uppercase text-[#a0aec0] ml-1">Unidade</label>
+                                    <select
+                                      value={step.delayUnit}
+                                      onChange={(event) => updateCampaignStep(index, { delayUnit: event.target.value as any })}
+                                      className="w-full rounded-xl border border-[#f0f0f0] bg-[#fafafb]/50 px-3 py-2 text-xs text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                                    >
+                                      <option value="MINUTES">Minutos</option>
+                                      <option value="HOURS">Horas</option>
+                                      <option value="DAYS">Dias</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 space-y-1">
+                                  <label className="text-[11px] font-bold uppercase text-[#a0aec0] ml-1">Mensagem</label>
+                                  <textarea
+                                    rows={3}
+                                    value={step.messageTemplate}
+                                    onChange={(event) => updateCampaignStep(index, { messageTemplate: event.target.value })}
+                                    className="w-full rounded-xl border border-[#f0f0f0] bg-[#fafafb]/50 px-3 py-2 text-xs text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                                    placeholder="Digite a mensagem..."
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
-                    </div>
 
-                    {selectedManualContacts.length > 0 ? (
-                      <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-slate-200">
-                            Selecionados agora
-                          </p>
-                          <span className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                            {selectedManualContacts.length} contato(s)
-                          </span>
-                        </div>
-                        <div className="grid gap-2">
-                          {selectedManualContacts.slice(0, 6).map((contact) => (
-                            <div
-                              key={contact.id}
-                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/15 px-3 py-2"
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-white">
-                                  {contact.name}
-                                </p>
-                                <p className="truncate text-xs text-slate-500">
-                                  {contact.company?.name || 'Sem empresa'} |{' '}
-                                  {formatContactChannel(contact)}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleToggleManualContact(contact.id)
-                                }
-                                className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:bg-white/[0.08]"
-                              >
-                                Remover
-                              </button>
+                      <div className="pt-6">
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#594ded] px-4 py-4 text-sm font-bold text-white transition hover:translate-y-[-1px] hover:shadow-lg hover:shadow-[#594ded]/20 disabled:opacity-50"
+                        >
+                          {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          {selectedCampaign ? 'Salvar Campanha' : 'Criar Campanha'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleAudienceSubmit} className="space-y-6">
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-[#718096] ml-1">Nome da audiencia</label>
+                        <input
+                          value={audienceDraft.name}
+                          onChange={(event) => setAudienceDraft((current) => ({ ...current, name: event.target.value }))}
+                          className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          placeholder="Ex.: Leads Premium Inbound"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[13px] font-bold text-[#718096] ml-1">Descricao</label>
+                        <textarea
+                          rows={3}
+                          value={audienceDraft.description ?? ''}
+                          onChange={(event) => setAudienceDraft((current) => ({ ...current, description: event.target.value }))}
+                          className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                          placeholder="Quais contatos este recorte isola?"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-[#718096] ml-1">Tipo de Segmentação</label>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => handleAudienceKindChange('DYNAMIC')}
+                            className={cn(
+                              'group flex flex-col items-start rounded-2xl border p-4 text-left transition',
+                              audienceDraft.kind === 'DYNAMIC'
+                                ? 'border-[#594ded]/30 bg-[#594ded]/5 ring-1 ring-[#594ded]/30'
+                                : 'border-[#f0f0f0] bg-[#fafafb]/50 hover:bg-white hover:border-[#594ded]/20'
+                            )}
+                          >
+                            <div className={cn(
+                              'mb-3 rounded-xl p-2 transition',
+                              audienceDraft.kind === 'DYNAMIC' ? 'bg-[#594ded] text-white' : 'bg-white text-[#a0aec0] group-hover:text-[#594ded]'
+                            )}>
+                              <Filter className="h-5 w-5" />
                             </div>
-                          ))}
+                            <span className={cn('text-sm font-bold', audienceDraft.kind === 'DYNAMIC' ? 'text-[#1a202c]' : 'text-[#718096]')}>Dinâmica</span>
+                            <p className="mt-1 text-[11px] leading-relaxed text-[#a0aec0]">Atualiza automaticamente baseado em filtros.</p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAudienceKindChange('MANUAL')}
+                            className={cn(
+                              'group flex flex-col items-start rounded-2xl border p-4 text-left transition',
+                              audienceDraft.kind === 'MANUAL'
+                                ? 'border-amber-500/30 bg-amber-50 ring-1 ring-amber-500/30'
+                                : 'border-[#f0f0f0] bg-[#fafafb]/50 hover:bg-white hover:border-amber-500/20'
+                            )}
+                          >
+                            <div className={cn(
+                              'mb-3 rounded-xl p-2 transition',
+                              audienceDraft.kind === 'MANUAL' ? 'bg-amber-500 text-white' : 'bg-white text-[#a0aec0] group-hover:text-amber-500'
+                            )}>
+                              <Users className="h-5 w-5" />
+                            </div>
+                            <span className={cn('text-sm font-bold', audienceDraft.kind === 'MANUAL' ? 'text-[#1a202c]' : 'text-[#718096]')}>Lista Manual</span>
+                            <p className="mt-1 text-[11px] leading-relaxed text-[#a0aec0]">Seleção cirúrgica de contatos específicos.</p>
+                          </button>
                         </div>
                       </div>
-                    ) : null}
-                  </div>
-                )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
-                  <p className="text-sm text-slate-500">
-                    {audienceDraft.kind === 'MANUAL'
-                      ? 'Listas manuais congelam a selecao atual dos contatos. Use este modo para campanhas mais taticas.'
-                      : 'Audiencias dinamicas sao recalculadas a partir da base atual. Ao mudar contatos, empresas ou tags, o alcance muda junto.'}
-                  </p>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isSubmitting ? (
-                      <LoaderCircle className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4" />
-                    )}
-                    {selectedAudience ? 'Salvar audiencia' : 'Criar audiencia'}
-                  </button>
+                      <div className="pt-2">
+                        {audienceDraft.kind === 'DYNAMIC' ? (
+                          <div className="space-y-5">
+                            <div className="space-y-1.5">
+                              <label className="text-[13px] font-bold text-[#718096] ml-1">Busca livre</label>
+                              <input
+                                value={audienceDraft.filters.search ?? ''}
+                                onChange={(event) => setAudienceDraft((current) => ({ ...current, filters: { ...current.filters, search: event.target.value } }))}
+                                className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                                placeholder="Nome, email ou empresa..."
+                              />
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 transition hover:bg-white">
+                                <span className="text-sm font-medium text-[#718096]">Somente com telefone</span>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(audienceDraft.filters.onlyWithPhone)}
+                                  onChange={(event) => setAudienceDraft((current) => ({ ...current, filters: { ...current.filters, onlyWithPhone: event.target.checked } }))}
+                                  className="h-5 w-5 rounded border-[#f0f0f0] text-[#594ded] transition focus:ring-0"
+                                />
+                              </label>
+                              <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#f0f0f0] bg-[#fafafb]/50 px-4 py-3 transition hover:bg-white">
+                                <span className="text-sm font-medium text-[#718096]">Somente com email</span>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(audienceDraft.filters.onlyWithEmail)}
+                                  onChange={(event) => setAudienceDraft((current) => ({ ...current, filters: { ...current.filters, onlyWithEmail: event.target.checked } }))}
+                                  className="h-5 w-5 rounded border-[#f0f0f0] text-[#594ded] transition focus:ring-0"
+                                />
+                              </label>
+                            </div>
+
+                            <FilterChipGroup
+                              label="Tags"
+                              buckets={segments.tags}
+                              selected={audienceDraft.filters.tags ?? []}
+                              onToggle={(value) => handleToggleFilterValue('tags', value)}
+                            />
+
+                            <FilterChipGroup
+                              label="Industrias"
+                              buckets={segments.industries}
+                              selected={audienceDraft.filters.industries ?? []}
+                              onToggle={(value) =>
+                                handleToggleFilterValue('industries', value)
+                              }
+                            />
+
+                            <FilterChipGroup
+                              label="Cargos"
+                              buckets={segments.positions}
+                              selected={audienceDraft.filters.positions ?? []}
+                              onToggle={(value) =>
+                                handleToggleFilterValue('positions', value)
+                              }
+                            />
+
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[13px] font-bold text-[#718096] ml-1">Empresas</label>
+                                <span className="text-[11px] font-bold text-[#a0aec0]">{(audienceDraft.filters.companyIds ?? []).length} selecionada(s)</span>
+                              </div>
+                              <div className="max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-[#f0f0f0] bg-[#fafafb]/30 p-2">
+                                {companies.length === 0 ? (
+                                  <p className="p-4 text-center text-xs text-[#a0aec0]">Nenhuma empresa cadastrada.</p>
+                                ) : (
+                                  companies.map((company) => {
+                                    const isSelected = (audienceDraft.filters.companyIds ?? []).includes(company.id);
+                                    return (
+                                      <label key={company.id} className={cn(
+                                        'flex items-center justify-between gap-3 rounded-xl border p-3 transition',
+                                        isSelected ? 'border-[#594ded]/30 bg-[#594ded]/5' : 'border-[#f0f0f0] bg-white hover:border-[#594ded]/20'
+                                      )}>
+                                        <div className="min-w-0">
+                                          <p className="truncate text-[13px] font-bold text-[#1a202c]">{company.name}</p>
+                                          <p className="truncate text-[11px] text-[#718096]">{company.industry || 'Sem industria'}</p>
+                                        </div>
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={() => handleToggleFilterValue('companyIds', company.id)}
+                                          className="h-5 w-5 rounded border-[#f0f0f0] text-[#594ded] transition focus:ring-0"
+                                        />
+                                      </label>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a0aec0]" />
+                              <input
+                                value={manualContactSearch}
+                                onChange={(event) => setManualContactSearch(event.target.value)}
+                                className="w-full rounded-[16px] border border-[#f0f0f0] bg-[#fafafb]/50 py-3 pl-11 pr-4 text-sm text-[#2d3748] outline-none transition focus:border-[#594ded]/30 focus:bg-white"
+                                placeholder="Buscar contato..."
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[13px] font-bold text-[#718096] ml-1">Selecionar Contatos</label>
+                                <span className="text-[11px] font-bold text-[#a0aec0]">{filteredManualContacts.length} no resultado</span>
+                              </div>
+                              <div className="max-h-[300px] space-y-2 overflow-y-auto rounded-2xl border border-[#f0f0f0] bg-[#fafafb]/30 p-2">
+                                {contacts.length === 0 ? (
+                                  <p className="p-4 text-center text-xs text-[#a0aec0]">Nenhum contato encontrado.</p>
+                                ) : filteredManualContacts.map((contact) => {
+                                    const isSelected = audienceDraft.contactIds.includes(contact.id);
+                                    return (
+                                      <label key={contact.id} className={cn(
+                                        'flex items-center justify-between gap-3 rounded-xl border p-3 transition',
+                                        isSelected ? 'border-amber-500/30 bg-amber-50' : 'border-[#f0f0f0] bg-white hover:border-amber-500/20'
+                                      )}>
+                                        <div className="min-w-0">
+                                          <p className="truncate text-[13px] font-bold text-[#1a202c]">{contact.name}</p>
+                                          <p className="truncate text-[11px] text-[#718096]">{contact.company?.name || 'Sem empresa'} | {contact.position || 'Sem cargo'}</p>
+                                        </div>
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={() => handleToggleManualContact(contact.id)}
+                                          className="h-5 w-5 rounded border-[#f0f0f0] text-amber-500 transition focus:ring-0"
+                                        />
+                                      </label>
+                                    );
+                                  })
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-6">
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#594ded] px-4 py-4 text-sm font-bold text-white transition hover:translate-y-[-1px] hover:shadow-lg hover:shadow-[#594ded]/20 disabled:opacity-50"
+                        >
+                          {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          {selectedAudience ? 'Salvar Audiencia' : 'Criar Audiencia'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
-              </form>
-            )}
+              </div>
+            </aside>
           </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+        ) : null}
+      </div>
+    );
+  }

@@ -22,9 +22,13 @@ export function CardFormModal({
   initialTitle = '',
   initialStageId = '',
 }: CardFormModalProps) {
-  const { pipeline, createCard, updateCard, deleteCard, isLoading } = useKanbanStore();
+  const { pipeline, createCard, createCardWithContact, updateCard, deleteCard, isLoading } = useKanbanStore();
   const [title, setTitle] = useState(initialTitle);
   const [stageId, setStageId] = useState(initialStageId);
+  const [contactName, setContactName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +36,10 @@ export function CardFormModal({
     if (isOpen) {
       setTitle(initialTitle);
       setStageId(initialStageId || (pipeline?.stages[0]?.id ?? ''));
+      setContactName('');
+      setEmail('');
+      setPhone('');
+      setCompanyName('');
       setError(null);
     }
   }, [isOpen, initialTitle, initialStageId, pipeline]);
@@ -42,6 +50,12 @@ export function CardFormModal({
     e.preventDefault();
     if (!title.trim() || !stageId) return;
 
+    // Se for novo card, o nome do contato é obrigatório pelo manual-entry
+    if (!cardId && !contactName.trim()) {
+      setError('O nome do contato é obrigatório para novos cards.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -49,7 +63,14 @@ export function CardFormModal({
       if (cardId) {
         await updateCard(cardId, { title, stageId });
       } else {
-        await createCard(stageId, title);
+        await createCardWithContact({
+          stageId,
+          cardTitle: title,
+          contactName,
+          email: email.trim() || undefined,
+          phone: phone.trim() || undefined,
+          companyName: companyName.trim() || undefined,
+        });
       }
       onClose();
     } catch (err: any) {
@@ -135,6 +156,75 @@ export function CardFormModal({
                 ))}
               </select>
             </div>
+
+            {!cardId && (
+              <>
+                <div className="pt-2">
+                  <div className="h-px w-full bg-[#f0f0f0]" />
+                  <p className="mt-4 text-xs font-bold uppercase tracking-wider text-[#a0aec0]">
+                    Informações do Contato
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="contactName" className="block text-sm font-semibold text-[#545a66]">
+                    Nome do Contato
+                  </label>
+                  <input
+                    id="contactName"
+                    type="text"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    className="mt-2 h-12 w-full rounded-xl border border-[#f0f0f0] bg-white px-4 text-[15px] outline-none transition placeholder:text-[#a0aec0] focus:border-[#594ded] focus:ring-1 focus:ring-[#594ded]"
+                    required={!cardId}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-semibold text-[#545a66]">
+                      E-mail
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="joao@exemplo.com"
+                      className="mt-2 h-12 w-full rounded-xl border border-[#f0f0f0] bg-white px-4 text-[15px] outline-none transition placeholder:text-[#a0aec0] focus:border-[#594ded] focus:ring-1 focus:ring-[#594ded]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-semibold text-[#545a66]">
+                      Telefone
+                    </label>
+                    <input
+                      id="phone"
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+55 11 99999-9999"
+                      className="mt-2 h-12 w-full rounded-xl border border-[#f0f0f0] bg-white px-4 text-[15px] outline-none transition placeholder:text-[#a0aec0] focus:border-[#594ded] focus:ring-1 focus:ring-[#594ded]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="companyName" className="block text-sm font-semibold text-[#545a66]">
+                    Empresa
+                  </label>
+                  <input
+                    id="companyName"
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Ex: Acme Corp"
+                    className="mt-2 h-12 w-full rounded-xl border border-[#f0f0f0] bg-white px-4 text-[15px] outline-none transition placeholder:text-[#a0aec0] focus:border-[#594ded] focus:ring-1 focus:ring-[#594ded]"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="mt-8 flex items-center justify-between gap-4">

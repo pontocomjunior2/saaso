@@ -323,7 +323,7 @@ export class TenantService {
           channel: primaryChannel,
           status: CampaignStatus.ACTIVE,
           messageTemplate: flattenedSteps[0]?.messageTemplate ?? null,
-          pipelineId: pipeline.id, // Vínculo direto para deleção em cascata
+          // O pipelineId não existe no modelo Campaign. A relação é Pipeline -> CampaignId
           steps: {
             create: flattenedSteps.map((step, index) => ({
               order: index + 1,
@@ -376,7 +376,7 @@ export class TenantService {
           id: campaign.id,
           name: campaign.name,
           channel: campaign.channel,
-          stepCount: campaign.steps.length,
+          stepCount: campaign.steps?.length ?? 0,
         },
         journey: {
           id: journey.id,
@@ -620,7 +620,7 @@ export class TenantService {
           channel: primaryChannel,
           status: CampaignStatus.ACTIVE,
           messageTemplate: flattenedSteps[0]?.messageTemplate ?? null,
-          pipelineId: resources.pipeline?.id ?? null, // Vínculo na campanha
+          // O pipelineId não existe no modelo Campaign. A relação é Pipeline -> CampaignId
           steps: {
             create: flattenedSteps.map((step, index) => ({
               order: index + 1,
@@ -677,7 +677,7 @@ export class TenantService {
           id: campaign.id,
           name: campaign.name,
           channel: campaign.channel,
-          stepCount: campaign.steps.length,
+          stepCount: campaign.steps?.length ?? 0,
         },
         journey: {
           id: journey.id,
@@ -697,7 +697,7 @@ export class TenantService {
                 id: resources.whatsapp?.id ?? '',
                 phoneNumber: dto.whatsapp?.phoneNumber ?? null,
                 status: this.resolveStoredAccountStatus({
-                  phoneNumber: dto.whatsapp?.phoneNumber ?? null,
+                  phoneNumber: dto.whatsapp?.phoneNumber ?? '',
                   phoneNumberId: this.normalizeOptionalText(dto.whatsapp?.phoneNumberId),
                   accessToken: this.normalizeOptionalText(dto.whatsapp?.accessToken),
                   wabaId: this.normalizeOptionalText(dto.whatsapp?.wabaId),
