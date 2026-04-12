@@ -155,11 +155,11 @@ function LoadingExperience({ session }: { session: LoginInput }) {
         <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center gap-3 text-slate-200">
             <LoaderCircle className="h-5 w-5 animate-spin text-cyan-300" />
-            <span>Conectando com o tenant de demonstracao</span>
+            <span>Conectando com o tenant de demonstração</span>
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-400">
             Tentando autenticar automaticamente em <span className="text-slate-200">{session.tenantSlug}</span> com o
-            usuario <span className="text-slate-200">{session.email}</span>.
+            usuário <span className="text-slate-200">{session.email}</span>.
           </p>
         </div>
       </div>
