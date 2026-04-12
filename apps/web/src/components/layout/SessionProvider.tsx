@@ -10,7 +10,7 @@ import {
   writeSessionHint,
 } from '@/lib/session-storage';
 import { cn } from '@/lib/utils';
-import { AlertCircle, Bot, KeyRound, LoaderCircle, Sparkles } from 'lucide-react';
+import { AlertCircle, KeyRound, LoaderCircle } from 'lucide-react';
 import React, {
   createContext,
   useCallback,
@@ -183,135 +183,74 @@ function AuthExperience({
     try {
       await onSubmit(form);
     } catch {
-      // authError ja eh definido pelo provider
+      // authError já é definido pelo provider
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(89,211,255,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,177,104,0.16),transparent_26%)]" />
-      <div className="relative grid w-full max-w-6xl gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="rounded-[36px] border border-white/10 bg-[rgba(7,16,29,0.82)] p-8 shadow-[0_32px_120px_rgba(0,0,0,0.5)] backdrop-blur-2xl lg:p-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.32em] text-cyan-100">
-            <Sparkles className="h-3.5 w-3.5" />
-            CRM + agentes de IA
-          </div>
-          <h1 className="mt-6 max-w-2xl text-4xl font-semibold leading-tight text-white lg:text-5xl">
-            Um cockpit comercial mais elegante, mais inteligente e pronto para demo.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300">
-            O frontend agora espera uma sessao real antes de abrir o workspace. O tenant e o e-mail ficam
-            lembrados, mas a senha nao e mais persistida no navegador.
-          </p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10 bg-[#080614]">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-32 -top-32 h-[600px] w-[600px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.22)_0%,transparent_65%)]" />
+        <div className="absolute -bottom-32 -right-32 h-[600px] w-[600px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.18)_0%,transparent_65%)]" style={{ animationDelay: '1.5s' }} />
+      </div>
 
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                label: 'Workspace',
-                value: initialValues.tenantSlug,
-              },
-              {
-                label: 'Usuario demo',
-                value: initialValues.email,
-              },
-              {
-                label: 'Fluxo',
-                value: 'Sessao curta + fallback manual',
-              },
-            ].map((item) => (
-              <div key={item.label} className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">{item.label}</p>
-                <p className="mt-3 text-sm font-medium text-white">{item.value}</p>
-              </div>
-            ))}
-          </div>
+      <div className="relative w-full max-w-sm rounded-3xl border border-violet-500/20 bg-[rgba(15,10,30,0.88)] p-8 shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+        <div className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10">
+          <KeyRound className="h-5 w-5 text-violet-300" />
+        </div>
+        <h1 className="mt-4 text-2xl font-semibold text-white">Entrar</h1>
+        <p className="mt-1 text-sm text-slate-400">{formatTenantName(initialValues.tenantSlug)}</p>
 
-          <div className="mt-8 rounded-[28px] border border-amber-300/20 bg-amber-300/10 p-5 text-sm leading-6 text-amber-50">
-            <p className="font-medium">Se a autenticacao continuar falhando:</p>
-            <p className="mt-2 text-amber-100/85">
-              Garanta que a API esteja online, o banco em `localhost:5432` e rode novamente o seed de demo para
-              popular pipeline, cards, contatos, agentes e journeys.
-            </p>
-            <pre className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-4 text-xs text-amber-50">
-docker compose up -d
-cd apps/api
-npx prisma db push
-npx prisma db seed
-            </pre>
-          </div>
-        </section>
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-300">E-mail</span>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+              placeholder="seu@email.com"
+              required
+              autoComplete="email"
+            />
+          </label>
 
-        <section className="rounded-[36px] border border-white/10 bg-[rgba(9,20,36,0.88)] p-8 shadow-[0_32px_120px_rgba(0,0,0,0.5)] backdrop-blur-2xl lg:p-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-100">
-              <KeyRound className="h-6 w-6" />
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-300">Senha</span>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+              placeholder="Digite sua senha"
+              required
+              autoComplete="current-password"
+            />
+          </label>
+
+          {authError && (
+            <div className="flex gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-100">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{sanitizeErrorMessage(authError)}</span>
             </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">Acesso ao workspace</p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">Entrar</h2>
-            </div>
-          </div>
+          )}
 
-          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Tenant slug</span>
-              <input
-                value={form.tenantSlug}
-                onChange={(event) => setForm((current) => ({ ...current, tenantSlug: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60 focus:bg-white/8"
-                placeholder="saaso-demo"
-                required
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">E-mail</span>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60 focus:bg-white/8"
-                placeholder="admin@saaso.com"
-                required
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-300">Senha</span>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/60 focus:bg-white/8"
-                placeholder="Digite sua senha"
-                required
-              />
-            </label>
-
-            {authError && (
-              <div className="flex gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-100">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{authError}</span>
-              </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition',
+              isSubmitting
+                ? 'cursor-wait bg-violet-500/40 text-white'
+                : 'bg-[linear-gradient(135deg,#8b5cf6,#3b82f6)] text-white shadow-[0_14px_40px_rgba(139,92,246,0.3)] hover:translate-y-[-1px]',
             )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition',
-                isSubmitting
-                  ? 'cursor-wait bg-cyan-400/40 text-white'
-                  : 'bg-[linear-gradient(135deg,#59d3ff,#7bf0c8)] text-slate-950 shadow-[0_18px_50px_rgba(89,211,255,0.3)] hover:translate-y-[-1px]',
-              )}
-            >
-              {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
-              {isSubmitting ? 'Autenticando...' : 'Entrar no workspace'}
-            </button>
-          </form>
-        </section>
+          >
+            {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+            {isSubmitting ? 'Autenticando...' : 'Entrar no workspace'}
+          </button>
+        </form>
       </div>
     </div>
   );
