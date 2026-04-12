@@ -137,30 +137,24 @@ function shouldAutoLogin(hint: SessionHint) {
   return hint.tenantSlug === DEFAULT_SESSION.tenantSlug && hint.email === DEFAULT_SESSION.email;
 }
 
-function LoadingExperience({ session }: { session: LoginInput }) {
+function LoadingExperience() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(89,211,255,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,177,104,0.16),transparent_26%)]" />
-      <div className="relative w-full max-w-xl rounded-[32px] border border-white/10 bg-[rgba(6,14,26,0.78)] p-8 shadow-[0_32px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-        <div className="flex items-center gap-3 text-cyan-200">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
-            <Bot className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.38em] text-cyan-200/70">AI Revenue OS</p>
-            <h1 className="mt-1 text-2xl font-semibold text-white">Preparando o workspace Saaso</h1>
-          </div>
-        </div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10 bg-[#080614]">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-32 -top-32 h-[600px] w-[600px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.22)_0%,transparent_65%)]" />
+        <div className="absolute -bottom-32 -right-32 h-[600px] w-[600px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.18)_0%,transparent_65%)]" style={{ animationDelay: '1.5s' }} />
+      </div>
 
-        <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5">
-          <div className="flex items-center gap-3 text-slate-200">
-            <LoaderCircle className="h-5 w-5 animate-spin text-cyan-300" />
-            <span>Conectando com o tenant de demonstração</span>
-          </div>
-          <p className="mt-4 text-sm leading-6 text-slate-400">
-            Tentando autenticar automaticamente em <span className="text-slate-200">{session.tenantSlug}</span> com o
-            usuário <span className="text-slate-200">{session.email}</span>.
-          </p>
+      <div className="relative w-full max-w-sm rounded-3xl border border-violet-500/20 bg-[rgba(15,10,30,0.88)] p-8 shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+        <div className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10">
+          <KeyRound className="h-5 w-5 text-violet-300" />
+        </div>
+        <h1 className="mt-4 text-2xl font-semibold text-white">Entrar</h1>
+        <p className="mt-1 text-sm text-slate-400">Verificando sessão...</p>
+
+        <div className="mt-8 flex items-center gap-3 text-slate-400">
+          <LoaderCircle className="h-5 w-5 animate-spin text-violet-400" />
+          <span className="text-sm">Conectando com o workspace...</span>
         </div>
       </div>
     </div>
@@ -438,7 +432,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
   return (
     <AppSessionContext.Provider value={contextValue}>
       {status === 'authenticated' ? children : null}
-      {status === 'checking' ? <LoadingExperience session={sessionInput} /> : null}
+      {status === 'checking' ? <LoadingExperience /> : null}
       {status === 'unauthenticated' ? (
         <AuthExperience authError={authError} initialValues={sessionInput} onSubmit={login} />
       ) : null}
