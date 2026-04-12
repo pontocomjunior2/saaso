@@ -100,7 +100,11 @@ function getErrorMessage(error: unknown): string {
     }
   }
 
-  return 'Nao foi possivel autenticar no workspace.';
+  return 'Não foi possível autenticar no workspace.';
+}
+
+function sanitizeErrorMessage(raw: string): string {
+  return raw.replace(/^Erro no Backend:\s*/i, '').trim();
 }
 
 function formatTenantName(tenantSlug: string) {
@@ -401,7 +405,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
     const handleAuthExpired = () => {
       clearAccessToken();
-      setAuthError('Sua sessao expirou ou ficou invalida. Faça login novamente.');
+      setAuthError('Sua sessão expirou. Faça login novamente.');
       setSessionInput(buildLoginInput(sessionHint));
       setStatus('unauthenticated');
     };
