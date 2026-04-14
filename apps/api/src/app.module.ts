@@ -21,6 +21,7 @@ import { CampaignModule } from './campaign/campaign.module';
 import { ProspectModule } from './prospect/prospect.module';
 import { StageMessageTemplateModule } from './stage-message-template/stage-message-template.module';
 import { EmailModule } from './email/email.module';
+import { StageRuleModule } from './stage-rule/stage-rule.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { EmailModule } from './email/email.module';
     LeadFormModule,
     StageMessageTemplateModule,
     EmailModule,
+    StageRuleModule,
   ],
   controllers: [AppController],
   providers: [AppService],
