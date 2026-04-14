@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import api from '@/lib/api';
 import { GripVertical, LoaderCircle, MessageSquareText, Paperclip, Plus } from 'lucide-react';
@@ -191,18 +191,22 @@ export default function KanbanBoard({
   onEditCard,
   onLoadTemplate,
 }: Props) {
-  const { 
-    pipeline, 
-    isLoading, 
-    error, 
-    fetchPipeline, 
-    moveCardLocally, 
+  const {
+    pipeline,
+    isLoading,
+    error,
+    fetchPipeline,
+    moveCardLocally,
     moveCardApi,
-    toggleAutopilot 
+    toggleAutopilot,
+    renameStage,
   } = useKanbanStore();
   useUIMode();
   const [isMounted, setIsMounted] = useState(false);
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
+  const [editingStageId, setEditingStageId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const stageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -222,6 +226,21 @@ export default function KanbanBoard({
 
     moveCardLocally(draggableId, source.droppableId, destination.droppableId, source.index, destination.index);
     void moveCardApi(draggableId, destination.droppableId, destination.index);
+  };
+
+  const startEditingStage = (stage: Stage) => {
+    setEditingStageId(stage.id);
+    setEditingName(stage.name);
+    setTimeout(() => stageInputRef.current?.select(), 0);
+  };
+
+  const commitRename = async (stageId: string) => {
+    const trimmed = editingName.trim();
+    setEditingStageId(null);
+    if (!trimmed) return;
+    const stage = pipeline?.stages.find((s) => s.id === stageId);
+    if (trimmed === stage?.name) return;
+    await renameStage(stageId, trimmed);
   };
 
   const handleAutopilotToggle = async (card: Card) => {
@@ -286,7 +305,28 @@ export default function KanbanBoard({
                   <div className="flex items-center justify-between pb-3">
                     <div className="flex items-center gap-2">
                       <span className={cn('h-2.5 w-2.5 rounded-full', stageTheme.dot)} />
-                      <h2 className="text-[15px] font-bold text-[#1a202c]">{stage.name}</h2>
+                      {editingStageId === stage.id ? (
+                        <input
+                          ref={stageInputRef}
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onBlur={() => void commitRename(stage.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { e.currentTarget.blur(); }
+                            if (e.key === 'Escape') { setEditingStageId(null); }
+                          }}
+                          className="w-36 rounded-md border border-[#594ded] bg-white px-1.5 py-0.5 text-[15px] font-bold text-[#1a202c] outline-none ring-1 ring-[#594ded]"
+                          maxLength={60}
+                        />
+                      ) : (
+                        <h2
+                          className="cursor-text text-[15px] font-bold text-[#1a202c] hover:text-[#594ded]"
+                          title="Clique para renomear"
+                          onClick={() => startEditingStage(stage)}
+                        >
+                          {stage.name}
+                        </h2>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={cn('rounded-[6px] px-2 py-0.5 text-[11px] font-bold tracking-wider', stageTheme.badge)}>

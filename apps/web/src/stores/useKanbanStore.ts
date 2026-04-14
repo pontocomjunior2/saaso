@@ -111,6 +111,7 @@ interface KanbanState {
   deleteCard: (cardId: string) => Promise<void>;
   toggleAutopilot: (conversationId: string, currentStatus: string) => Promise<void>;
   createStage: (pipelineId: string, name: string) => Promise<void>;
+  renameStage: (stageId: string, name: string) => Promise<void>;
   loadTemplate: (pipelineId: string, templateId: string) => Promise<{ id: string; name: string }>;
 }
 
@@ -231,6 +232,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       await get().fetchPipeline(pipelineId);
     } catch (error: any) {
       set({ error: error?.response?.data?.message || 'Erro ao criar etapa' });
+      throw error;
+    }
+  },
+
+  renameStage: async (stageId: string, name: string) => {
+    try {
+      await api.patch(`/stages/${stageId}`, { name });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao renomear etapa' });
       throw error;
     }
   },
