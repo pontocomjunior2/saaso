@@ -110,6 +110,8 @@ interface KanbanState {
   updateCard: (cardId: string, patch: any) => Promise<void>;
   deleteCard: (cardId: string) => Promise<void>;
   toggleAutopilot: (conversationId: string, currentStatus: string) => Promise<void>;
+  createStage: (pipelineId: string, name: string) => Promise<void>;
+  loadTemplate: (pipelineId: string, templateId: string) => Promise<{ id: string; name: string }>;
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -220,6 +222,26 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       console.error('Failed to move card in API', error);
       // Aqui poderíamos reverter o state (optimistic rollback)
       set({ error: 'Erro ao salvar a nova posição do card.' });
+    }
+  },
+
+  createStage: async (pipelineId: string, name: string) => {
+    try {
+      await api.post('/stages', { pipelineId, name });
+      await get().fetchPipeline(pipelineId);
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao criar etapa' });
+      throw error;
+    }
+  },
+
+  loadTemplate: async (_pipelineId: string, templateId: string) => {
+    try {
+      const response = await api.post('/pipelines/from-template', { templateId });
+      return response.data;
+    } catch (error: any) {
+      set({ error: error?.response?.data?.message || 'Erro ao carregar template' });
+      throw error;
     }
   },
 }));
