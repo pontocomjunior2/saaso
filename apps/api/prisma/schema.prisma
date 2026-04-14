@@ -32,16 +32,17 @@ model Tenant {
   journeys         Journey[]
   journeyExecutions JourneyExecution[]
   agentConversations AgentConversation[]
-  leadForms        LeadForm[]
-  leadFormSubmissions LeadFormSubmission[]
-  audiences        Audience[]
-  audienceContacts AudienceContact[]
-  campaigns        Campaign[]
-  sequenceRuns     SequenceRun[]
-  prospects        Prospect[]
-  researchTasks    ResearchTask[]
-  enrichmentTasks  EnrichmentTask[]
-  prospectTaskEvents ProspectTaskEvent[]
+  leadForms             LeadForm[]
+  leadFormSubmissions   LeadFormSubmission[]
+  audiences             Audience[]
+  audienceContacts      AudienceContact[]
+  campaigns             Campaign[]
+  sequenceRuns          SequenceRun[]
+  prospects             Prospect[]
+  researchTasks         ResearchTask[]
+  enrichmentTasks       EnrichmentTask[]
+  prospectTaskEvents    ProspectTaskEvent[]
+  stageMessageTemplates StageMessageTemplate[]
 }
 
 model User {
@@ -55,7 +56,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedCards Card[]
+  assignedCards  Card[]
+  cardActivities CardActivity[]
 
   @@unique([email, tenantId])
 }
@@ -78,11 +80,12 @@ model Stage {
   order      Int
   pipelineId String
   pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  cards      Card[]
-  agents     Agent[]
-  leadForms  LeadForm[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  cards            Card[]
+  agents           Agent[]
+  leadForms        LeadForm[]
+  messageTemplates StageMessageTemplate[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model Card {
@@ -107,12 +110,33 @@ model Card {
 }
 
 model CardActivity {
-  id        String   @id @default(uuid())
-  cardId    String
-  card      Card     @relation(fields: [cardId], references: [id])
-  type      String
-  content   String
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  cardId       String
+  card         Card     @relation(fields: [cardId], references: [id])
+  type         String
+  content      String
+  channel      String?
+  templateName String?
+  actorId      String?
+  actor        User?    @relation(fields: [actorId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model StageMessageTemplate {
+  id        String          @id @default(uuid())
+  stageId   String
+  stage     Stage           @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  name      String
+  channel   CampaignChannel
+  subject   String?
+  body      String
+  tenantId  String
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([stageId])
+  @@index([tenantId, stageId])
 }
 
 model Contact {
