@@ -2,8 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import api from '@/lib/api';
-import { GripVertical, LoaderCircle, MessageSquareText, Paperclip, Plus, Settings2 } from 'lucide-react';
+import { GripVertical, LoaderCircle, MessageSquareText, Paperclip, Plus, Settings2, Trash2 } from 'lucide-react';
 import { useKanbanStore, type Card, type Stage } from '../../stores/useKanbanStore';
 import { useUIMode } from '../layout/UIModeProvider';
 import { cn } from '@/lib/utils';
@@ -201,6 +200,7 @@ export default function KanbanBoard({
     moveCardApi,
     toggleAutopilot,
     renameStage,
+    deleteStage,
   } = useKanbanStore();
   useUIMode();
   const [isMounted, setIsMounted] = useState(false);
@@ -209,6 +209,8 @@ export default function KanbanBoard({
   const [editingName, setEditingName] = useState('');
   const stageInputRef = useRef<HTMLInputElement>(null);
   const [templatesModalStage, setTemplatesModalStage] = useState<Stage | null>(null);
+  const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
+  const [isDeletingStage, setIsDeletingStage] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -256,6 +258,18 @@ export default function KanbanBoard({
       console.error('Failed to toggle autopilot', err);
     } finally {
       setBusyCardId(null);
+    }
+  };
+
+  const confirmDeleteStage = async () => {
+    if (!stageToDelete) return;
+
+    setIsDeletingStage(true);
+    try {
+      await deleteStage(stageToDelete.id);
+      setStageToDelete(null);
+    } finally {
+      setIsDeletingStage(false);
     }
   };
 
@@ -342,6 +356,15 @@ export default function KanbanBoard({
                         title="Gerenciar templates da etapa"
                       >
                         <Settings2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStageToDelete(stage)}
+                        className="flex h-6 w-6 items-center justify-center text-[#a0aec0] transition hover:text-rose-600"
+                        aria-label={`Excluir etapa ${stage.name}`}
+                        title="Excluir etapa"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
@@ -435,7 +458,6 @@ export default function KanbanBoard({
                                     {card.contact && (
                                       <p className="mt-1 text-[13px] font-semibold text-[#594ded]">
                                         {card.contact.name}
-                                        {/* @ts-ignore - company exists in the expanded card object from include */}
                                         {card.contact.company?.name && <span className="text-[#a0aec0] font-normal"> · {card.contact.company.name}</span>}
                                       </p>
                                     )}
@@ -540,6 +562,34 @@ export default function KanbanBoard({
         </DragDropContext>
       </main>
     </div>
+    {stageToDelete && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <h2 className="text-lg font-semibold text-[#1a202c]">Excluir etapa?</h2>
+          <p className="mt-2 text-sm leading-6 text-[#718096]">
+            A etapa &quot;{stageToDelete.name}&quot; e {stageToDelete.cards?.length ?? 0} card(s) dentro dela serão removidos permanentemente.
+          </p>
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              disabled={isDeletingStage}
+              onClick={() => setStageToDelete(null)}
+              className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-sm font-medium text-[#718096] hover:bg-[#f7fafc] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={isDeletingStage}
+              onClick={() => void confirmDeleteStage()}
+              className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isDeletingStage ? 'Excluindo...' : 'Excluir etapa'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     {templatesModalStage && (
       <StageTemplatesModal
         stageId={templatesModalStage.id}
@@ -551,3 +601,4 @@ export default function KanbanBoard({
     </>
   );
 }
+

@@ -112,6 +112,7 @@ interface KanbanState {
   toggleAutopilot: (conversationId: string, currentStatus: string) => Promise<void>;
   createStage: (pipelineId: string, name: string) => Promise<void>;
   renameStage: (stageId: string, name: string) => Promise<void>;
+  deleteStage: (stageId: string) => Promise<void>;
   loadTemplate: (pipelineId: string, templateId: string) => Promise<{ id: string; name: string }>;
   sendMessage: (cardId: string, templateId: string, channel: 'WHATSAPP' | 'EMAIL') => Promise<{ success: boolean; deliveryMode: string }>;
 }
@@ -248,6 +249,19 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     }
   },
 
+  deleteStage: async (stageId: string) => {
+    try {
+      await api.delete(`/stages/${stageId}`);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao excluir etapa' });
+      throw error;
+    }
+  },
   loadTemplate: async (_pipelineId: string, templateId: string) => {
     try {
       const response = await api.post('/pipelines/from-template', { templateId });
@@ -263,3 +277,4 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     return response.data;
   },
 }));
+
