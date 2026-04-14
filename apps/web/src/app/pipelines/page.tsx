@@ -8,7 +8,7 @@ import { PipelineTemplateModal } from '@/components/board/PipelineTemplateModal'
 import type { DetailedCard, PipelineSummary } from '@/components/board/board-types';
 import api from '@/lib/api';
 import { useUIMode } from '@/components/layout/UIModeProvider';
-import { KanbanSquare, Orbit, RefreshCcw, Workflow, Plus, Search, Filter, Calendar, LayoutGrid, List } from 'lucide-react';
+import { KanbanSquare, Orbit, RefreshCcw, Workflow, Plus, Search, Filter, Calendar, LayoutGrid, List, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function PipelinesPage() {
@@ -27,6 +27,8 @@ export default function PipelinesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<{ id: string; title: string; stageId: string } | null>(null);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [deletingPipelineId, setDeletingPipelineId] = useState<string | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -98,6 +100,26 @@ export default function PipelinesPage() {
 
   const totalCards = selectedPipeline?.stages.reduce((total, stage) => total + (stage.cards?.length ?? 0), 0) ?? 0;
 
+  const handleDeletePipeline = async (pipelineId: string) => {
+    try {
+      await api.delete(`/pipelines/${pipelineId}`);
+      setPipelines((prev) => {
+        const remaining = prev.filter((p) => p.id !== pipelineId);
+        if (selectedPipelineId === pipelineId) {
+          setSelectedPipelineId(remaining[0]?.id ?? null);
+          setSelectedCardId(null);
+          setSelectedCard(null);
+        }
+        return remaining;
+      });
+    } catch {
+      setError('Nao foi possivel excluir o pipeline.');
+    } finally {
+      setDeletingPipelineId(null);
+      setIsDeleteConfirmOpen(false);
+    }
+  };
+
   return (
     <>
       <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 p-6 lg:p-8">
@@ -143,22 +165,34 @@ export default function PipelinesPage() {
               {pipelines.map((pipeline) => {
                 const isActive = pipeline.id === selectedPipelineId;
                 return (
-                  <button
-                    key={pipeline.id}
-                    onClick={() => {
-                      setSelectedPipelineId(pipeline.id);
-                      setSelectedCardId(null);
-                      setSelectedCard(null);
-                    }}
-                    className={`flex items-center gap-2 border-b-2 px-1 pb-4 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'border-[#594ded] text-[#594ded]'
-                        : 'border-transparent text-[#718096] hover:text-[#1a202c]'
-                    }`}
-                  >
-                    <KanbanSquare className="h-[18px] w-[18px]" />
-                    {pipeline.name}
-                  </button>
+                  <div key={pipeline.id} className="group relative flex items-center">
+                    <button
+                      onClick={() => {
+                        setSelectedPipelineId(pipeline.id);
+                        setSelectedCardId(null);
+                        setSelectedCard(null);
+                      }}
+                      className={`flex items-center gap-2 border-b-2 px-1 pb-4 pr-6 text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'border-[#594ded] text-[#594ded]'
+                          : 'border-transparent text-[#718096] hover:text-[#1a202c]'
+                      }`}
+                    >
+                      <KanbanSquare className="h-[18px] w-[18px]" />
+                      {pipeline.name}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingPipelineId(pipeline.id);
+                        setIsDeleteConfirmOpen(true);
+                      }}
+                      className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded text-[#a0aec0] opacity-0 transition hover:text-rose-500 group-hover:opacity-100"
+                      title="Excluir pipeline"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 );
               })}
               
@@ -265,6 +299,31 @@ export default function PipelinesPage() {
         onClose={() => setIsTemplateModalOpen(false)}
         showCreateEmpty
       />
+
+      {isDeleteConfirmOpen && deletingPipelineId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-[#1a202c]">Excluir pipeline?</h2>
+            <p className="mt-2 text-sm text-[#718096]">
+              O pipeline &quot;{pipelines.find((p) => p.id === deletingPipelineId)?.name}&quot; e todos os seus dados serão removidos permanentemente. Esta ação não pode ser desfeita.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => { setIsDeleteConfirmOpen(false); setDeletingPipelineId(null); }}
+                className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-sm font-medium text-[#718096] hover:bg-[#f7fafc]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => void handleDeletePipeline(deletingPipelineId)}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
