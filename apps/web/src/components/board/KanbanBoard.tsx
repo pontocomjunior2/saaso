@@ -7,6 +7,8 @@ import { GripVertical, LoaderCircle, MessageSquareText, Paperclip, Plus } from '
 import { useKanbanStore, type Card, type Stage } from '../../stores/useKanbanStore';
 import { useUIMode } from '../layout/UIModeProvider';
 import { cn } from '@/lib/utils';
+import { EmptyBoardState } from './EmptyBoardState';
+import { AddStageButton } from './AddStageButton';
 
 interface Props {
   pipelineId?: string;
@@ -14,6 +16,7 @@ interface Props {
   selectedCardId?: string | null;
   onAddCard?: (stageId: string) => void;
   onEditCard?: (card: Card) => void;
+  onLoadTemplate?: () => void;
 }
 
 function getConversation(card: Card) {
@@ -180,12 +183,13 @@ function getInitials(value?: string | null) {
     .join('');
 }
 
-export default function KanbanBoard({ 
-  pipelineId, 
-  onCardSelect, 
+export default function KanbanBoard({
+  pipelineId,
+  onCardSelect,
   selectedCardId,
   onAddCard,
-  onEditCard
+  onEditCard,
+  onLoadTemplate,
 }: Props) {
   const { 
     pipeline, 
@@ -257,6 +261,15 @@ export default function KanbanBoard({
       <div className="flex min-h-[36rem] items-center justify-center rounded-[28px] border border-[#f0f0f0] bg-white p-10 text-[#9e9e9e]">
         Nenhum pipeline selecionado ou encontrado.
       </div>
+    );
+  }
+
+  if (pipeline.stages.length === 0) {
+    return (
+      <EmptyBoardState
+        pipelineId={pipeline.id}
+        onLoadTemplate={onLoadTemplate ?? (() => {})}
+      />
     );
   }
 
@@ -471,6 +484,7 @@ export default function KanbanBoard({
                 </div>
               );
             })}
+            <AddStageButton pipelineId={pipeline.id} />
           </div>
         </DragDropContext>
       </main>
