@@ -22,6 +22,7 @@ export interface AgentPromptProfile {
 export interface AgentPromptContext {
   pipelineName?: string | null;
   stageName?: string | null;
+  classificationCriteria?: string | null;
   tenantName?: string | null;
   knowledgeBaseName?: string | null;
   knowledgeBaseSummary?: string | null;
@@ -184,6 +185,9 @@ export function buildAgentCompiledPrompt(input: {
   const funnelContext = [
     context?.pipelineName ? `Pipeline: ${context.pipelineName}.` : undefined,
     context?.stageName ? `Etapa atual: ${context.stageName}.` : undefined,
+    context?.classificationCriteria
+      ? `Critério de classificação da etapa: ${context.classificationCriteria}.`
+      : undefined,
   ]
     .filter((item): item is string => typeof item === 'string')
     .join(' ');

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SERVUS — Blueprint de Automação e Fluxos</title>
+<style>
+  :root {
+    --azul: #1B4F72;
+    --azul-med: #2E86C1;
+    --azul-claro: #D6EAF8;
+    --verde: #27AE60;
+    --laranja: #E67E22;
+    --vermelho: #C0392B;
+    --cinza: #F8F9FA;
+    --dark: #1A1A2E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: var(--dark); }
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .header { background: var(--azul); color: white; padding: 30px 40px; border-radius: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 28px; margin-bottom: 6px; }
+  .header p { opacity: 0.85; font-size: 15px; }
+
+  /* Pipeline Visual */
+  .pipeline { display: flex; gap: 4px; margin-bottom: 32px; overflow-x: auto; padding-bottom: 8px; }
+  .stage-card {
+    flex: 1; min-width: 140px; padding: 16px 12px; border-radius: 10px;
+    cursor: pointer; transition: all 0.2s; text-align: center; position: relative;
+    border: 2px solid transparent;
+  }
+  .stage-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .stage-card.active { border-color: var(--azul); box-shadow: 0 4px 16px rgba(27,79,114,0.3); }
+  .stage-card .num { font-size: 28px; font-weight: 700; }
+  .stage-card .name { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .stage-card .agent { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+  .stage-card::after {
+    content: '→'; position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+    font-size: 18px; color: #999; font-weight: 700;
+  }
+  .stage-card:last-child::after { content: ''; }
+
+  .s1 { background: #EBF5FB; color: var(--azul); }
+  .s2 { background: #D4EFDF; color: #1E8449; }
+  .s3 { background: #FEF9E7; color: #B7950B; }
+  .s4 { background: #FDEDEC; color: var(--vermelho); }
+  .s5 { background: #E8F8F5; color: #148F77; }
+  .s6 { background: #F4ECF7; color: #7D3C98; }
+  .s7 { background: #FDEBD0; color: var(--laranja); }
+
+  /* Detail Panel */
+  .detail-panel {
+    background: white; border-radius: 12px; padding: 32px; margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: none;
+  }
+  .detail-panel.visible { display: block; }
+  .detail-panel h2 { color: var(--azul); font-size: 22px; margin-bottom: 4px; }
+  .detail-panel .subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
+
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .info-box { background: var(--cinza); padding: 14px; border-radius: 8px; }
+  .info-box .label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-box .value { font-size: 16px; font-weight: 600; color: var(--dark); margin-top: 4px; }
+
+  /* Sequence Timeline */
+  .sequence { margin-top: 20px; }
+  .sequence h3 { color: var(--azul); font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid var(--azul-claro); padding-bottom: 6px; }
+  .seq-item {
+    display: flex; gap: 16px; padding: 14px 16px; border-left: 3px solid var(--azul-med);
+    margin-left: 12px; margin-bottom: 2px; background: #FAFBFC; border-radius: 0 8px 8px 0;
+  }
+  .seq-item .timing { min-width: 80px; font-weight: 700; color: var(--azul-med); font-size: 13px; }
+  .seq-item .channel {
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 600; margin-right: 6px;
+  }
+  .ch-whatsapp { background: #D5F5E3; color: #1E8449; }
+  .ch-email { background: #D6EAF8; color: var(--azul); }
+  .ch-sms { background: #FDEBD0; color: var(--laranja); }
+  .ch-closer { background: #FDEDEC; color: var(--vermelho); }
+  .ch-sdr { background: #F4ECF7; color: #7D3C98; }
+  .seq-item .content { font-size: 13px; line-height: 1.5; }
+  .seq-item .template {
+    background: #F0F0F0; padding: 10px 14px; border-radius: 6px; margin-top: 8px;
+    font-style: italic; font-size: 12px; color: #444; border-left: 3px solid #ccc;
+  }
+
+  .transition {
+    background: #FFF3E0; border: 1px solid #FFE0B2; border-radius: 8px;
+    padding: 14px 18px; margin-top: 16px;
+  }
+  .transition h4 { color: var(--laranja); font-size: 14px; margin-bottom: 8px; }
+  .transition ul { padding-left: 20px; font-size: 13px; }
+  .transition li { margin-bottom: 4px; }
+
+  .exit-rule {
+    background: #FFEBEE; border: 1px solid #FFCDD2; border-radius: 8px;
+    padding: 14px 18px; margin-top: 12px;
+  }
+  .exit-rule h4 { color: var(--vermelho); font-size: 14px; margin-bottom: 8px; }
+
+  /* Summary Section */
+  .summary { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+  .summary h2 { color: var(--azul); margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--azul); color: white; padding: 10px 14px; text-align: left; }
+  td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) { background: #FAFBFC; }
+
+  .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>SERVUS — Blueprint de Automação</h1>
+  <p>Fluxos, Réguas de Nutrição e Templates por Etapa do Funil | Clique em cada etapa para ver os detalhes</p>
+</div>
+
+<!-- Pipeline Visual -->
+<div class="pipeline" id="pipeline">
+  <div class="stage-card s1 active" data-stage="0">
+    <div class="num">1</div>
+    <div class="name">Lead</div>
+    <div class="agent">Agente: Automação</div>
+  </div>
+  <div class="stage-card s2" data-stage="1">
+    <div class="num">2</div>
+    <div class="name">Lead Qualificado</div>
+    <div class="agent">Agente: SDR</div>
+  </div>
+  <div class="stage-card s3" data-stage="2">
+    <div class="num">3</div>
+    <div class="name">Em Negociação</div>
+    <div class="agent">Agente: Closer</div>
+  </div>
+  <div class="stage-card s4" data-stage="3">
+    <div class="num">4</div>
+    <div class="name">Cliente Novo</div>
+    <div class="agent">Agente: Onboarding</div>
+  </div>
+  <div class="stage-card s5" data-stage="4">
+    <div class="num">5</div>
+    <div class="name">Cliente Ativo</div>
+    <div class="agent">Agente: Sucesso</div>
+  </div>
+  <div class="stage-card s6" data-stage="5">
+    <div class="num">6</div>
+    <div class="name">Em Risco</div>
+    <div class="agent">Agente: Retenção</div>
+  </div>
+  <div class="stage-card s7" data-stage="6">
+    <div class="num">7</div>
+    <div class="name">Perdido / Churned</div>
+    <div class="agent">Agente: Reativação</div>
+  </div>
+</div>
+
+<!-- Detail Panels -->
+<div class="detail-panel visible" id="stage-0">
+  <h2>Etapa 1 — Lead</h2>
+  <p class="subtitle">Pessoa que demonstrou interesse mas ainda não foi qualificada</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">Automação (ManyChat)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">WhatsApp + Email</div></div>
+    <div class="info-box"><div class="label">Duração máx.</div><div class="value">90 dias</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Engajar e qualificar</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Nutrição — Lead</h3>
+
+    <div class="seq-item">
+      <div class="timing">Imediato</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Boas-vindas + Gancho</strong> — Mensagem automática assim que o lead entra (clicou no link, respondeu broadcast, veio do Instagram).</div>
+        <div class="template">"Oi, Dr(a). [Nome]! Aqui é da equipe SERVUS. Vi que você se interessou pelo copiloto clínico. Posso te mostrar como funciona na prática? Leva 2 minutos. 👇"<br>[Botão: "Quero ver" / "Agora não"]</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Se "Quero ver"</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Vídeo demo 90s</strong> — Enviar vídeo curto do SERVUS resolvendo um caso clínico + link para agendar call.</div>
+        <div class="template">"Olha esse caso: paciente chega com dor torácica atípica + dispneia. Veja o que o SERVUS identificou em 10 segundos 👇"<br>[Vídeo] + [Link: "Quero testar"]</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+1</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Follow-up suave</strong> — Se assistiu o vídeo mas não clicou no link.</div>
+        <div class="template">"Dr(a). [Nome], viu o vídeo? Se tiver alguma dúvida sobre como o SERVUS funciona no plantão, é só mandar aqui que te explico."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+3</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Prova social</strong> — Se não respondeu.</div>
+        <div class="template">"Tá tudo bem se não for o momento. Mas caso mude de ideia, olha o que o Dr. [Nome do EA] falou depois de 1 semana usando:"<br>[Depoimento curto]</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+7</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Conteúdo educativo</strong> — Email com caso clínico detalhado + como o SERVUS ajudaria.</div>
+        <div class="template">Assunto: "Esse caso no PA te lembra algo?"<br>Corpo: Caso clínico narrativo → como o SERVUS atuaria → CTA para demo</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+14</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Reengajamento</strong> — Última tentativa automática antes de passar pro SDR.</div>
+        <div class="template">"Dr(a). [Nome], estou passando aqui pela última vez. Se quiser conhecer o SERVUS, é só responder 'SIM' que agendo uma demo de 10 min com a equipe. Sem compromisso."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+30, D+60</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Nutrição passiva</strong> — Emails com conteúdo de valor (não venda). Artigos, casos, novidades do SERVUS.</div>
+        <div class="template">Assunto: "3 erros comuns na triagem de dor torácica"<br>Corpo: Conteúdo educativo puro, CTA suave no final</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transition">
+    <h4>→ Quando avança para "Lead Qualificado"?</h4>
+    <ul>
+      <li>Respondeu "SIM" ou "Quero ver" e assistiu o vídeo</li>
+      <li>Clicou no link de agendamento</li>
+      <li>Respondeu qualquer mensagem demonstrando interesse</li>
+      <li><strong>Gatilho automático:</strong> Tag "interessado" no ManyChat → entra na fila do SDR</li>
+    </ul>
+  </div>
+
+  <div class="exit-rule">
+    <h4>✕ Quando é marcado como "Perdido"?</h4>
+    <ul>
+      <li>90 dias sem nenhuma interação</li>
+      <li>Respondeu "não tenho interesse" ou pediu para parar</li>
+      <li>Email bounced + WhatsApp não entrega</li>
+    </ul>
+  </div>
+</div>
+
+<div class="detail-panel" id="stage-1">
+  <h2>Etapa 2 — Lead Qualificado</h2>
+  <p class="subtitle">Lead que demonstrou interesse ativo — SDR assume o contato humano</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">SDR (humano + automação)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">WhatsApp (SDR) + Email</div></div>
+    <div class="info-box"><div class="label">Duração máx.</div><div class="value">30 dias</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Qualificar e agendar demo</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Nutrição — Lead Qualificado</h3>
+
+    <div class="seq-item">
+      <div class="timing">Imediato</div>
+      <div>
+        <span class="channel ch-sdr">SDR</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Contato humano</strong> — SDR envia mensagem personalizada referenciando o Dr. Márcio.</div>
+        <div class="template">"Oi, Dr(a). [Nome]! Aqui é [Nome SDR] da equipe do Dr. Márcio. Vi que você se interessou pelo SERVUS. Posso te mostrar como funciona na prática? Leva 5 minutos pelo WhatsApp mesmo."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Se respondeu</div>
+      <div>
+        <span class="channel ch-sdr">SDR</span>
+        <div class="content"><strong>Qualificação (3 perguntas)</strong> — SDR aplica script de qualificação.</div>
+        <div class="template">1. "Quantos pacientes você atende por dia, em média?"<br>2. "Já teve casos onde sentiu falta de um segundo par de olhos pra decisão clínica?"<br>3. "Se pudesse ter um copiloto de IA acessível pelo WhatsApp, usaria no dia a dia?"<br><br>→ Se SIM nas 3: agenda demo com Closer<br>→ Se NÃO em alguma: nutrir mais</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+1</div>
+      <div>
+        <span class="channel ch-sdr">SDR</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Follow-up se não respondeu</strong></div>
+        <div class="template">"Dr(a). [Nome], mandei uma mensagem ontem sobre o SERVUS. Sei que o plantão é corrido. Quer que eu te mande um vídeo rápido de 1 minuto mostrando como funciona?"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+3</div>
+      <div>
+        <span class="channel ch-sdr">SDR</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Tentativa com ângulo diferente</strong></div>
+        <div class="template">"Dr(a). [Nome], outros médicos que estão usando me disseram que a parte que mais gostam é ter o respaldo na hora do diagnóstico diferencial. Se quiser ver um exemplo real, é só dizer."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+7</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Email formal</strong> — Caso não responda no WhatsApp.</div>
+        <div class="template">Assunto: "Dr(a). [Nome], convite para conhecer o SERVUS"<br>Corpo: Explicação profissional + link para agendar demo de 15 min</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+14</div>
+      <div>
+        <span class="channel ch-sdr">SDR</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Última tentativa SDR</strong></div>
+        <div class="template">"Dr(a). [Nome], entendo se não é o momento. Vou parar de mandar mensagem, mas se algum dia quiser conhecer o SERVUS, é só responder aqui que eu retomo. Tudo de bom nos plantões! 💪"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+15–30</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Nutrição passiva</strong> — Volta para régua automática com conteúdo educativo a cada 7 dias.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transition">
+    <h4>→ Quando avança para "Em Negociação"?</h4>
+    <ul>
+      <li>Respondeu SIM nas 3 perguntas de qualificação</li>
+      <li>Pediu para agendar demo ou falar com alguém</li>
+      <li>Perguntou sobre preço (sinal forte de intenção)</li>
+      <li><strong>Gatilho:</strong> SDR move manualmente para fila do Closer + agenda horário</li>
+    </ul>
+  </div>
+
+  <div class="exit-rule">
+    <h4>✕ Quando volta para "Lead" ou vai para "Perdido"?</h4>
+    <ul>
+      <li>30 dias sem resposta → volta para Lead (nutrição passiva)</li>
+      <li>Disse explicitamente que não tem interesse → Perdido</li>
+      <li>Não é médico / perfil incorreto → Remove do funil</li>
+    </ul>
+  </div>
+</div>
+
+<div class="detail-panel" id="stage-2">
+  <h2>Etapa 3 — Em Negociação</h2>
+  <p class="subtitle">Lead qualificado com demo agendada ou em andamento — Closer assume</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">Closer (humano)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">WhatsApp + Call</div></div>
+    <div class="info-box"><div class="label">Duração máx.</div><div class="value">15 dias</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Fechar assinatura (prioridade anual)</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Nutrição — Em Negociação</h3>
+
+    <div class="seq-item">
+      <div class="timing">D0</div>
+      <div>
+        <span class="channel ch-closer">Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Confirmação da demo</strong> — Closer confirma horário e envia lembrete.</div>
+        <div class="template">"Dr(a). [Nome], aqui é [Closer]. Tá confirmado nosso papo [dia] às [hora]? Vou te mostrar o SERVUS funcionando ao vivo com um caso clínico real. Vai ser rápido, 15 min."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Demo</div>
+      <div>
+        <span class="channel ch-closer">Closer</span>
+        <div class="content"><strong>Demo ao vivo (15 min)</strong> — Caso clínico real no WhatsApp. Mostrar Triagem + CSE. Apresentar planos.<br><strong>Script de fechamento:</strong> Apresentar Copiloto Pro (R$697) primeiro → âncora. Depois Copiloto (R$497). Oferecer anual (paga 10, leva 12). Se early adopter: 35% off.</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+1 pós-demo</div>
+      <div>
+        <span class="channel ch-closer">Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Follow-up pós-demo</strong> — Se não fechou na hora.</div>
+        <div class="template">"Dr(a). [Nome], gostou do que viu ontem? Alguma dúvida sobre o SERVUS? Se quiser ativar, é só me dizer que mando o link e te configuro hoje."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+3 pós-demo</div>
+      <div>
+        <span class="channel ch-closer">Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Urgência suave + benefício anual</strong></div>
+        <div class="template">"Dr(a). [Nome], só passando pra lembrar: no plano anual você paga 10 meses e usa 12. Isso dá R$414/mês no Copiloto — menos que um plantão noturno. Quer que eu ative pra você?"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+7 pós-demo</div>
+      <div>
+        <span class="channel ch-closer">Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Último contato Closer</strong></div>
+        <div class="template">"Dr(a). [Nome], respeito seu tempo. Se não for agora, sem problema. Mas quero que saiba: o SERVUS vai estar aqui quando você precisar. Se mudar de ideia, é só chamar aqui."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">No-show</div>
+      <div>
+        <span class="channel ch-closer">Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Se não apareceu na demo</strong></div>
+        <div class="template">"Dr(a). [Nome], não consegui te encontrar no horário combinado. Sei que plantão é imprevisível! Quer remarcar? Posso [dia1] ou [dia2], o que for melhor pra você."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transition">
+    <h4>→ Quando avança para "Cliente Novo"?</h4>
+    <ul>
+      <li>Pagamento confirmado (mensal ou anual)</li>
+      <li>Contrato assinado (Closer envia antes da cobrança)</li>
+      <li><strong>Gatilho:</strong> Pagamento no checkout → automação move para "Cliente Novo" + dispara onboarding</li>
+    </ul>
+  </div>
+
+  <div class="exit-rule">
+    <h4>✕ Se não fechou?</h4>
+    <ul>
+      <li>15 dias sem resposta pós-demo → volta para Lead Qualificado (SDR tenta novamente em 30 dias)</li>
+      <li>Disse que não quer → Perdido (entra na régua de reativação em 60 dias)</li>
+      <li>No-show 2x → volta para Lead (nutrição passiva)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="detail-panel" id="stage-3">
+  <h2>Etapa 4 — Cliente Novo (Onboarding)</h2>
+  <p class="subtitle">Pagou e precisa ser ativado — primeiros 30 dias são críticos</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">Onboarding (automação + Marcos)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">WhatsApp + Email</div></div>
+    <div class="info-box"><div class="label">Duração</div><div class="value">30 dias</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Ativar uso + garantir 1º sucesso</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Onboarding — Cliente Novo</h3>
+
+    <div class="seq-item">
+      <div class="timing">D0</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Boas-vindas + acesso</strong> — Ativação imediata do SERVUS + tutorial.</div>
+        <div class="template">"Dr(a). [Nome], seja bem-vindo(a) ao SERVUS! 🎉 Seu copiloto clínico está ativo. Aqui está seu tutorial de 2 minutos pra usar no próximo plantão:"<br>[Vídeo tutorial] + [PDF guia rápido]</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+1</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Primeiro caso guiado</strong> — Passo a passo de como usar no plantão.</div>
+        <div class="template">"Dr(a). [Nome], pronto(a) pro primeiro caso? Tenta enviar o seguinte cenário pro SERVUS e veja o que ele te retorna: 'Paciente masculino, 45 anos, dor torácica há 2h, sudorese...' Depois me diz o que achou!"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+3</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Cases de uso práticos</strong></div>
+        <div class="template">"Dr(a). [Nome], aqui estão 3 situações em que outros médicos mais usam o SERVUS no plantão:<br>1. Diagnóstico diferencial em dor abdominal<br>2. Verificação de interação medicamentosa<br>3. Protocolo de sepse<br>Já testou algum desses?"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+7</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Check-in</strong> — Verificar se está usando e tirar dúvidas.</div>
+        <div class="template">"Dr(a). [Nome], faz 1 semana que você tem o SERVUS. Tá conseguindo usar nos plantões? Alguma dúvida ou sugestão? Estamos aqui pra ajudar."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+14</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>NPS + Convite grupo VIP</strong></div>
+        <div class="template">"Dr(a). [Nome], de 0 a 10, o quanto você recomendaria o SERVUS para um colega? [Botões 0-10]<br>Aliás, temos um grupo fechado com outros médicos que usam o SERVUS. Quer entrar?"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+30</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span><span class="channel ch-email">Email</span>
+        <div class="content"><strong>Relatório do primeiro mês</strong> — Resumo de uso + sugestão de upgrade (se mensal → anual).</div>
+        <div class="template">"Dr(a). [Nome], seu primeiro mês com SERVUS! 🎯 Você consultou o copiloto X vezes. Sabia que no plano anual você economiza 2 meses? Quer saber mais?"</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transition">
+    <h4>→ Quando avança para "Cliente Ativo"?</h4>
+    <ul>
+      <li>Usou o SERVUS pelo menos 3x nos primeiros 30 dias</li>
+      <li>Completou o onboarding (assistiu tutorial + fez caso guiado)</li>
+      <li><strong>Gatilho automático:</strong> D+30 → move para Cliente Ativo</li>
+    </ul>
+  </div>
+
+  <div class="exit-rule">
+    <h4>⚠ Alerta: Se não usou?</h4>
+    <ul>
+      <li>0 usos em 14 dias → alerta pro SDR/Closer ligar e ajudar</li>
+      <li>0 usos em 30 dias → move para "Em Risco" imediatamente</li>
+    </ul>
+  </div>
+</div>
+
+<div class="detail-panel" id="stage-4">
+  <h2>Etapa 5 — Cliente Ativo</h2>
+  <p class="subtitle">Usando o produto regularmente — foco em retenção, valor e upsell</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">Sucesso (automação)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">WhatsApp + Email</div></div>
+    <div class="info-box"><div class="label">Duração</div><div class="value">Enquanto ativo</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Reter + upsell + indicação</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Sucesso — Cliente Ativo</h3>
+
+    <div class="seq-item">
+      <div class="timing">Mensal</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Relatório mensal de uso</strong> — Métricas de consultas, casos mais frequentes, tempo economizado.</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">A cada 15 dias</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Conteúdo de valor</strong> — Novidades do produto, dicas de uso avançado, novos protocolos.</div>
+        <div class="template">"Dr(a). [Nome], novidade no SERVUS: agora o copiloto tem protocolo atualizado de [especialidade]. Testa no próximo plantão!"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Mês 2</div>
+      <div>
+        <span class="channel ch-closer">Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Upsell mensal → anual</strong> — Se está no plano mensal, Closer entra para migrar pro anual.</div>
+        <div class="template">"Dr(a). [Nome], vi que você tá usando bastante o SERVUS. Sabia que no plano anual você paga 10 meses e ganha 12? Economia de quase R$1.000. Quer que eu migre pra você?"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Mês 3</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Upsell Copiloto → Pro</strong> — Se está no Copiloto, apresentar benefícios do Pro.</div>
+        <div class="template">"Dr(a). [Nome], você já é craque no SERVUS. Conheça o Copiloto Pro: relatórios automáticos dos seus padrões clínicos + mentoria ao vivo com Dr. Alexandre. Quer saber mais?"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Trimestral</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Programa de indicação</strong> — Pedir indicação ativa.</div>
+        <div class="template">"Dr(a). [Nome], tem algum colega que faz plantão e poderia se beneficiar do SERVUS? Se indicar e ele assinar, você ganha 1 mês grátis. É só me mandar o WhatsApp dele."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">Semestral</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>NPS</strong> — Pesquisa de satisfação.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="exit-rule">
+    <h4>⚠ Quando move para "Em Risco"?</h4>
+    <ul>
+      <li>Sem uso por 14+ dias consecutivos</li>
+      <li>NPS < 6</li>
+      <li>Não renovou (se mensal, não pagou no vencimento)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="detail-panel" id="stage-5">
+  <h2>Etapa 6 — Em Risco</h2>
+  <p class="subtitle">Cliente que parou de usar ou deu sinais de insatisfação — ação urgente</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">Retenção (SDR ou Closer)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">WhatsApp + Ligação</div></div>
+    <div class="info-box"><div class="label">Duração máx.</div><div class="value">15 dias</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Salvar o cliente</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Retenção — Em Risco</h3>
+
+    <div class="seq-item">
+      <div class="timing">Imediato</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Check-in pessoal</strong></div>
+        <div class="template">"Dr(a). [Nome], notei que faz um tempo que você não usa o SERVUS. Tá tudo bem? Aconteceu algo? Quero entender se posso te ajudar de alguma forma."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+3</div>
+      <div>
+        <span class="channel ch-sdr">SDR/Closer</span><span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Ligação/áudio</strong> — Contato humano direto para entender o problema.</div>
+        <div class="template">"Dr(a). [Nome], aqui é [Nome]. Vou mandar um áudio rápido porque quero realmente entender o que aconteceu..."<br>[Áudio personalizado 30-60s]</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+7</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Oferta de resgate</strong> — Se o motivo for preço, oferecer condição especial.</div>
+        <div class="template">"Dr(a). [Nome], sei que o investimento pesa. Que tal eu te fazer uma condição especial por mais 3 meses? Quero que você continue tendo o copiloto no plantão."</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+15</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Despedida respeitosa</strong></div>
+        <div class="template">"Dr(a). [Nome], respeito sua decisão. Se algum dia quiser voltar, o SERVUS vai estar aqui. Cuida-se e bons plantões. 💪"</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="transition">
+    <h4>→ Quando volta para "Cliente Ativo"?</h4>
+    <ul>
+      <li>Voltou a usar o produto</li>
+      <li>Renovou/pagou pendência</li>
+      <li>Respondeu positivamente ao contato de retenção</li>
+    </ul>
+  </div>
+
+  <div class="exit-rule">
+    <h4>✕ Quando vai para "Churned"?</h4>
+    <ul>
+      <li>Cancelou a assinatura</li>
+      <li>Pagamento não realizado + 15 dias sem resposta</li>
+      <li>Pediu explicitamente para sair</li>
+    </ul>
+  </div>
+</div>
+
+<div class="detail-panel" id="stage-6">
+  <h2>Etapa 7 — Perdido / Churned</h2>
+  <p class="subtitle">Lead que nunca converteu ou cliente que cancelou — tentativa de reativação após quarentena</p>
+
+  <div class="info-grid">
+    <div class="info-box"><div class="label">Agente</div><div class="value">Reativação (automação)</div></div>
+    <div class="info-box"><div class="label">Canais</div><div class="value">Email + WhatsApp (pontual)</div></div>
+    <div class="info-box"><div class="label">Quarentena</div><div class="value">60 dias sem contato</div></div>
+    <div class="info-box"><div class="label">Objetivo</div><div class="value">Reativar se possível</div></div>
+  </div>
+
+  <div class="sequence">
+    <h3>Régua de Reativação — Perdido/Churned</h3>
+
+    <div class="seq-item">
+      <div class="timing">D+60</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Reativação suave</strong> — Após 60 dias de quarentena.</div>
+        <div class="template">Assunto: "Dr(a). [Nome], o SERVUS evoluiu"<br>Corpo: Mostrar novas funcionalidades, melhorias, depoimentos recentes. CTA suave.</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+90</div>
+      <div>
+        <span class="channel ch-whatsapp">WhatsApp</span>
+        <div class="content"><strong>Oferta especial de retorno</strong> — Para ex-clientes (churned).</div>
+        <div class="template">"Dr(a). [Nome], sentimos sua falta no SERVUS. Desde que saiu, adicionamos [feature nova]. Quer voltar com uma condição especial? [Oferta]"</div>
+      </div>
+    </div>
+
+    <div class="seq-item">
+      <div class="timing">D+120</div>
+      <div>
+        <span class="channel ch-email">Email</span>
+        <div class="content"><strong>Última tentativa</strong> — Se não respondeu a nenhuma tentativa de reativação.</div>
+        <div class="template">Assunto: "Última mensagem nossa, Dr(a). [Nome]"<br>Corpo: Breve, respeitoso. "Se quiser voltar algum dia, estamos aqui."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="exit-rule">
+    <h4>✕ Quando para de tentar?</h4>
+    <ul>
+      <li>120 dias sem resposta → remove do funil ativo (fica só em lista de email geral)</li>
+      <li>Pediu explicitamente para parar → remove de tudo</li>
+      <li><strong>Exceção:</strong> lançamento de feature importante → 1 email de retomada permitido por trimestre</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Summary Tables -->
+<div class="summary">
+  <h2>Resumo: Réguas por Etapa</h2>
+  <table>
+    <tr>
+      <th>Etapa</th>
+      <th>Agente</th>
+      <th>Canal Principal</th>
+      <th>Frequência</th>
+      <th>Duração Máx.</th>
+      <th>Saída Positiva</th>
+      <th>Saída Negativa</th>
+    </tr>
+    <tr>
+      <td><strong>1. Lead</strong></td>
+      <td>Automação</td>
+      <td>WhatsApp</td>
+      <td>D0, D+1, D+3, D+7, D+14, D+30, D+60</td>
+      <td>90 dias</td>
+      <td>→ Lead Qualificado</td>
+      <td>→ Perdido</td>
+    </tr>
+    <tr>
+      <td><strong>2. Lead Qualificado</strong></td>
+      <td>SDR</td>
+      <td>WhatsApp (humano)</td>
+      <td>D0, D+1, D+3, D+7, D+14</td>
+      <td>30 dias</td>
+      <td>→ Em Negociação</td>
+      <td>→ Lead ou Perdido</td>
+    </tr>
+    <tr>
+      <td><strong>3. Em Negociação</strong></td>
+      <td>Closer</td>
+      <td>WhatsApp + Call</td>
+      <td>D0, Demo, D+1, D+3, D+7</td>
+      <td>15 dias</td>
+      <td>→ Cliente Novo</td>
+      <td>→ Lead Qualificado</td>
+    </tr>
+    <tr>
+      <td><strong>4. Cliente Novo</strong></td>
+      <td>Onboarding</td>
+      <td>WhatsApp</td>
+      <td>D0, D+1, D+3, D+7, D+14, D+30</td>
+      <td>30 dias</td>
+      <td>→ Cliente Ativo</td>
+      <td>→ Em Risco</td>
+    </tr>
+    <tr>
+      <td><strong>5. Cliente Ativo</strong></td>
+      <td>Sucesso</td>
+      <td>WhatsApp + Email</td>
+      <td>Quinzenal + mensal</td>
+      <td>∞</td>
+      <td>Upsell / Indicação</td>
+      <td>→ Em Risco</td>
+    </tr>
+    <tr>
+      <td><strong>6. Em Risco</strong></td>
+      <td>Retenção</td>
+      <td>WhatsApp + Ligação</td>
+      <td>D0, D+3, D+7, D+15</td>
+      <td>15 dias</td>
+      <td>→ Cliente Ativo</td>
+      <td>→ Churned</td>
+    </tr>
+    <tr>
+      <td><strong>7. Perdido/Churned</strong></td>
+      <td>Reativação</td>
+      <td>Email</td>
+      <td>D+60, D+90, D+120</td>
+      <td>120 dias</td>
+      <td>→ Lead / Cliente</td>
+      <td>Remove do funil</td>
+    </tr>
+  </table>
+</div>
+
+<div class="summary">
+  <h2>Ferramentas Necessárias por Etapa</h2>
+  <table>
+    <tr><th>Ferramenta</th><th>Etapas</th><th>Função</th></tr>
+    <tr><td>ManyChat</td><td>1, 4, 5</td><td>Automação WhatsApp, fluxos, tags, gatilhos</td></tr>
+    <tr><td>CRM (Pipedrive/HubSpot)</td><td>2, 3, 6</td><td>Pipeline de vendas, agendamento, follow-up</td></tr>
+    <tr><td>Email (SendGrid/Mailchimp)</td><td>1, 5, 7</td><td>Nutrição passiva, relatórios, reativação</td></tr>
+    <tr><td>Checkout (Asaas/Stripe)</td><td>3, 5</td><td>Pagamento, recorrência, link de assinatura</td></tr>
+    <tr><td>Analytics interno</td><td>4, 5, 6</td><td>Monitorar uso do SERVUS por médico</td></tr>
+  </table>
+</div>
+
+<div class="footer">
+  SERVUS — Blueprint de Automação v1.0 | Março 2026
+</div>
+
+</div>
+
+<script>
+const cards = document.querySelectorAll('.stage-card');
+const panels = document.querySelectorAll('.detail-panel');
+
+cards.forEach(card => {
+  card.addEventListener('click', () => {
+    const stage = card.dataset.stage;
+
+    cards.forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+
+    panels.forEach(p => p.classList.remove('visible'));
+    document.getElementById('stage-' + stage).classList.add('visible');
+  });
+});
+</script>
+</body>
+</html>

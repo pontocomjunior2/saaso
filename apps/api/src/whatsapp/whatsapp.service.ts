@@ -3,6 +3,8 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConnectWhatsAppDto } from './dto/connect-whatsapp.dto';
@@ -166,6 +168,7 @@ interface WhatsAppOperationalState {
 export class WhatsappService {
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AgentRunnerService))
     private readonly agentRunnerService: AgentRunnerService,
     private readonly journeyService: JourneyService,
   ) {}

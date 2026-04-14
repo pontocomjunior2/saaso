@@ -2,6 +2,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  Logger,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCardDto } from './dto/create-card.dto';
@@ -11,18 +14,84 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { EmailService } from '../email/email.service';
 import { Card, Prisma } from '@prisma/client';
+import { StageRuleService } from '../stage-rule/stage-rule.service';
+import { AgentRunnerService } from '../agent/agent-runner.service';
+import { AgentMoveDto } from './dto/agent-move.dto';
 
 @Injectable()
 export class CardService {
+  private readonly logger = new Logger(CardService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsappService,
     private readonly emailService: EmailService,
+    @Inject(forwardRef(() => StageRuleService))
+    private readonly stageRuleService: StageRuleService,
+    @Inject(forwardRef(() => AgentRunnerService))
+    private readonly agentRunnerService: AgentRunnerService,
   ) {}
+
+  private mapLifecycleRun(run: any) {
+    const steps = (run?.steps ?? []).map((step: any) => ({
+      id: step.id,
+      order: step.order,
+      channel: step.channel,
+      status: step.status,
+      scheduledFor: step.scheduledFor,
+      startedAt: step.startedAt ?? null,
+      completedAt: step.completedAt ?? null,
+    }));
+    const nextPendingStep =
+      steps.find((step: any) => step.status === 'PENDING' || step.status === 'QUEUED') ??
+      null;
+    const currentStepIndex = Math.max(
+      steps.findIndex((step: any) => step.status === 'PENDING' || step.status === 'QUEUED' || step.status === 'RUNNING'),
+      0,
+    );
+
+    return {
+      id: run.id,
+      status: run.status,
+      triggerSource: run.triggerSource,
+      currentStepIndex,
+      nextRunAt: nextPendingStep?.scheduledFor ?? null,
+      updatedAt: run.updatedAt,
+      campaign: {
+        id: run.ruleId,
+        name: `Régua · ${run.rule?.stage?.name ?? 'Etapa'}`,
+        status: 'ACTIVE' as const,
+      },
+      steps,
+    };
+  }
+
+  private attachLifecycleRuns<T extends { stageRuleRuns?: any[]; sequenceRuns?: any[] }>(
+    card: T,
+  ): T & { sequenceRuns: any[] } {
+    if (card.stageRuleRuns && card.stageRuleRuns.length > 0) {
+      return {
+        ...card,
+        sequenceRuns: card.stageRuleRuns.map((run) =>
+          this.mapLifecycleRun(run),
+        ),
+      };
+    }
+
+    if (card.sequenceRuns && card.sequenceRuns.length > 0) {
+      return card as T & { sequenceRuns: any[] };
+    }
+
+    return {
+      ...card,
+      sequenceRuns: [],
+    };
+  }
 
   private buildAutomationState(card: any) {
     const conversation = card.agentConversations?.[0] ?? null;
-    const run = card.sequenceRuns?.[0] ?? null;
+    const normalizedCard = this.attachLifecycleRuns(card);
+    const run = normalizedCard.sequenceRuns?.[0] ?? null;
     const assignedAgent = conversation?.agent ?? card.stage?.agents?.[0] ?? null;
     const nextPendingStep = run?.steps?.find((step: any) => step.status === 'PENDING' || step.status === 'QUEUED') ?? null;
 
@@ -159,7 +228,7 @@ export class CardService {
 
     const customFieldsParams = this.normalizeCustomFields(dto.customFields);
 
-    return this.prisma.$transaction(async (tx: any) => {
+    const card = await this.prisma.$transaction(async (tx: any) => {
       const card = await tx.card.create({
         data: {
           title: dto.title,
@@ -183,6 +252,35 @@ export class CardService {
 
       return card;
     });
+
+    try {
+      await this.stageRuleService.startRuleRun(
+        card.id,
+        card.stageId,
+        tenantId,
+        'CARD_ENTERED',
+      );
+    } catch (error) {
+      this.logger.error(
+        '[create] startRuleRun failed',
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+
+    try {
+      await this.agentRunnerService.initiateProactiveIfAssigned(
+        card.id,
+        card.stageId,
+        tenantId,
+      );
+    } catch (error) {
+      this.logger.error(
+        '[create] initiateProactiveIfAssigned failed',
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+
+    return card;
   }
 
   public async findAll(
@@ -209,7 +307,7 @@ export class CardService {
     });
   }
 
-  public async findOne(tenantId: string, id: string): Promise<Card> {
+  public async findOne(tenantId: string, id: string): Promise<any> {
     const card = await this.prisma.card.findFirst({
       where: { id, tenantId },
       include: {
@@ -230,6 +328,23 @@ export class CardService {
           select: {
             id: true,
             name: true,
+            stageRule: {
+              select: {
+                id: true,
+                stageId: true,
+                isActive: true,
+                steps: {
+                  orderBy: { order: 'asc' },
+                  select: {
+                    id: true,
+                    order: true,
+                    dayOffset: true,
+                    channel: true,
+                    messageTemplateId: true,
+                  },
+                },
+              },
+            },
             agents: {
               select: {
                 id: true,
@@ -292,6 +407,34 @@ export class CardService {
             },
           },
         },
+        stageRuleRuns: {
+          orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+          include: {
+            rule: {
+              select: {
+                id: true,
+                stage: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            steps: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                order: true,
+                channel: true,
+                status: true,
+                scheduledFor: true,
+                startedAt: true,
+                completedAt: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -301,10 +444,18 @@ export class CardService {
       );
     }
 
+    const decoratedCard = this.attachLifecycleRuns(card as any);
+
     return {
-      ...card,
-      automation: this.buildAutomationState(card),
-    } as Card;
+      ...decoratedCard,
+      stage: decoratedCard.stage
+        ? {
+            ...decoratedCard.stage,
+            rule: decoratedCard.stage.stageRule ?? null,
+          }
+        : decoratedCard.stage,
+      automation: this.buildAutomationState(decoratedCard),
+    };
   }
 
   public async update(
@@ -526,6 +677,94 @@ export class CardService {
           },
         });
       }
+    });
+
+    if (!isSameStage) {
+      try {
+        await this.stageRuleService.cancelActiveRunsForCard(cardId, tenantId);
+      } catch (error) {
+        this.logger.error(
+          '[moveCard] cancelActiveRunsForCard failed',
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+
+      try {
+        await this.stageRuleService.startRuleRun(
+          cardId,
+          dto.destinationStageId,
+          tenantId,
+          'CARD_ENTERED',
+        );
+      } catch (error) {
+        this.logger.error(
+          '[moveCard] startRuleRun failed',
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+
+      try {
+        await this.agentRunnerService.initiateProactiveIfAssigned(
+          cardId,
+          dto.destinationStageId,
+          tenantId,
+        );
+      } catch (error) {
+        this.logger.error(
+          '[moveCard] initiateProactiveIfAssigned failed',
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+  }
+
+  public async agentMove(
+    tenantId: string,
+    cardId: string,
+    dto: AgentMoveDto,
+  ): Promise<void> {
+    const [agent, destinationStage, card] = await Promise.all([
+      this.prisma.agent.findFirst({
+        where: { id: dto.agentId, tenantId },
+        select: { id: true, name: true },
+      }),
+      this.prisma.stage.findFirst({
+        where: { id: dto.destinationStageId, pipeline: { tenantId } },
+        select: { id: true, name: true },
+      }),
+      this.prisma.card.findFirst({
+        where: { id: cardId, tenantId },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!agent) {
+      throw new NotFoundException('Agent not found');
+    }
+
+    if (!destinationStage) {
+      throw new NotFoundException('Stage not found');
+    }
+
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+
+    const destinationIndex = await this.prisma.card.count({
+      where: { stageId: dto.destinationStageId, tenantId },
+    });
+
+    await this.moveCard(tenantId, cardId, {
+      destinationStageId: dto.destinationStageId,
+      destinationIndex,
+    });
+
+    await this.prisma.cardActivity.create({
+      data: {
+        cardId,
+        type: 'AGENT_MOVED',
+        content: `Agente ${agent.name} moveu para ${destinationStage.name} — ${dto.reason}`,
+      },
     });
   }
 }

@@ -172,6 +172,21 @@ export class StageRuleService {
       return null;
     }
 
+    if (triggerSource === 'CARD_ENTERED') {
+      const existingRun = await this.prisma.stageRuleRun.findFirst({
+        where: {
+          tenantId,
+          cardId,
+          ruleId: rule.id,
+        },
+        select: { id: true },
+      });
+
+      if (existingRun) {
+        return null;
+      }
+    }
+
     // Load tenant feature flags for business hours
     const featureFlags = await this.tenantService.getFeatureFlags(tenantId);
     const businessHours: BusinessHoursConfig | null =
@@ -186,6 +201,10 @@ export class StageRuleService {
         : DEFAULT_BUSINESS_HOURS;
 
     const now = Date.now();
+    const hasAssignedAgent =
+      (await this.prisma.agent.count({
+        where: { tenantId, stageId, isActive: true },
+      })) > 0;
 
     // Create StageRuleRun
     const run = await this.prisma.stageRuleRun.create({
@@ -205,6 +224,7 @@ export class StageRuleService {
         new Date(now + step.dayOffset * 86400000),
         businessHours,
       );
+      const shouldSkipForAgent = hasAssignedAgent && step.dayOffset === 0;
 
       const runStep = await this.prisma.stageRuleRunStep.create({
         data: {
@@ -214,9 +234,14 @@ export class StageRuleService {
           order: step.order,
           channel: step.channel,
           scheduledFor,
-          status: 'PENDING',
+          status: shouldSkipForAgent ? 'SKIPPED' : 'PENDING',
+          completedAt: shouldSkipForAgent ? new Date() : undefined,
         },
       });
+
+      if (shouldSkipForAgent) {
+        continue;
+      }
 
       try {
         await this.stageRuleQueueService.enqueueRuleStep(

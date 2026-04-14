@@ -22,6 +22,8 @@ import { ProspectModule } from './prospect/prospect.module';
 import { StageMessageTemplateModule } from './stage-message-template/stage-message-template.module';
 import { EmailModule } from './email/email.module';
 import { StageRuleModule } from './stage-rule/stage-rule.module';
+import { MetaWebhookModule } from './meta-webhook/meta-webhook.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { StageRuleModule } from './stage-rule/stage-rule.module';
     StageMessageTemplateModule,
     EmailModule,
     StageRuleModule,
+    MetaWebhookModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -33,6 +33,9 @@ const buildMockPrisma = (): MockPrisma => {
       count: jest.fn(),
       deleteMany: jest.fn(),
     },
+    agent: {
+      count: jest.fn(),
+    },
     stageRuleStep: {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
@@ -96,6 +99,27 @@ describe('StageRuleService', () => {
     expect(mockPrisma.stageRuleRun.create).not.toHaveBeenCalled();
   });
 
+  it('startRuleRun does not replay automatically on CARD_ENTERED when the card already ran this rule', async () => {
+    const rule = {
+      id: 'rule-1',
+      isActive: true,
+      steps: [],
+    };
+
+    mockPrisma.stageRule.findFirst.mockResolvedValue(rule);
+    mockPrisma.stageRuleRun.findFirst.mockResolvedValue({ id: 'existing-run' });
+
+    const result = await service.startRuleRun(
+      'card-1',
+      'stage-1',
+      'tenant-1',
+      'CARD_ENTERED',
+    );
+
+    expect(result).toBeNull();
+    expect(mockPrisma.stageRuleRun.create).not.toHaveBeenCalled();
+  });
+
   it('startRuleRun creates run + steps with scheduledFor respecting business hours', async () => {
     const rule = {
       id: 'rule-1',
@@ -110,6 +134,7 @@ describe('StageRuleService', () => {
     const runStep2 = { id: 'runstep-2', scheduledFor: new Date() };
 
     mockPrisma.stageRule.findFirst.mockResolvedValue(rule);
+    mockPrisma.agent.count.mockResolvedValue(0);
     mockTenantService.getFeatureFlags.mockResolvedValue({ businessHours: null });
     mockPrisma.stageRuleRun.create.mockResolvedValue(run);
     mockPrisma.stageRuleRunStep.create
@@ -150,6 +175,38 @@ describe('StageRuleService', () => {
     expect(mockQueueService.removeJob).toHaveBeenCalledTimes(2);
     expect(mockQueueService.removeJob).toHaveBeenCalledWith('runstep-1');
     expect(mockQueueService.removeJob).toHaveBeenCalledWith('runstep-2');
+  });
+
+  it('startRuleRun skips D0 step when stage has assigned agent', async () => {
+    const rule = {
+      id: 'rule-1',
+      isActive: true,
+      steps: [
+        { id: 'step-1', order: 0, dayOffset: 0, channel: 'WHATSAPP', messageTemplateId: 'tmpl-1' },
+        { id: 'step-2', order: 1, dayOffset: 1, channel: 'WHATSAPP', messageTemplateId: 'tmpl-2' },
+      ],
+    };
+
+    mockPrisma.stageRule.findFirst.mockResolvedValue(rule);
+    mockPrisma.agent.count.mockResolvedValue(1);
+    mockTenantService.getFeatureFlags.mockResolvedValue({ businessHours: null });
+    mockPrisma.stageRuleRun.create.mockResolvedValue({ id: 'run-1', status: 'RUNNING' });
+    mockPrisma.stageRuleRunStep.create
+      .mockResolvedValueOnce({ id: 'runstep-1', scheduledFor: new Date() })
+      .mockResolvedValueOnce({ id: 'runstep-2', scheduledFor: new Date() });
+    mockQueueService.enqueueRuleStep.mockResolvedValue(true);
+
+    await service.startRuleRun('card-1', 'stage-1', 'tenant-1', 'CARD_ENTERED');
+
+    expect(mockPrisma.stageRuleRunStep.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'SKIPPED',
+        }),
+      }),
+    );
+    expect(mockQueueService.enqueueRuleStep).toHaveBeenCalledTimes(1);
   });
 
   it('resumeRun recomputes scheduledFor and re-enqueues steps', async () => {

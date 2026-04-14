@@ -14,11 +14,16 @@ import { ReorderStageDto } from './dto/reorder-stage.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
+import { AgentService } from '../agent/agent.service';
+import { SetStageAgentDto } from './dto/set-stage-agent.dto';
 
 @UseGuards(JwtAuthGuard, TenantGuard)
 @Controller('stages')
 export class StageController {
-  constructor(private readonly stageService: StageService) {}
+  constructor(
+    private readonly stageService: StageService,
+    private readonly agentService: AgentService,
+  ) {}
 
   @Post()
   public async create(
@@ -53,5 +58,14 @@ export class StageController {
   ) {
     await this.stageService.reorder(tenantId, pipelineId, reorderStageDto);
     return { success: true, message: 'Etapas reordenadas com sucesso.' };
+  }
+
+  @Patch(':stageId/agent')
+  public async setStageAgent(
+    @CurrentTenant() tenantId: string,
+    @Param('stageId') stageId: string,
+    @Body() dto: SetStageAgentDto,
+  ) {
+    return this.agentService.setStageAgent(tenantId, stageId, dto);
   }
 }

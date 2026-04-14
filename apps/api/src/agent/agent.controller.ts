@@ -15,6 +15,7 @@ import { UpdateConversationStatusDto } from './dto/update-conversation-status.dt
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
+import { AgentRunnerService } from './agent-runner.service';
 
 @UseGuards(JwtAuthGuard, TenantGuard)
 @Controller('agents')
@@ -91,5 +92,19 @@ export class AgentController {
     @Param('id') id: string,
   ) {
     return this.agentService.remove(tenantId, id);
+  }
+}
+
+@UseGuards(JwtAuthGuard, TenantGuard)
+@Controller('agent-conversations')
+export class AgentConversationController {
+  constructor(private readonly agentRunnerService: AgentRunnerService) {}
+
+  @Post(':id/toggle-takeover')
+  public async toggleTakeover(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.agentRunnerService.toggleTakeover(id, tenantId);
   }
 }

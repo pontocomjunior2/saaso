@@ -1,0 +1,78 @@
+Plano de Sistema: CRM Autônomo com Agentes de
+IA
+Visão Geral
+Sistema SaaS multiempresa que combina CRM visual estilo Trello, automação de jornadas e
+agentes de IA integrados ao WhatsApp oficial. Cada cliente usa seu próprio número e pode
+configurar pipelines, agentes e bases de conhecimento.
+Principais Módulos
+•
+CRM visual com pipelines, etapas e cards.
+•
+Jornadas automatizadas (réguas de nutrição).
+•
+Agentes de IA especializados por etapa do funil.
+•
+Base de conhecimento com documentos e dados do cliente.
+•
+Integração com WhatsApp Business Platform (Cloud API).
+•
+Sistema de templates para funis e jornadas.
+•
+Controle SaaS com planos, limites e billing.
+Funcionamento Básico
+•
+Lead entra no pipeline.
+•
+Sistema dispara automações ou agentes de IA.
+•
+Agente conversa com o cliente via WhatsApp.
+•
+Se certas condições forem atendidas, o card muda de etapa automaticamente.
+•
+Humano pode assumir a conversa a qualquer momento.
+Arquitetura Técnica Sugerida
+•
+Frontend: Next.js + Tailwind.
+•
+Backend: Node.js / NestJS.
+•
+Banco de dados: PostgreSQL.
+•
+Vector DB para IA: pgvector.
+•
+Filas e jobs: Redis + BullMQ.
+•
+Mensageria: WhatsApp Business Cloud API.
+•
+Billing: Stripe.
+Estrutura de Dados Principal
+•
+Tenant (empresa cliente).
+•
+Usuários e permissões.
+•
+Contatos e empresas.
+•
+Pipelines, etapas e cards.
+•
+Jornadas e automações.
+•
+Agentes de IA.
+•
+Bases de conhecimento.
+•
+Templates.
+•
+Planos e assinaturas.
+Fases de Desenvolvimento
+•
+Fase 1 – MVP: login, multiempresa, pipelines, cards, WhatsApp e agente simples.
+•
+Fase 2 – Automação avançada: builder visual de jornadas e condições.
+•
+Fase 3 – Sistema de agentes completo com RAG e prompts personalizados.
+•
+Fase 4 – SaaS completo com billing, templates e analytics.
+Diferencial do Produto
+Transformar o CRM em um sistema operacional comercial onde cada etapa do funil possui
+agentes de IA capazes de conversar, nutrir leads, qualificar clientes e automatizar processos.

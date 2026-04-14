@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visual Companion</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; padding: 32px 24px; }
+
+  h2 { font-size: 1.4rem; font-weight: 600; color: #f1f5f9; margin-bottom: 8px; }
+  .subtitle { font-size: 0.9rem; color: #64748b; margin-bottom: 32px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+
+  .card {
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #1a1f2e;
+  }
+  .card:hover { border-color: rgba(89,211,255,0.4); transform: translateY(-2px); }
+  .card.selected { border-color: #59d3ff; box-shadow: 0 0 0 3px rgba(89,211,255,0.15); }
+
+  .preview {
+    height: 280px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Style A — Dark Navy Refinado */
+  .preview-a {
+    background: #060e1a;
+  }
+  .preview-a::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(89,211,255,0.18) 0%, transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(255,177,104,0.12) 0%, transparent 40%);
+  }
+
+  /* Style B — Roxo/Índigo */
+  .preview-b {
+    background: #080614;
+  }
+  .preview-b::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 25% 25%, rgba(139,92,246,0.25) 0%, transparent 45%),
+      radial-gradient(circle at 75% 75%, rgba(59,130,246,0.2) 0%, transparent 40%);
+  }
+
+  /* Style C — Verde esmeralda */
+  .preview-c {
+    background: #050f0a;
+  }
+  .preview-c::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(16,185,129,0.22) 0%, transparent 45%),
+      radial-gradient(circle at 80% 75%, rgba(6,182,212,0.18) 0%, transparent 40%);
+  }
+
+  .login-card {
+    position: relative;
+    z-index: 2;
+    width: 220px;
+    border-radius: 20px;
+    padding: 22px;
+    backdrop-filter: blur(20px);
+  }
+
+  .login-card-a {
+    background: rgba(9,20,36,0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .login-card-b {
+    background: rgba(15,10,30,0.88);
+    border: 1px solid rgba(139,92,246,0.2);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .login-card-c {
+    background: rgba(5,15,12,0.88);
+    border: 1px solid rgba(16,185,129,0.2);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .logo-a { background: rgba(89,211,255,0.12); border: 1px solid rgba(89,211,255,0.2); color: #59d3ff; }
+  .logo-b { background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; }
+  .logo-c { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #34d399; }
+
+  .form-title { font-size: 13px; font-weight: 600; color: #f8fafc; margin-bottom: 12px; }
+
+  .fake-input {
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    margin-bottom: 8px;
+  }
+
+  .fake-btn-a {
+    height: 32px; border-radius: 10px; margin-top: 6px;
+    background: linear-gradient(135deg, #59d3ff, #7bf0c8);
+  }
+  .fake-btn-b {
+    height: 32px; border-radius: 10px; margin-top: 6px;
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  }
+  .fake-btn-c {
+    height: 32px; border-radius: 10px; margin-top: 6px;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+  }
+
+  .card-body { padding: 18px 20px 20px; }
+  .card-body h3 { font-size: 0.95rem; font-weight: 600; color: #f1f5f9; margin-bottom: 6px; }
+  .card-body p { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+
+  .selected-badge {
+    display: none;
+    position: absolute;
+    top: 12px; right: 12px;
+    background: #59d3ff;
+    color: #0a1628;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    z-index: 10;
+  }
+  .card.selected .selected-badge { display: block; }
+
+  .indicator {
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(15,23,42,0.95);
+    border: 1px solid rgba(89,211,255,0.3);
+    border-radius: 30px;
+    padding: 10px 22px;
+    font-size: 13px;
+    color: #94a3b8;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s;
+    opacity: 0;
+  }
+  .indicator.visible { opacity: 1; }
+  .indicator span { color: #59d3ff; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h2>Qual paleta de cores para o login?</h2>
+<p class="subtitle">O card flutuante já está definido — agora escolha o esquema de cores e o fundo.</p>
+
+<div class="cards">
+
+  <div class="card" onclick="select(this, 'cyan-navy', 'A — Cyan + Navy (atual refinado)')">
+    <div class="selected-badge">Selecionado</div>
+    <div class="preview preview-a">
+      <div class="login-card login-card-a">
+        <div class="logo-icon logo-a">✦</div>
+        <div class="form-title">Entrar no workspace</div>
+        <div class="fake-input"></div>
+        <div class="fake-input"></div>
+        <div class="fake-btn-a"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Cyan + Navy (atual refinado)</h3>
+      <p>Mantém a identidade atual do Saaso. Fundo navy escuro com brilho cyan + laranja suave. Botão cyan/mint. Familiar para quem já usa.</p>
+    </div>
+  </div>
+
+  <div class="card" onclick="select(this, 'violet-blue', 'B — Violeta + Azul')">
+    <div class="selected-badge">Selecionado</div>
+    <div class="preview preview-b">
+      <div class="login-card login-card-b">
+        <div class="logo-icon logo-b">✦</div>
+        <div class="form-title">Entrar no workspace</div>
+        <div class="fake-input"></div>
+        <div class="fake-input"></div>
+        <div class="fake-btn-b"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Violeta + Azul</h3>
+      <p>Visual mais próximo de ferramentas SaaS modernas (Linear, Notion). Fundo preto profundo com brilho violeta/azul. Botão gradiente roxo.</p>
+    </div>
+  </div>
+
+  <div class="card" onclick="select(this, 'emerald-teal', 'C — Esmeralda + Teal')">
+    <div class="selected-badge">Selecionado</div>
+    <div class="preview preview-c">
+      <div class="login-card login-card-c">
+        <div class="logo-icon logo-c">✦</div>
+        <div class="form-title">Entrar no workspace</div>
+        <div class="fake-input"></div>
+        <div class="fake-input"></div>
+        <div class="fake-btn-c"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Esmeralda + Teal</h3>
+      <p>Paleta verde/teal. Mais orgânica e diferenciada. Evoca crescimento, receita. Boa para um produto de vendas/CRM.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="indicator" id="indicator">
+  Selecionado: <span id="choice-label">—</span>
+</div>
+
+<script>
+  let selected = null;
+
+  function select(el, choice, label) {
+    if (selected) selected.classList.remove('selected');
+    el.classList.add('selected');
+    selected = el;
+
+    document.getElementById('choice-label').textContent = label;
+    document.getElementById('indicator').classList.add('visible');
+
+    try {
+      if (window.parent && window.parent.__companion) {
+        window.parent.__companion.record({ type: 'click', choice, text: label, timestamp: Date.now() });
+      }
+    } catch(e) {}
+
+    fetch('/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'click', choice, text: label, timestamp: Date.now() })
+    }).catch(() => {});
+  }
+</script>
+
+</body>
+</html>

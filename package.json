@@ -23,7 +23,11 @@
   ],
   "devDependencies": {
     "@types/node": "^25.4.0",
+    "prisma": "^6.19.2",
     "turbo": "^2.8.16",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.2"
   }
 }

@@ -10,9 +10,65 @@ import { Pipeline } from '@prisma/client';
 export class PipelineService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private mapLifecycleRun(run: any) {
+    const steps = (run?.steps ?? []).map((step: any) => ({
+      id: step.id,
+      order: step.order,
+      status: step.status,
+      scheduledFor: step.scheduledFor,
+      completedAt: step.completedAt ?? null,
+      channel: step.channel,
+    }));
+    const nextPendingStep =
+      steps.find((step: any) => step.status === 'PENDING' || step.status === 'QUEUED') ??
+      null;
+    const currentStepIndex = Math.max(
+      steps.findIndex((step: any) => step.status === 'PENDING' || step.status === 'QUEUED' || step.status === 'RUNNING'),
+      0,
+    );
+
+    return {
+      id: run.id,
+      status: run.status,
+      triggerSource: run.triggerSource,
+      currentStepIndex,
+      nextRunAt: nextPendingStep?.scheduledFor ?? null,
+      updatedAt: run.updatedAt,
+      campaign: {
+        id: run.ruleId,
+        name: `Régua · ${run.rule?.stage?.name ?? 'Etapa'}`,
+        status: 'ACTIVE' as const,
+      },
+      steps,
+    };
+  }
+
+  private attachLifecycleRuns<T extends { stageRuleRuns?: any[]; sequenceRuns?: any[] }>(
+    card: T,
+  ): T & { sequenceRuns: any[] } {
+    if (card.stageRuleRuns && card.stageRuleRuns.length > 0) {
+      return {
+        ...card,
+        sequenceRuns: card.stageRuleRuns.map((run) =>
+          this.mapLifecycleRun(run),
+        ),
+      };
+    }
+
+    if (card.sequenceRuns && card.sequenceRuns.length > 0) {
+      return card as T & { sequenceRuns: any[] };
+    }
+
+    return {
+      ...card,
+      sequenceRuns: [],
+    };
+  }
+
   private buildAutomationState(card: any, stageAgents: Array<{ id: string; name: string; isActive: boolean }> = []) {
-    const conversation = card.agentConversations?.[0] ?? null;
-    const run = card.sequenceRuns?.[0] ?? null;
+    const normalizedCard = this.attachLifecycleRuns(card);
+    const conversation = normalizedCard.agentConversations?.[0] ?? null;
+    const run = normalizedCard.sequenceRuns?.[0] ?? null;
     const assignedAgent = conversation?.agent ?? stageAgents[0] ?? null;
     const nextPendingStep = run?.steps?.find((step: any) => step.status === 'PENDING' || step.status === 'QUEUED') ?? null;
 
@@ -105,10 +161,13 @@ export class PipelineService {
       ...pipeline,
       stages: pipeline.stages.map((stage: any) => ({
         ...stage,
-        cards: (stage.cards ?? []).map((card: any) => ({
-          ...card,
-          automation: this.buildAutomationState(card, stage.agents ?? []),
-        })),
+        cards: (stage.cards ?? []).map((card: any) => {
+          const decoratedCard = this.attachLifecycleRuns(card);
+          return {
+            ...decoratedCard,
+            automation: this.buildAutomationState(decoratedCard, stage.agents ?? []),
+          };
+        }),
       })),
     };
   }
@@ -234,6 +293,34 @@ export class PipelineService {
                     },
                   },
                 },
+                stageRuleRuns: {
+                  orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+                  take: 1,
+                  include: {
+                    rule: {
+                      select: {
+                        id: true,
+                        stage: {
+                          select: {
+                            name: true,
+                          },
+                        },
+                      },
+                    },
+                    steps: {
+                      orderBy: { order: 'asc' },
+                      take: 3,
+                      select: {
+                        id: true,
+                        order: true,
+                        status: true,
+                        scheduledFor: true,
+                        completedAt: true,
+                        channel: true,
+                      },
+                    },
+                  },
+                },
               },
             },
             agents: {
@@ -309,6 +396,34 @@ export class PipelineService {
                       select: {
                         id: true,
                         name: true,
+                      },
+                    },
+                    steps: {
+                      orderBy: { order: 'asc' },
+                      take: 3,
+                      select: {
+                        id: true,
+                        order: true,
+                        status: true,
+                        scheduledFor: true,
+                        completedAt: true,
+                        channel: true,
+                      },
+                    },
+                  },
+                },
+                stageRuleRuns: {
+                  orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+                  take: 1,
+                  include: {
+                    rule: {
+                      select: {
+                        id: true,
+                        stage: {
+                          select: {
+                            name: true,
+                          },
+                        },
                       },
                     },
                     steps: {

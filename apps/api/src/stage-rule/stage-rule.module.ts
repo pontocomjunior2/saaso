@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TenantModule } from '../tenant/tenant.module';
 import { StageRuleService } from './stage-rule.service';
@@ -12,6 +12,6 @@ import { StageRuleController } from './stage-rule.controller';
   ],
   providers: [StageRuleService, StageRuleQueueService],
   controllers: [StageRuleController],
-  exports: [StageRuleService],
+  exports: [StageRuleService, StageRuleQueueService],
 })
 export class StageRuleModule {}

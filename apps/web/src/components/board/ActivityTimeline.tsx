@@ -4,15 +4,32 @@ import {
   AlertCircle,
   ArrowRight,
   Mail,
+  Megaphone,
   MessageSquare,
   Plus,
+  Send,
+  Sparkles,
+  Undo2,
+  UserCheck,
   UserRound,
   Workflow,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CardActivity } from './board-types';
 
-type IconName = 'Plus' | 'ArrowRight' | 'MessageSquare' | 'AlertCircle' | 'Mail' | 'Workflow' | 'UserRound';
+type IconName =
+  | 'Plus'
+  | 'ArrowRight'
+  | 'MessageSquare'
+  | 'AlertCircle'
+  | 'Mail'
+  | 'Workflow'
+  | 'UserRound'
+  | 'Sparkles'
+  | 'UserCheck'
+  | 'Undo2'
+  | 'Megaphone'
+  | 'Send';
 
 const ICON_MAP: Record<IconName, React.ComponentType<{ className?: string }>> = {
   Plus,
@@ -22,6 +39,11 @@ const ICON_MAP: Record<IconName, React.ComponentType<{ className?: string }>> = 
   Mail,
   Workflow,
   UserRound,
+  Sparkles,
+  UserCheck,
+  Undo2,
+  Megaphone,
+  Send,
 };
 
 interface TypeMeta {
@@ -39,6 +61,12 @@ const TYPE_LABELS: Record<string, TypeMeta> = {
   JOURNEY_ACTIVITY: { label: 'Acao de jornada', icon: 'Workflow', color: 'text-purple-500' },
   JOURNEY_HANDOFF: { label: 'Handoff para humano', icon: 'UserRound', color: 'text-amber-500' },
   JOURNEY_STAGE_MOVED: { label: 'Movido por jornada', icon: 'ArrowRight', color: 'text-purple-500' },
+  AGENT_PROACTIVE: { label: 'Agente iniciou conversa (D0)', icon: 'Sparkles', color: 'text-[#22bd73]' },
+  AGENT_MOVED: { label: 'Agente moveu o card', icon: 'ArrowRight', color: 'text-[#22bd73]' },
+  AGENT_HANDOFF_MANUAL: { label: 'SDR assumiu conversa', icon: 'UserCheck', color: 'text-amber-600' },
+  AGENT_RESUMED: { label: 'Conversa devolvida ao agente', icon: 'Undo2', color: 'text-emerald-600' },
+  META_LEAD_INGESTED: { label: 'Lead recebido via Meta Ads', icon: 'Megaphone', color: 'text-[#3b78f5]' },
+  RULE_STEP_SENT: { label: 'Régua disparada', icon: 'Send', color: 'text-[#594ded]' },
 };
 
 function formatDateTime(value?: string | null) {

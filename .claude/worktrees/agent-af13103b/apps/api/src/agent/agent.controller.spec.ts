@@ -1,0 +1,34 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { AgentController } from './agent.controller';
+import { AgentService } from './agent.service';
+
+describe('AgentController', () => {
+  let controller: AgentController;
+  const agentServiceMock = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    listConversations: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    previewPrompt: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AgentController],
+      providers: [
+        {
+          provide: AgentService,
+          useValue: agentServiceMock,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<AgentController>(AgentController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});

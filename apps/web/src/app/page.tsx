@@ -204,6 +204,20 @@ export default function Home() {
   const activeConversation = selectedCard?.agentConversations?.[0] ?? null;
   const activeRun = selectedCard?.sequenceRuns?.[0] ?? null;
 
+  const refreshSelectedCard = async () => {
+    if (!selectedCardId) {
+      return;
+    }
+
+    const response = await api.get<DetailedCard>(`/cards/${selectedCardId}`);
+    setSelectedCard(response.data);
+  };
+
+  const refreshPipelines = async () => {
+    const response = await api.get<PipelineSummary[]>('/pipelines');
+    setPipelines(response.data);
+  };
+
   return (
     <>
       <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 p-6 lg:p-8">
@@ -449,6 +463,15 @@ export default function Home() {
         card={selectedCard}
         isOpen={Boolean(selectedCardId)}
         isLoading={isCardLoading}
+        onRefreshCard={() => {
+          void refreshSelectedCard();
+          void refreshPipelines();
+        }}
+        allStages={(selectedPipeline?.stages ?? []).map((stage) => ({
+          id: stage.id,
+          name: stage.name,
+          order: 0,
+        }))}
         onClose={() => {
           setSelectedCardId(null);
           setSelectedCard(null);

@@ -1,0 +1,29 @@
+{
+  "name": "saaso",
+  "version": "1.0.0",
+  "packageManager": "npm@10.8.2",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "npm run dev:all",
+    "dev:all": "turbo run dev --parallel --filter=api --filter=web",
+    "dev:api": "npm run dev --workspace api",
+    "dev:web": "npm run dev --workspace web",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^25.4.0",
+    "turbo": "^2.8.16",
+    "typescript": "^5.9.3"
+  }
+}

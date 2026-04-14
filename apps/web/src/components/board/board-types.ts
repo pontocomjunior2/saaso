@@ -26,6 +26,34 @@ export interface StageMessageTemplate {
   body: string;
 }
 
+export interface StageRuleStep {
+  id: string;
+  order: number;
+  dayOffset: number;
+  channel: 'WHATSAPP' | 'EMAIL';
+  messageTemplateId: string;
+}
+
+export interface StageRule {
+  id: string;
+  stageId: string;
+  isActive: boolean;
+  steps: StageRuleStep[];
+}
+
+export interface StageRuleRun {
+  id: string;
+  status: 'PENDING' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'CANCELED' | 'FAILED';
+  startedAt?: string | null;
+  nextRunAt?: string | null;
+  updatedAt?: string;
+}
+
+export interface AgentSummary {
+  id: string;
+  name: string;
+}
+
 export interface DetailedCard {
   id: string;
   title: string;
@@ -66,6 +94,9 @@ export interface DetailedCard {
   stage: {
     id: string;
     name: string;
+    agent?: AgentSummary | null;
+    classificationCriteria?: string | null;
+    rule?: StageRule | null;
     agents?: Array<{
       id: string;
       name: string;
@@ -78,6 +109,18 @@ export interface DetailedCard {
     messageTemplates?: StageMessageTemplate[];
   };
   activities: CardActivity[];
+  activeConversation?: {
+    id: string;
+    status: 'OPEN' | 'HANDOFF_REQUIRED' | 'CLOSED';
+    updatedAt: string;
+    lastMessageAt: string | null;
+    summary: string | null;
+    agent: {
+      id: string;
+      name: string;
+      isActive: boolean;
+    };
+  } | null;
   agentConversations?: Array<{
     id: string;
     status: 'OPEN' | 'HANDOFF_REQUIRED' | 'CLOSED';
@@ -90,6 +133,7 @@ export interface DetailedCard {
       isActive: boolean;
     };
   }>;
+  activeRuleRun?: StageRuleRun | null;
   sequenceRuns?: Array<{
     id: string;
     status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PAUSED' | 'CANCELED';

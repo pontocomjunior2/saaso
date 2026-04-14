@@ -10,6 +10,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -102,8 +104,31 @@ export class StageRuleController {
   ) {
     const stageId = body?.stageId;
     if (!stageId) {
-      return { error: 'stageId is required in request body' };
+      throw new BadRequestException('stageId is required in request body');
     }
-    return this.stageRuleService.startRuleRun(cardId, stageId, tenantId, 'MANUAL');
+
+    const rule = await this.stageRuleService.getRuleForStage(tenantId, stageId);
+    if (!rule) {
+      throw new NotFoundException('Esta etapa não possui régua configurada.');
+    }
+
+    if (!rule.isActive) {
+      throw new BadRequestException('A régua desta etapa está desativada.');
+    }
+
+    const run = await this.stageRuleService.startRuleRun(
+      cardId,
+      stageId,
+      tenantId,
+      'MANUAL',
+    );
+
+    if (!run) {
+      throw new BadRequestException(
+        'Não foi possível iniciar a régua para este card.',
+      );
+    }
+
+    return run;
   }
 }

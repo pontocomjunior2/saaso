@@ -14,6 +14,7 @@ import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { MoveCardDto } from './dto/move-card.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { AgentMoveDto } from './dto/agent-move.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
@@ -74,6 +75,16 @@ export class CardController {
   ) {
     await this.cardService.moveCard(tenantId, id, moveCardDto);
     return { success: true, message: 'Card movido com sucesso.' };
+  }
+
+  @Post(':id/agent-move')
+  public async agentMove(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: AgentMoveDto,
+  ) {
+    await this.cardService.agentMove(tenantId, id, dto);
+    return { ok: true };
   }
 
   @Post(':id/send-message')

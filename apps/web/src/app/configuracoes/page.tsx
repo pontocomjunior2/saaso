@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
+import { MetaWebhookConfigSection } from './MetaWebhookConfigSection';
 
 type ApiStatus = 'checking' | 'online' | 'offline';
 
@@ -392,6 +393,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <MetaWebhookConfigSection />
     </div>
   );
 }

@@ -20,6 +20,7 @@ const agentStageInclude = Prisma.validator<Prisma.AgentInclude>()({
     select: {
       id: true,
       name: true,
+      classificationCriteria: true,
       pipeline: {
         select: {
           id: true,
@@ -103,6 +104,12 @@ export interface ConversationStatusResponse {
   lastMessageAt: Date | null;
 }
 
+export interface StageAgentAssignmentResponse {
+  stageId: string;
+  agentId: string | null;
+  classificationCriteria: string | null;
+}
+
 export interface AgentOperationalOverviewResponse extends AgentResponse {
   metrics: {
     totalCardsInStage: number;
@@ -136,9 +143,49 @@ export interface AgentOperationalOverviewResponse extends AgentResponse {
 export class AgentService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private mapLifecycleRun(run: any) {
+    const steps = (run?.steps ?? []).map((step: any) => ({
+      order: step.order,
+      status: step.status,
+    }));
+    const nextPendingStep =
+      steps.find((step: any) => step.status === 'PENDING' || step.status === 'QUEUED') ??
+      null;
+
+    return {
+      id: run.id,
+      status: run.status,
+      nextPendingStep,
+      steps,
+    };
+  }
+
+  private attachLifecycleRuns<T extends { stageRuleRuns?: any[]; sequenceRuns?: any[] }>(
+    card: T,
+  ): T & { sequenceRuns: any[] } {
+    if (card.stageRuleRuns && card.stageRuleRuns.length > 0) {
+      return {
+        ...card,
+        sequenceRuns: card.stageRuleRuns.map((run) =>
+          this.mapLifecycleRun(run),
+        ),
+      };
+    }
+
+    if (card.sequenceRuns && card.sequenceRuns.length > 0) {
+      return card as T & { sequenceRuns: any[] };
+    }
+
+    return {
+      ...card,
+      sequenceRuns: [],
+    };
+  }
+
   private buildAutomationState(card: any, agent: { id: string; name: string; isActive: boolean }) {
-    const conversation = card.agentConversations?.find((item: any) => item.agentId === agent.id) ?? card.agentConversations?.[0] ?? null;
-    const run = card.sequenceRuns?.[0] ?? null;
+    const normalizedCard = this.attachLifecycleRuns(card);
+    const conversation = normalizedCard.agentConversations?.find((item: any) => item.agentId === agent.id) ?? normalizedCard.agentConversations?.[0] ?? null;
+    const run = normalizedCard.sequenceRuns?.[0] ?? null;
     const nextPendingStep = run?.steps?.find((step: any) => step.status === 'PENDING' || step.status === 'QUEUED') ?? null;
 
     if (conversation?.status === AgentConversationStatus.HANDOFF_REQUIRED) {
@@ -225,6 +272,7 @@ export class AgentService {
             select: {
               id: true,
               name: true,
+              classificationCriteria: true,
               pipeline: {
                 select: {
                   id: true,
@@ -253,6 +301,19 @@ export class AgentService {
                     },
                   },
                   sequenceRuns: {
+                    take: 1,
+                    orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+                    include: {
+                      steps: {
+                        orderBy: { order: 'asc' },
+                        select: {
+                          order: true,
+                          status: true,
+                        },
+                      },
+                    },
+                  },
+                  stageRuleRuns: {
                     take: 1,
                     orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
                     include: {
@@ -544,6 +605,72 @@ export class AgentService {
     });
   }
 
+  public async setStageAgent(
+    tenantId: string,
+    stageId: string,
+    dto: { agentId?: string | null; classificationCriteria?: string | null },
+  ): Promise<StageAgentAssignmentResponse> {
+    const stage = await this.prisma.stage.findFirst({
+      where: { id: stageId, pipeline: { tenantId } },
+      select: { id: true },
+    });
+
+    if (!stage) {
+      throw new NotFoundException(
+        `Erro no Backend: Etapa com ID '${stageId}' não encontrada neste tenant.`,
+      );
+    }
+
+    if (dto.agentId) {
+      const agent = await this.prisma.agent.findFirst({
+        where: { id: dto.agentId, tenantId },
+        select: { id: true },
+      });
+
+      if (!agent) {
+        throw new NotFoundException(
+          `Erro no Backend: Agente com ID '${dto.agentId}' não encontrado neste tenant.`,
+        );
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.agent.updateMany({
+        where: { tenantId, stageId },
+        data: { stageId: null },
+      });
+
+      if (dto.agentId) {
+        await tx.agent.update({
+          where: { id: dto.agentId },
+          data: { stageId },
+        });
+      }
+
+      const updatedStage = await tx.stage.update({
+        where: { id: stageId },
+        data: {
+          classificationCriteria: dto.classificationCriteria ?? null,
+        },
+        select: {
+          id: true,
+          classificationCriteria: true,
+          agents: {
+            take: 1,
+            orderBy: { updatedAt: 'desc' },
+            select: { id: true },
+          },
+        },
+      });
+
+      return {
+        stageId: updatedStage.id,
+        agentId: updatedStage.agents[0]?.id ?? null,
+        classificationCriteria: updatedStage.classificationCriteria ?? null,
+      };
+    });
+  }
+
   public async previewPrompt(
     tenantId: string,
     dto: Pick<
@@ -629,11 +756,17 @@ export class AgentService {
   private async resolveStageContext(
     tenantId: string,
     stageId?: string | null,
-  ): Promise<Pick<AgentPromptContext, 'pipelineName' | 'stageName'>> {
+  ): Promise<
+    Pick<
+      AgentPromptContext,
+      'pipelineName' | 'stageName' | 'classificationCriteria'
+    >
+  > {
     if (!stageId) {
       return {
         pipelineName: null,
         stageName: null,
+        classificationCriteria: null,
       };
     }
 
@@ -641,6 +774,7 @@ export class AgentService {
       where: { id: stageId, pipeline: { tenantId } },
       select: {
         name: true,
+        classificationCriteria: true,
         pipeline: {
           select: {
             name: true,
@@ -658,6 +792,7 @@ export class AgentService {
     return {
       pipelineName: stage.pipeline.name,
       stageName: stage.name,
+      classificationCriteria: stage.classificationCriteria,
     };
   }
 
@@ -714,6 +849,7 @@ export class AgentService {
       tenantName: context.tenantName,
       pipelineName: agent.stage?.pipeline.name ?? null,
       stageName: agent.stage?.name ?? null,
+      classificationCriteria: agent.stage?.classificationCriteria ?? null,
       knowledgeBaseName: agent.knowledgeBase?.name ?? null,
       knowledgeBaseSummary: agent.knowledgeBase?.summary ?? null,
       knowledgeBaseContent: agent.knowledgeBase?.content ?? null,

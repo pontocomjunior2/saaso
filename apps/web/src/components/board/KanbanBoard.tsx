@@ -8,7 +8,7 @@ import { useUIMode } from '../layout/UIModeProvider';
 import { cn } from '@/lib/utils';
 import { EmptyBoardState } from './EmptyBoardState';
 import { AddStageButton } from './AddStageButton';
-import { StageTemplatesModal } from './StageTemplatesModal';
+import { StageRuleDrawer } from './StageRuleDrawer';
 
 interface Props {
   pipelineId?: string;
@@ -208,7 +208,7 @@ export default function KanbanBoard({
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const stageInputRef = useRef<HTMLInputElement>(null);
-  const [templatesModalStage, setTemplatesModalStage] = useState<Stage | null>(null);
+  const [stageRuleDrawerStage, setStageRuleDrawerStage] = useState<Stage | null>(null);
   const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
   const [isDeletingStage, setIsDeletingStage] = useState(false);
 
@@ -351,9 +351,9 @@ export default function KanbanBoard({
                       </span>
                       <button
                         type="button"
-                        onClick={() => setTemplatesModalStage(stage)}
+                        onClick={() => setStageRuleDrawerStage(stage)}
                         className="flex h-6 w-6 items-center justify-center text-[#a0aec0] transition hover:text-[#594ded]"
-                        title="Gerenciar templates da etapa"
+                        title="Gerenciar etapa"
                       >
                         <Settings2 className="h-3.5 w-3.5" />
                       </button>
@@ -590,12 +590,11 @@ export default function KanbanBoard({
         </div>
       </div>
     )}
-    {templatesModalStage && (
-      <StageTemplatesModal
-        stageId={templatesModalStage.id}
-        stageName={templatesModalStage.name}
+    {stageRuleDrawerStage && (
+      <StageRuleDrawer
+        stage={stageRuleDrawerStage}
         isOpen={true}
-        onClose={() => setTemplatesModalStage(null)}
+        onClose={() => setStageRuleDrawerStage(null)}
       />
     )}
     </>

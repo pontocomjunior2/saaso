@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
 import {
   AgentConversationStatus,
   AgentMessageRole,
@@ -12,6 +17,7 @@ import {
   buildAgentCompiledPrompt,
   normalizeAgentPromptProfile,
 } from './agent-prompt.builder';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 export interface AgentRunnerResult {
   status:
@@ -30,6 +36,7 @@ const agentRuntimeInclude = Prisma.validator<Prisma.AgentInclude>()({
     select: {
       id: true,
       name: true,
+      classificationCriteria: true,
       pipeline: {
         select: {
           id: true,
@@ -63,6 +70,8 @@ export class AgentRunnerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
+    @Inject(forwardRef(() => WhatsappService))
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   public async processInboundMessage(input: {
@@ -162,6 +171,7 @@ export class AgentRunnerService {
         tenantName: agent.tenant.name,
         pipelineName: agent.stage?.pipeline.name ?? null,
         stageName: agent.stage?.name ?? null,
+        classificationCriteria: agent.stage?.classificationCriteria ?? null,
         knowledgeBaseName: agent.knowledgeBase?.name ?? null,
         knowledgeBaseSummary: agent.knowledgeBase?.summary ?? null,
         knowledgeBaseContent: agent.knowledgeBase?.content ?? null,
@@ -306,6 +316,7 @@ export class AgentRunnerService {
   ): Promise<void> {
     const agent = await this.prisma.agent.findFirst({
       where: { tenantId, stageId, isActive: true },
+      include: agentRuntimeInclude,
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -315,10 +326,19 @@ export class AgentRunnerService {
 
     const card = await this.prisma.card.findFirst({
       where: { id: cardId, tenantId },
-      select: { id: true, contactId: true },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+          },
+        },
+      },
     });
 
-    if (!card?.contactId) {
+    if (!card?.contactId || !card.contact) {
       return;
     }
 
@@ -330,17 +350,120 @@ export class AgentRunnerService {
       return;
     }
 
-    await this.prisma.agentConversation.create({
+    const profile = normalizeAgentPromptProfile(agent.profile);
+    const compiledPrompt = buildAgentCompiledPrompt({
+      name: agent.name,
+      systemPrompt: agent.systemPrompt,
+      profile,
+      context: {
+        tenantName: agent.tenant.name,
+        pipelineName: agent.stage?.pipeline.name ?? null,
+        stageName: agent.stage?.name ?? null,
+        classificationCriteria: agent.stage?.classificationCriteria ?? null,
+        knowledgeBaseName: agent.knowledgeBase?.name ?? null,
+        knowledgeBaseSummary: agent.knowledgeBase?.summary ?? null,
+        knowledgeBaseContent: agent.knowledgeBase?.content ?? null,
+      },
+    });
+
+    const greeting = await this.aiService.generateResponse(
+      compiledPrompt,
+      `Inicie uma conversa proativa via WhatsApp com o lead ${card.contact.name ?? 'sem nome'} que acabou de entrar na etapa. Responda em uma única mensagem curta, natural e pronta para envio.`,
+      {
+        model: profile?.model,
+        temperature: profile?.temperature,
+        maxTokens: profile?.maxTokens,
+      },
+    );
+
+    const outboundMessage = await this.whatsappService.logMessage(tenantId, {
+      contactId: card.contactId,
+      cardId,
+      content: greeting,
+    });
+
+    const conversation = await this.prisma.agentConversation.create({
       data: {
         tenantId,
         agentId: agent.id,
         contactId: card.contactId,
         cardId,
         status: AgentConversationStatus.OPEN,
-        summary: 'Lead recebido via Meta Lead Ads. Aguardando abordagem proativa do agente.',
+        summary:
+          'Conversa iniciada automaticamente pelo agente ao entrar na etapa.',
         lastMessageAt: new Date(),
       },
     });
+
+    await this.prisma.agentMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: AgentMessageRole.AGENT,
+        content: greeting,
+        whatsAppMessageId: outboundMessage.id,
+      },
+    });
+
+    await this.prisma.cardActivity.create({
+      data: {
+        cardId,
+        type: 'AGENT_PROACTIVE',
+        content: `Agente ${agent.name} iniciou conversa automaticamente (D0).`,
+      },
+    });
+  }
+
+  public async toggleTakeover(
+    conversationId: string,
+    tenantId: string,
+    userId?: string,
+  ): Promise<{ status: AgentConversationStatus }> {
+    const conversation = await this.prisma.agentConversation.findFirst({
+      where: { id: conversationId, tenantId },
+      select: {
+        id: true,
+        status: true,
+        cardId: true,
+      },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException(
+        `Conversa com ID '${conversationId}' não encontrada neste tenant.`,
+      );
+    }
+
+    const nextStatus =
+      conversation.status === AgentConversationStatus.HANDOFF_REQUIRED
+        ? AgentConversationStatus.OPEN
+        : AgentConversationStatus.HANDOFF_REQUIRED;
+
+    await this.prisma.agentConversation.update({
+      where: { id: conversationId },
+      data: {
+        status: nextStatus,
+        lastMessageAt: new Date(),
+      },
+    });
+
+    if (conversation.cardId) {
+      await this.prisma.cardActivity.create({
+        data: {
+          cardId: conversation.cardId,
+          type:
+            nextStatus === AgentConversationStatus.HANDOFF_REQUIRED
+              ? 'AGENT_HANDOFF_MANUAL'
+              : 'AGENT_RESUMED',
+          content:
+            nextStatus === AgentConversationStatus.HANDOFF_REQUIRED
+              ? 'SDR assumiu conversa'
+              : 'Conversa devolvida ao agente',
+          actorId: userId,
+        },
+      });
+    }
+
+    return { status: nextStatus };
   }
 
   private shouldRequireHandoff(content: string): boolean {

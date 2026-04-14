@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/api';
+import type { StageMessageTemplate, StageRule } from '../components/board/board-types';
 
 export interface Card {
   id: string;
@@ -77,6 +78,9 @@ export interface Stage {
   id: string;
   name: string;
   order: number;
+  classificationCriteria?: string | null;
+  rule?: StageRule | null;
+  messageTemplates?: StageMessageTemplate[];
   agents?: Array<{
     id: string;
     name: string;
@@ -89,6 +93,22 @@ export interface Pipeline {
   id: string;
   name: string;
   stages: Stage[];
+}
+
+export interface RuleStepInput {
+  order: number;
+  dayOffset: number;
+  channel: 'WHATSAPP' | 'EMAIL';
+  messageTemplateId: string;
+}
+
+export interface StageAgentOption {
+  id: string;
+  name: string;
+  stage: {
+    id: string;
+    classificationCriteria: string | null;
+  } | null;
 }
 
 interface KanbanState {
@@ -115,6 +135,16 @@ interface KanbanState {
   deleteStage: (stageId: string) => Promise<void>;
   loadTemplate: (pipelineId: string, templateId: string) => Promise<{ id: string; name: string }>;
   sendMessage: (cardId: string, templateId: string, channel: 'WHATSAPP' | 'EMAIL') => Promise<{ success: boolean; deliveryMode: string }>;
+  fetchStageRule: (stageId: string) => Promise<StageRule | null>;
+  createStageRule: (stageId: string) => Promise<StageRule>;
+  upsertRuleSteps: (ruleId: string, steps: RuleStepInput[]) => Promise<StageRule>;
+  deleteRule: (ruleId: string) => Promise<void>;
+  pauseRun: (runId: string) => Promise<void>;
+  resumeRun: (runId: string) => Promise<void>;
+  startManualRun: (cardId: string, stageId: string) => Promise<void>;
+  setStageAgent: (stageId: string, agentId: string | null, classificationCriteria: string | null) => Promise<void>;
+  toggleTakeover: (conversationId: string) => Promise<void>;
+  fetchAgents: () => Promise<StageAgentOption[]>;
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -221,6 +251,8 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         destinationStageId: destStageId,
         destinationIndex: destIndex,
       });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
     } catch (error: any) {
       console.error('Failed to move card in API', error);
       // Aqui poderíamos reverter o state (optimistic rollback)
@@ -275,6 +307,146 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   sendMessage: async (cardId: string, templateId: string, channel: 'WHATSAPP' | 'EMAIL') => {
     const response = await api.post(`/cards/${cardId}/send-message`, { templateId, channel });
     return response.data;
+  },
+
+  fetchStageRule: async (stageId: string) => {
+    try {
+      const response = await api.get<StageRule | null>(`/stages/${stageId}/rule`);
+      return response.data;
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao carregar régua da etapa' });
+      throw error;
+    }
+  },
+
+  createStageRule: async (stageId: string) => {
+    try {
+      const response = await api.post<StageRule>(`/stages/${stageId}/rule`, {});
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+      return response.data;
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao criar régua da etapa' });
+      throw error;
+    }
+  },
+
+  upsertRuleSteps: async (ruleId: string, steps: RuleStepInput[]) => {
+    try {
+      const response = await api.put<StageRule>(`/stage-rules/${ruleId}/steps`, { steps });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+      return response.data;
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao salvar etapas da régua' });
+      throw error;
+    }
+  },
+
+  deleteRule: async (ruleId: string) => {
+    try {
+      await api.delete(`/stage-rules/${ruleId}`);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao excluir régua' });
+      throw error;
+    }
+  },
+
+  pauseRun: async (runId: string) => {
+    try {
+      await api.post(`/stage-rule-runs/${runId}/pause`);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao pausar régua' });
+      throw error;
+    }
+  },
+
+  resumeRun: async (runId: string) => {
+    try {
+      await api.post(`/stage-rule-runs/${runId}/resume`);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao retomar régua' });
+      throw error;
+    }
+  },
+
+  startManualRun: async (cardId: string, stageId: string) => {
+    try {
+      await api.post(`/cards/${cardId}/stage-rule/start`, { stageId });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao iniciar régua manualmente' });
+      throw error;
+    }
+  },
+
+  setStageAgent: async (stageId: string, agentId: string | null, classificationCriteria: string | null) => {
+    try {
+      await api.patch(`/stages/${stageId}/agent`, { agentId, classificationCriteria });
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao salvar agente da etapa' });
+      throw error;
+    }
+  },
+
+  toggleTakeover: async (conversationId: string) => {
+    try {
+      await api.post(`/agent-conversations/${conversationId}/toggle-takeover`);
+      const pipelineId = get().pipeline?.id;
+      if (pipelineId) await get().fetchPipeline(pipelineId);
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao alterar takeover' });
+      throw error;
+    }
+  },
+
+  fetchAgents: async () => {
+    try {
+      const response = await api.get<StageAgentOption[]>('/agents');
+      return response.data;
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      set({ error: message || 'Erro ao carregar agentes' });
+      throw error;
+    }
   },
 }));
 

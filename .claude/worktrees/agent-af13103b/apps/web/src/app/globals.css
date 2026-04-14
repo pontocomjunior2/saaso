@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafcfd;
+  --foreground: #393939;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --muted: #9e9e9e;
+  --line: #f0f0f0;
+  --accent: #594ded;
+  --accent-soft: #e8e6fc;
+  --accent-warm: #f5bd4f;
+  --accent-success: #22bd73;
+  --accent-danger: #fc736f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Space Grotesk", "Satoshi", "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Space Grotesk", "Satoshi", "Avenir Next", "Segoe UI", sans-serif;
+  background-image:
+    radial-gradient(circle at top center, rgba(89, 77, 237, 0.05), transparent 30%),
+    linear-gradient(180deg, #fafcfd 0%, #f7f9fb 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: linear-gradient(180deg, black, transparent 82%);
+  opacity: 0.22;
+}
+
+body[data-ui-mode="simple"] {
+  --background: #fafcfd;
+  --foreground: #393939;
+  color: #393939;
+}
+
+body[data-ui-mode="simple"]::before {
+  opacity: 0.22;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(89, 77, 237, 0.18);
+  color: #393939;
+}
+
+pre {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}

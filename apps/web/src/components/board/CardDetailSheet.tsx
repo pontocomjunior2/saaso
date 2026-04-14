@@ -16,6 +16,8 @@ import { useUIMode } from '../layout/UIModeProvider';
 import { SendMessageSection } from './SendMessageSection';
 import { ActivityTimeline } from './ActivityTimeline';
 import { MoveCardButtons } from './MoveCardButtons';
+import { CardRuleStatusPanel } from './CardRuleStatusPanel';
+import { AgentStatusBadge } from './AgentStatusBadge';
 
 function formatDateTime(value?: string | null) {
   if (!value) {
@@ -130,6 +132,7 @@ export function CardDetailSheet({
   const conversationMeta = getConversationMeta(activeConversation?.status);
   const sequenceMeta = getSequenceMeta(card);
   const runSteps = card?.sequenceRuns?.[0]?.steps ?? [];
+  const activeRun = card?.sequenceRuns?.[0] ?? null;
   const conversationTone =
     mode === 'simple'
       ? conversationMeta.label === 'Takeover humano'
@@ -242,6 +245,11 @@ export function CardDetailSheet({
                     <p className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-400">
                       Ultima atualizacao {formatDateTime(activeConversation?.updatedAt)}
                     </p>
+                    <AgentStatusBadge
+                      agentName={effectiveAgent?.name ?? null}
+                      conversation={activeConversation ? { id: activeConversation.id, status: activeConversation.status } : null}
+                      onUpdated={handleRefresh}
+                    />
                   </div>
 
                   <div className="rounded-[24px] border border-slate-200 bg-white p-5">
@@ -310,8 +318,15 @@ export function CardDetailSheet({
                   </div>
                 </section>
 
+                <CardRuleStatusPanel
+                  run={activeRun ? { id: activeRun.id, status: activeRun.status, nextRunAt: activeRun.nextRunAt, updatedAt: activeRun.updatedAt } : null}
+                  cardId={card.id}
+                  stageId={card.stage.id}
+                  onUpdated={handleRefresh}
+                />
+
                 <section className="rounded-[24px] border border-slate-200 bg-white p-5">
-                  <h3 className="text-sm font-semibold text-slate-900">Status da regua</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Etapas da régua</h3>
                   <div className="mt-4 space-y-3">
                     {runSteps.length > 0 ? (
                       runSteps.map((step) => (
