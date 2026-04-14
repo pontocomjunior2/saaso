@@ -3,12 +3,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import api from '@/lib/api';
-import { GripVertical, LoaderCircle, MessageSquareText, Paperclip, Plus } from 'lucide-react';
+import { GripVertical, LoaderCircle, MessageSquareText, Paperclip, Plus, Settings2 } from 'lucide-react';
 import { useKanbanStore, type Card, type Stage } from '../../stores/useKanbanStore';
 import { useUIMode } from '../layout/UIModeProvider';
 import { cn } from '@/lib/utils';
 import { EmptyBoardState } from './EmptyBoardState';
 import { AddStageButton } from './AddStageButton';
+import { StageTemplatesModal } from './StageTemplatesModal';
 
 interface Props {
   pipelineId?: string;
@@ -207,6 +208,7 @@ export default function KanbanBoard({
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const stageInputRef = useRef<HTMLInputElement>(null);
+  const [templatesModalStage, setTemplatesModalStage] = useState<Stage | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -293,6 +295,7 @@ export default function KanbanBoard({
   }
 
   return (
+    <>
     <div className="flex h-full min-h-[42rem] flex-col text-[#393939]">
       <main className="flex-1 overflow-x-auto px-1 pb-1">
         <DragDropContext onDragEnd={onDragEnd}>
@@ -332,6 +335,14 @@ export default function KanbanBoard({
                       <span className={cn('rounded-[6px] px-2 py-0.5 text-[11px] font-bold tracking-wider', stageTheme.badge)}>
                         {stage.cards?.length || 0}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setTemplatesModalStage(stage)}
+                        className="flex h-6 w-6 items-center justify-center text-[#a0aec0] transition hover:text-[#594ded]"
+                        title="Gerenciar templates da etapa"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => onAddCard?.(stage.id)}
@@ -529,5 +540,14 @@ export default function KanbanBoard({
         </DragDropContext>
       </main>
     </div>
+    {templatesModalStage && (
+      <StageTemplatesModal
+        stageId={templatesModalStage.id}
+        stageName={templatesModalStage.name}
+        isOpen={true}
+        onClose={() => setTemplatesModalStage(null)}
+      />
+    )}
+    </>
   );
 }
