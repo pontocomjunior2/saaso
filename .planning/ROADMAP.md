@@ -37,11 +37,17 @@ Plans:
   2. Mensagem de boas-vindas (D0) é disparada automaticamente ao entrar na etapa
   3. Régua executa sequência configurada (D+1, D+3...) sem intervenção manual
   4. Agente IA atribuído à etapa responde conversas no WhatsApp automaticamente
-**Plans**: TBD
+**Plans:** 5 plans
+Plans:
+- [ ] 02-01-PLAN.md — Prisma schema + business hours utility + db push
+- [ ] 02-02-PLAN.md — StageRule CRUD module + BullMQ queue service (REQ-06 backend)
+- [ ] 02-03-PLAN.md — Meta webhook module + mapping CRUD (REQ-07 backend)
+- [ ] 02-04-PLAN.md — Card move hooks + agent proactive D0 + card-move endpoint (REQ-06+REQ-08 integration)
+- [ ] 02-05-PLAN.md — Frontend: StageRuleDrawer, CardRuleStatusPanel, AgentStatusBadge, MetaWebhookConfigSection
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. CRM v1 — Funil Manual | 0/4 | Planning complete | - |
-| 2. CRM v2 — Automação de Réguas | 0/0 | Not started | - |
+| 2. CRM v2 — Automação de Réguas | 0/5 | Planning complete | - |
