@@ -113,6 +113,7 @@ interface KanbanState {
   createStage: (pipelineId: string, name: string) => Promise<void>;
   renameStage: (stageId: string, name: string) => Promise<void>;
   loadTemplate: (pipelineId: string, templateId: string) => Promise<{ id: string; name: string }>;
+  sendMessage: (cardId: string, templateId: string, channel: 'WHATSAPP' | 'EMAIL') => Promise<{ success: boolean; deliveryMode: string }>;
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -255,5 +256,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       set({ error: error?.response?.data?.message || 'Erro ao carregar template' });
       throw error;
     }
+  },
+
+  sendMessage: async (cardId: string, templateId: string, channel: 'WHATSAPP' | 'EMAIL') => {
+    const response = await api.post(`/cards/${cardId}/send-message`, { templateId, channel });
+    return response.data;
   },
 }));

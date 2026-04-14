@@ -12,7 +12,18 @@ export interface CardActivity {
   id: string;
   type: string;
   content: string;
+  channel?: string | null;
+  templateName?: string | null;
+  actorId?: string | null;
   createdAt: string;
+}
+
+export interface StageMessageTemplate {
+  id: string;
+  name: string;
+  channel: 'WHATSAPP' | 'EMAIL';
+  subject: string | null;
+  body: string;
 }
 
 export interface DetailedCard {
@@ -64,6 +75,7 @@ export interface DetailedCard {
       id: string;
       name: string;
     };
+    messageTemplates?: StageMessageTemplate[];
   };
   activities: CardActivity[];
   agentConversations?: Array<{
