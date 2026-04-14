@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePipelineDto } from './dto/create-pipeline.dto';
 import { UpdatePipelineDto } from './dto/update-pipeline.dto';
+import { CreatePipelineFromTemplateDto } from './dto/create-pipeline-from-template.dto';
+import { PIPELINE_TEMPLATES } from './pipeline-templates';
 import { Pipeline } from '@prisma/client';
 
 @Injectable()
@@ -123,6 +125,52 @@ export class PipelineService {
     });
   }
 
+  public async createFromTemplate(
+    tenantId: string,
+    dto: CreatePipelineFromTemplateDto,
+  ): Promise<Pipeline> {
+    const template = PIPELINE_TEMPLATES.find((t) => t.id === dto.templateId);
+    if (!template) {
+      throw new NotFoundException(
+        `Template '${dto.templateId}' nao encontrado.`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const pipeline = await tx.pipeline.create({
+        data: {
+          name: dto.name || template.name,
+          tenantId,
+        },
+      });
+
+      for (const stageDef of template.stages) {
+        const stage = await tx.stage.create({
+          data: {
+            name: stageDef.name,
+            order: stageDef.order,
+            pipelineId: pipeline.id,
+          },
+        });
+
+        if (stageDef.messageTemplates.length > 0) {
+          await tx.stageMessageTemplate.createMany({
+            data: stageDef.messageTemplates.map((mt) => ({
+              stageId: stage.id,
+              name: mt.name,
+              channel: mt.channel,
+              subject: mt.subject ?? null,
+              body: mt.body,
+              tenantId,
+            })),
+          });
+        }
+      }
+
+      return pipeline;
+    });
+  }
+
   public async findAll(tenantId: string): Promise<Pipeline[]> {
     const pipelines = await this.prisma.pipeline.findMany({
       where: { tenantId },
@@ -193,6 +241,16 @@ export class PipelineService {
                 id: true,
                 name: true,
                 isActive: true,
+              },
+            },
+            messageTemplates: {
+              orderBy: { createdAt: 'asc' },
+              select: {
+                id: true,
+                name: true,
+                channel: true,
+                subject: true,
+                body: true,
               },
             },
           },
@@ -274,6 +332,16 @@ export class PipelineService {
                 id: true,
                 name: true,
                 isActive: true,
+              },
+            },
+            messageTemplates: {
+              orderBy: { createdAt: 'asc' },
+              select: {
+                id: true,
+                name: true,
+                channel: true,
+                subject: true,
+                body: true,
               },
             },
           },
