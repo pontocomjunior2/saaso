@@ -4,6 +4,7 @@ import KanbanBoard from '@/components/board/KanbanBoard';
 import KanbanListView from '@/components/board/KanbanListView';
 import { CardFormModal } from '@/components/board/CardFormModal';
 import { CardDetailSheet } from '@/components/board/CardDetailSheet';
+import { PipelineTemplateModal } from '@/components/board/PipelineTemplateModal';
 import type { DetailedCard, PipelineSummary } from '@/components/board/board-types';
 import api from '@/lib/api';
 import { useUIMode } from '@/components/layout/UIModeProvider';
@@ -25,6 +26,7 @@ export default function PipelinesPage() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<{ id: string; title: string; stageId: string } | null>(null);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -128,14 +130,11 @@ export default function PipelinesPage() {
             </div>
 
             <button
-              onClick={() => {
-                setEditingCard(null);
-                setIsModalOpen(true);
-              }}
+              onClick={() => setIsTemplateModalOpen(true)}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#594ded] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#594ded]/20 transition hover:bg-[#4d42cc]"
             >
               <Plus className="h-4 w-4" />
-              New Task
+              Novo Pipeline
             </button>
           </div>
 
@@ -215,12 +214,12 @@ export default function PipelinesPage() {
                 onAddCard={(stageId) => {
                   setEditingCard(null);
                   setIsModalOpen(true);
-                  // Pass initialStageId to modal if needed, but the modal already handles it via initialStageId prop
                 }}
                 onEditCard={(card) => {
                   setEditingCard({ id: card.id, title: card.title, stageId: card.stageId });
                   setIsModalOpen(true);
                 }}
+                onLoadTemplate={() => setIsTemplateModalOpen(true)}
               />
             ) : (
               <KanbanListView 
@@ -259,6 +258,12 @@ export default function PipelinesPage() {
         cardId={editingCard?.id}
         initialTitle={editingCard?.title}
         initialStageId={editingCard?.stageId}
+      />
+
+      <PipelineTemplateModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        showCreateEmpty
       />
     </>
   );
