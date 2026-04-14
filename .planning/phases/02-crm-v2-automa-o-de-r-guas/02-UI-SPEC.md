@@ -38,12 +38,12 @@ Declared values (multiples of 4 only):
 | xs | 4px | Icon gaps, inline badge padding |
 | sm | 8px | Compact element spacing, button icon gap |
 | md | 16px | Default element spacing, card padding inner |
-| lg | 20px | Card section padding (matches existing `p-5`) |
 | xl | 24px | Sheet/modal header padding (matches `px-6 py-5`) |
 | 2xl | 32px | Modal outer padding (matches `p-8`) |
 | 3xl | 48px | Page-level section gaps |
 
 Exceptions:
+- `lg = 20px`: Card section padding — matches existing `p-5` pattern in KanbanBoard; deviation to preserve visual continuity with existing columns.
 - Stage column width: fixed `21rem` (336px) — matches existing Kanban column.
 - CardDetailSheet max-width: `34rem` (544px) — matches existing sheet.
 - Touch targets (pause/resume toggle, takeover button): minimum `h-8 w-8` (32px) clickable area; preference `h-10 w-10` (40px) for primary takeover CTA.
@@ -55,18 +55,18 @@ Exceptions:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body | 14px (text-sm) | 400 (regular) | 1.5 (leading-6) |
+| Body / Card title / Section heading | 14px (text-sm) | 400 (regular) or 700 (bold) | 1.5 (leading-6) |
 | Label / Meta | 11px | 700 (bold) | 1.4 — uppercase + tracking-[0.22em–0.32em] |
-| Card title / Section heading | 15px | 700 (bold) | 1.3 (leading-snug) |
-| Sheet heading / Modal title | 18–24px | 600 (semibold) | 1.2 |
+| Sheet heading / Modal title | 18px | 700 (bold) | 1.2 |
+| Modal display / Page title | 24px | 700 (bold) | 1.2 |
 
 Source: audited from `CardDetailSheet.tsx`, `StageTemplatesModal.tsx`, `KanbanBoard.tsx`.
 
 Rules:
 - ALL meta/label text uses uppercase + letter-spacing. Never use uppercase without tracking.
-- Section headings inside sheets use `text-sm font-semibold text-slate-900`.
-- Descriptive body inside sheet panels uses `text-sm leading-6 text-slate-500` or `text-slate-600`.
-- Status badge text: 11px, font-medium, uppercase, tracking-[0.18em–0.28em].
+- Section headings inside sheets use `text-sm font-bold text-slate-900` (weight 700 at 14px — differentiated from body by weight only, not size).
+- Descriptive body inside sheet panels uses `text-sm leading-6 text-slate-500` or `text-slate-600` (weight 400).
+- Status badge text: 11px, font-bold, uppercase, tracking-[0.18em–0.28em].
 
 ---
 
@@ -130,7 +130,7 @@ Tab indicator: `border-b-2 border-[#594ded]` on active tab, matching pipeline ta
 ### 2. RuleStepList (inside Régua tab)
 
 List of steps (D0, D+1, D+3...). Each step row:
-- Left: day offset badge (`D0`, `D+1`) — `rounded-[6px] px-2 py-1 text-[10px] font-bold uppercase bg-[#f5f5f5] text-[#9e9e9e]`
+- Left: day offset badge (`D0`, `D+1`) — `rounded-[6px] px-2 py-1 text-[11px] font-bold uppercase bg-[#f5f5f5] text-[#9e9e9e]`
 - Center: template selector dropdown (select from stage templates)
 - Right: delete step icon button `h-7 w-7 rounded-lg text-[#a0aec0] hover:bg-rose-50 hover:text-rose-500`
 
@@ -152,7 +152,7 @@ Replaces/extends the existing "Status da régua" section. Adds:
 ### 5. AgentStatusBadge (inside CardDetailSheet)
 
 Extends the existing "Agente desta etapa" card panel. Adds:
-- Takeover button: `inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100` (light mode)
+- Takeover button: `inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700 hover:bg-amber-100` (light mode)
 - "Retomar Agente" button: `border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`
 - Status text uses existing `conversationTone` mapping — no new color values
 
