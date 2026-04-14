@@ -243,6 +243,16 @@ export class CardService {
                 name: true,
               },
             },
+            messageTemplates: {
+              orderBy: { createdAt: 'asc' as const },
+              select: {
+                id: true,
+                name: true,
+                channel: true,
+                subject: true,
+                body: true,
+              },
+            },
           },
         },
         activities: { orderBy: { createdAt: 'desc' } },
