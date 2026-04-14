@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import type { DetailedCard } from './board-types';
 import { useUIMode } from '../layout/UIModeProvider';
+import { SendMessageSection } from './SendMessageSection';
+import { ActivityTimeline } from './ActivityTimeline';
+import { MoveCardButtons } from './MoveCardButtons';
 
 function formatDateTime(value?: string | null) {
   if (!value) {
@@ -36,7 +39,7 @@ function getConversationMeta(status?: string) {
 
   if (status === 'OPEN') {
     return {
-      label: 'Piloto automático',
+      label: 'Piloto automatico',
       tone: 'border-emerald-300/25 bg-emerald-400/12 text-emerald-100',
       description: 'Agente respondendo automaticamente nesta conversa.',
     };
@@ -70,8 +73,8 @@ function getSequenceMeta(card: DetailedCard | null) {
 
   if (!run) {
     return {
-      label: 'Sem régua em execução',
-      description: 'Nenhuma execução ativa encontrada para este card.',
+      label: 'Sem regua em execucao',
+      description: 'Nenhuma execucao ativa encontrada para este card.',
       nextStep: 'Aguardando entrada do lead ou disparo da campanha.',
     };
   }
@@ -81,8 +84,8 @@ function getSequenceMeta(card: DetailedCard | null) {
 
   const labelByStatus: Record<string, string> = {
     PENDING: 'Na fila',
-    RUNNING: 'Em execução',
-    COMPLETED: 'Concluída',
+    RUNNING: 'Em execucao',
+    COMPLETED: 'Concluida',
     FAILED: 'Falhou',
     PAUSED: 'Pausada',
     CANCELED: 'Cancelada',
@@ -92,11 +95,17 @@ function getSequenceMeta(card: DetailedCard | null) {
     label: `${labelByStatus[run.status] ?? run.status} · ${run.campaign.name}`,
     description: currentStep
       ? `Etapa atual ${currentStep.order} via ${currentStep.channel} com status ${currentStep.status.toLowerCase()}.`
-      : 'Execução criada, sem etapa atual identificada.',
+      : 'Execucao criada, sem etapa atual identificada.',
     nextStep: nextPendingStep
-      ? `Próxima ação ${nextPendingStep.order} agendada para ${formatDateTime(nextPendingStep.scheduledFor)}.`
-      : 'Sem próxima ação pendente identificada.',
+      ? `Proxima acao ${nextPendingStep.order} agendada para ${formatDateTime(nextPendingStep.scheduledFor)}.`
+      : 'Sem proxima acao pendente identificada.',
   };
+}
+
+interface StageRef {
+  id: string;
+  name: string;
+  order: number;
 }
 
 export function CardDetailSheet({
@@ -104,11 +113,15 @@ export function CardDetailSheet({
   isOpen,
   isLoading,
   onClose,
+  onRefreshCard,
+  allStages,
 }: {
   card: DetailedCard | null;
   isOpen: boolean;
   isLoading: boolean;
   onClose: () => void;
+  onRefreshCard?: () => void;
+  allStages?: StageRef[];
 }) {
   const { mode } = useUIMode();
   const activeConversation = card?.agentConversations?.[0] ?? null;
@@ -121,10 +134,14 @@ export function CardDetailSheet({
     mode === 'simple'
       ? conversationMeta.label === 'Takeover humano'
         ? 'border-amber-200 bg-amber-50 text-amber-700'
-        : conversationMeta.label === 'Piloto automático'
+        : conversationMeta.label === 'Piloto automatico'
           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
           : 'border-slate-200 bg-slate-100 text-slate-600'
       : conversationMeta.tone;
+
+  const handleRefresh = () => {
+    if (onRefreshCard) onRefreshCard();
+  };
 
   return (
     <div
@@ -153,20 +170,29 @@ export function CardDetailSheet({
         <div className="flex h-full flex-col">
           <div className={cn('border-b px-6 py-5', mode === 'simple' ? 'border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,252,0.92))]' : 'border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(245,248,252,0.92))]')}>
             <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Detalhe do card</p>
                 <h2 className="mt-2 truncate text-2xl font-semibold">{card?.title ?? 'Andamento do cliente'}</h2>
                 <p className="mt-2 text-sm text-slate-500">
                   {card ? `${card.stage.pipeline.name} · ${card.stage.name}` : 'Selecione um card para abrir a leitura operacional.'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                {card && allStages && allStages.length > 0 && (
+                  <MoveCardButtons
+                    card={card}
+                    stages={allStages}
+                    onCardMoved={handleRefresh}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -206,27 +232,27 @@ export function CardDetailSheet({
                       <Bot className="h-4 w-4 text-cyan-600" />
                       <h3 className="text-sm font-semibold">Agente desta etapa</h3>
                     </div>
-                    <p className="mt-4 text-lg font-semibold">{effectiveAgent?.name ?? 'Sem agente atribuído'}</p>
+                    <p className="mt-4 text-lg font-semibold">{effectiveAgent?.name ?? 'Sem agente atribuido'}</p>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
                       {activeConversation?.summary ??
                         (effectiveAgent
-                          ? 'Este agente está ligado à etapa atual e pode retomar a operação a partir do ponto onde o humano parou.'
+                          ? 'Este agente esta ligado a etapa atual e pode retomar a operacao a partir do ponto onde o humano parou.'
                           : 'Nenhum agente foi configurado para esta etapa do funil.')}
                     </p>
                     <p className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-400">
-                      Última atualização {formatDateTime(activeConversation?.updatedAt)}
+                      Ultima atualizacao {formatDateTime(activeConversation?.updatedAt)}
                     </p>
                   </div>
 
                   <div className="rounded-[24px] border border-slate-200 bg-white p-5">
                     <div className="flex items-center gap-2 text-slate-900">
                       <CalendarClock className="h-4 w-4 text-cyan-600" />
-                      <h3 className="text-sm font-semibold">Régua de nutrição</h3>
+                      <h3 className="text-sm font-semibold">Regua de nutricao</h3>
                     </div>
                     <p className="mt-4 text-sm font-medium text-slate-900">{sequenceMeta.description}</p>
                     <p className="mt-2 text-sm leading-6 text-slate-500">{sequenceMeta.nextStep}</p>
                     <p className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-400">
-                      Próxima revisão {formatDateTime(card.sequenceRuns?.[0]?.nextRunAt)}
+                      Proxima revisao {formatDateTime(card.sequenceRuns?.[0]?.nextRunAt)}
                     </p>
                   </div>
                 </section>
@@ -270,33 +296,22 @@ export function CardDetailSheet({
                       ) : null}
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm text-slate-500">Este card ainda não possui contato vinculado.</p>
+                    <p className="mt-4 text-sm text-slate-500">Este card ainda nao possui contato vinculado.</p>
                   )}
                 </section>
 
+                {/* Send Message Section */}
+                <SendMessageSection card={card} onMessageSent={handleRefresh} />
+
                 <section className="rounded-[24px] border border-slate-200 bg-white p-5">
                   <h3 className="text-sm font-semibold text-slate-900">Linha do tempo operacional</h3>
-                  <div className="mt-4 space-y-3">
-                    {card.activities.length > 0 ? (
-                      card.activities.slice(0, 6).map((activity) => (
-                        <div key={activity.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-medium text-slate-900">{activity.type}</p>
-                            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                              {formatDateTime(activity.createdAt)}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-600">{activity.content}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-slate-500">Sem atividades registradas até agora.</p>
-                    )}
+                  <div className="mt-4">
+                    <ActivityTimeline activities={card.activities} />
                   </div>
                 </section>
 
                 <section className="rounded-[24px] border border-slate-200 bg-white p-5">
-                  <h3 className="text-sm font-semibold text-slate-900">Status da régua</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Status da regua</h3>
                   <div className="mt-4 space-y-3">
                     {runSteps.length > 0 ? (
                       runSteps.map((step) => (
@@ -315,7 +330,7 @@ export function CardDetailSheet({
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-slate-500">Nenhuma etapa de régua vinculada a este card até o momento.</p>
+                      <p className="text-sm text-slate-500">Nenhuma etapa de regua vinculada a este card ate o momento.</p>
                     )}
                   </div>
                 </section>

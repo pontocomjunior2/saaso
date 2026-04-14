@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import KanbanBoard from '@/components/board/KanbanBoard';
 import { CardFormModal } from '@/components/board/CardFormModal';
@@ -9,6 +9,7 @@ import { PipelineTemplateModal } from '@/components/board/PipelineTemplateModal'
 import type { DetailedCard } from '@/components/board/board-types';
 import api from '@/lib/api';
 import { useUIMode } from '@/components/layout/UIModeProvider';
+import { useKanbanStore } from '@/stores/useKanbanStore';
 import { Workflow, Plus } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -17,6 +18,14 @@ export default function PipelineBoardPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
+  const { pipeline } = useKanbanStore();
+
+  const allStages = (pipeline?.stages ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    order: s.order,
+  }));
+
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<DetailedCard | null>(null);
   const [isCardLoading, setIsCardLoading] = useState(false);
@@ -24,31 +33,32 @@ export default function PipelineBoardPage() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<{ id: string; title: string; stageId: string } | null>(null);
 
+  const fetchCard = useCallback(async (cardId: string) => {
+    setIsCardLoading(true);
+    try {
+      const response = await api.get<DetailedCard>(`/cards/${cardId}`);
+      setSelectedCard(response.data);
+    } catch {
+      setSelectedCard(null);
+    } finally {
+      setIsCardLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!selectedCardId) {
       setSelectedCard(null);
       return;
     }
 
-    let isMounted = true;
+    void fetchCard(selectedCardId);
+  }, [selectedCardId, fetchCard]);
 
-    const run = async () => {
-      setIsCardLoading(true);
-      try {
-        const response = await api.get<DetailedCard>(`/cards/${selectedCardId}`);
-        if (isMounted) setSelectedCard(response.data);
-      } catch {
-        if (isMounted) setSelectedCard(null);
-      } finally {
-        if (isMounted) setIsCardLoading(false);
-      }
-    };
-
-    void run();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedCardId]);
+  const refreshSelectedCard = useCallback(() => {
+    if (selectedCardId) {
+      void fetchCard(selectedCardId);
+    }
+  }, [selectedCardId, fetchCard]);
 
   return (
     <>
@@ -99,6 +109,8 @@ export default function PipelineBoardPage() {
           setSelectedCardId(null);
           setSelectedCard(null);
         }}
+        onRefreshCard={refreshSelectedCard}
+        allStages={allStages}
       />
 
       <CardFormModal
