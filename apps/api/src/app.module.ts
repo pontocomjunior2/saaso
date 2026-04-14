@@ -20,6 +20,7 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
 import { CampaignModule } from './campaign/campaign.module';
 import { ProspectModule } from './prospect/prospect.module';
 import { StageMessageTemplateModule } from './stage-message-template/stage-message-template.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { StageMessageTemplateModule } from './stage-message-template/stage-messa
     CommonModule,
     LeadFormModule,
     StageMessageTemplateModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

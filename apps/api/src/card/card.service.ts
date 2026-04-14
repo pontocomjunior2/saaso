@@ -7,11 +7,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { MoveCardDto } from './dto/move-card.dto';
+import { SendMessageDto } from './dto/send-message.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { EmailService } from '../email/email.service';
 import { Card, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly whatsappService: WhatsappService,
+    private readonly emailService: EmailService,
+  ) {}
 
   private buildAutomationState(card: any) {
     const conversation = card.agentConversations?.[0] ?? null;
@@ -326,6 +333,101 @@ export class CardService {
       await tx.cardActivity.deleteMany({ where: { cardId: id } });
       return tx.card.delete({ where: { id } });
     });
+  }
+
+  public async sendMessage(
+    tenantId: string,
+    cardId: string,
+    userId: string,
+    dto: SendMessageDto,
+  ): Promise<{ success: boolean; deliveryMode: string }> {
+    // 1. Buscar card com contact e stage
+    const card = await this.prisma.card.findFirst({
+      where: { id: cardId, tenantId },
+      include: {
+        contact: true,
+        stage: true,
+      },
+    });
+    if (!card) throw new NotFoundException('Card nao encontrado.');
+    if (!card.contact)
+      throw new BadRequestException('Card nao tem contato vinculado.');
+
+    // 2. Buscar template (validando que pertence ao tenant — T-02-02)
+    const template = await this.prisma.stageMessageTemplate.findFirst({
+      where: { id: dto.templateId, tenantId },
+    });
+    if (!template) throw new NotFoundException('Template nao encontrado.');
+
+    // 3. Resolver variaveis no body
+    const contact = card.contact;
+    const resolvedBody = template.body
+      .replace(/\{\{nome\}\}/g, contact.name || '')
+      .replace(/\{\{email\}\}/g, contact.email || '')
+      .replace(/\{\{telefone\}\}/g, contact.phone || '')
+      .replace(/\{\{empresa\}\}/g, '');
+
+    const resolvedSubject = template.subject
+      ? template.subject.replace(/\{\{nome\}\}/g, contact.name || '')
+      : template.name;
+
+    // 4. Despachar por canal
+    let deliveryMode = 'unknown';
+
+    if (dto.channel === 'WHATSAPP') {
+      if (!contact.phone)
+        throw new BadRequestException(
+          'Contato nao tem telefone para WhatsApp.',
+        );
+      await this.whatsappService.logMessage(tenantId, {
+        contactId: contact.id,
+        content: resolvedBody,
+        cardId: card.id,
+      });
+      deliveryMode = 'whatsapp';
+
+      // Atualizar o CardActivity criado pelo logMessage com templateName e actorId
+      const latestActivity = await this.prisma.cardActivity.findFirst({
+        where: {
+          cardId: card.id,
+          type: { startsWith: 'WHATSAPP_OUTBOUND' },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (latestActivity) {
+        await this.prisma.cardActivity.update({
+          where: { id: latestActivity.id },
+          data: {
+            channel: 'WHATSAPP',
+            templateName: template.name,
+            actorId: userId,
+          },
+        });
+      }
+    } else if (dto.channel === 'EMAIL') {
+      if (!contact.email)
+        throw new BadRequestException('Contato nao tem email.');
+      const result = await this.emailService.sendEmail({
+        to: contact.email,
+        subject: resolvedSubject,
+        body: resolvedBody,
+      });
+      deliveryMode = result.deliveryMode;
+
+      // Criar CardActivity para email (WhatsApp ja cria via logMessage)
+      await this.prisma.cardActivity.create({
+        data: {
+          cardId: card.id,
+          type: 'EMAIL_OUTBOUND',
+          content: `Email enviado para ${contact.email}: "${resolvedSubject}"`,
+          channel: 'EMAIL',
+          templateName: template.name,
+          actorId: userId,
+        },
+      });
+    }
+
+    return { success: true, deliveryMode };
   }
 
   public async moveCard(

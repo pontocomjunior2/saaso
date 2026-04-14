@@ -13,9 +13,11 @@ import { CardService } from './card.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { MoveCardDto } from './dto/move-card.dto';
+import { SendMessageDto } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard, TenantGuard)
 @Controller('cards')
@@ -72,5 +74,15 @@ export class CardController {
   ) {
     await this.cardService.moveCard(tenantId, id, moveCardDto);
     return { success: true, message: 'Card movido com sucesso.' };
+  }
+
+  @Post(':id/send-message')
+  public async sendMessage(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: SendMessageDto,
+  ) {
+    return this.cardService.sendMessage(tenantId, id, user.id, dto);
   }
 }
