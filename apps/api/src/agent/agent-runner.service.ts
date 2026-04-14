@@ -290,6 +290,59 @@ export class AgentRunnerService {
     });
   }
 
+  /**
+   * Initiates a proactive conversation for a newly created card if an agent is
+   * assigned to the card's stage. Called by MetaWebhookService after card creation
+   * to trigger agent D0 fire for Meta Lead Ads entries.
+   *
+   * Full implementation added by Plan 04 (Wave 3). This stub logs the intent
+   * and creates the conversation skeleton so that Plan 04 can wire the actual
+   * first-message logic without data loss.
+   */
+  public async initiateProactiveIfAssigned(
+    cardId: string,
+    stageId: string,
+    tenantId: string,
+  ): Promise<void> {
+    const agent = await this.prisma.agent.findFirst({
+      where: { tenantId, stageId, isActive: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (!agent) {
+      return;
+    }
+
+    const card = await this.prisma.card.findFirst({
+      where: { id: cardId, tenantId },
+      select: { id: true, contactId: true },
+    });
+
+    if (!card?.contactId) {
+      return;
+    }
+
+    const existingConversation = await this.prisma.agentConversation.findFirst({
+      where: { cardId, tenantId },
+    });
+
+    if (existingConversation) {
+      return;
+    }
+
+    await this.prisma.agentConversation.create({
+      data: {
+        tenantId,
+        agentId: agent.id,
+        contactId: card.contactId,
+        cardId,
+        status: AgentConversationStatus.OPEN,
+        summary: 'Lead recebido via Meta Lead Ads. Aguardando abordagem proativa do agente.',
+        lastMessageAt: new Date(),
+      },
+    });
+  }
+
   private shouldRequireHandoff(content: string): boolean {
     const normalizedContent = content.toLowerCase();
     const handoffKeywords = [
