@@ -134,7 +134,7 @@ export const simpleNavigation: ShellNavItem[] = [
     description: 'Gestao da base de clientes e leads.',
   },
   {
-    label: 'Kanban',
+    label: 'Pipelines',
     href: '/pipelines',
     icon: KanbanSquare,
     description: 'Board operacional com leitura objetiva do andamento por card.',

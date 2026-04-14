@@ -21,6 +21,7 @@ import {
   Wand2,
   Workflow,
   X,
+  AlertCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -264,6 +265,7 @@ export default function WizardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
 
   useEffect(() => {
@@ -313,8 +315,13 @@ export default function WizardPage() {
         setWhatsPhoneId(setupResponse?.data?.whatsapp?.phoneNumberId ?? '');
         setWhatsWabaId(setupResponse?.data?.whatsapp?.wabaId ?? '');
         setWhatsAccessToken(setupResponse?.data?.whatsapp?.accessToken ?? '');
-      } catch {
-        if (mounted) setError('Nao foi possivel carregar o blueprint da automacao.');
+      } catch (err: any) {
+        if (mounted) {
+          setInitError(
+            err?.response?.data?.message ??
+            'Nao foi possivel carregar as informacoes desta automacao.',
+          );
+        }
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -499,7 +506,30 @@ export default function WizardPage() {
         {result ? <section className={cn('rounded-[30px] border p-6', mode === 'simple' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-emerald-400/20 bg-emerald-500/10 text-emerald-50')}><p className={cn('text-[11px] uppercase tracking-[0.28em]', mode === 'simple' ? 'text-emerald-700/80' : 'text-emerald-200/80')}>{editingCampaignId ? 'Campanha atualizada' : 'Configuracao concluida'}</p><h3 className="mt-2 text-2xl font-semibold">{result.clientName}</h3><p className={cn('mt-2 text-sm', mode === 'simple' ? 'text-emerald-800/90' : 'text-emerald-100/90')}>Pipeline {result.pipeline.name} com {result.pipeline.stageCount} etapas, campanha {result.campaign.name} com {result.campaign.stepCount} passos e {result.agents.length} agentes.</p><div className="mt-4 flex flex-wrap gap-3"><Link href="/pipelines" className={cn('inline-flex items-center gap-2 rounded-[18px] border px-4 py-3 text-sm font-medium', mode === 'simple' ? 'border-emerald-200 bg-white text-emerald-700' : 'border-emerald-200/20 bg-emerald-100/10 text-white')}>Abrir Kanban <ArrowRight className="h-4 w-4" /></Link><Link href="/workers" className={cn('inline-flex items-center gap-2 rounded-[18px] border px-4 py-3 text-sm font-medium', mode === 'simple' ? 'border-emerald-200 bg-white text-emerald-700' : 'border-emerald-200/20 bg-emerald-100/10 text-white')}>Abrir Workers <ArrowRight className="h-4 w-4" /></Link><Link href="/campanhas" className={cn('inline-flex items-center gap-2 rounded-[18px] border px-4 py-3 text-sm font-medium', mode === 'simple' ? 'border-emerald-200 bg-white text-emerald-700' : 'border-emerald-200/20 bg-emerald-100/10 text-white')}>Abrir Campanhas <ArrowRight className="h-4 w-4" /></Link></div></section> : null}
 
         <section className={cn('rounded-[30px] border p-6', mode === 'simple' ? 'border-slate-200 bg-[rgba(255,255,255,0.84)] shadow-[0_18px_44px_rgba(15,23,42,0.08)]' : 'border-white/[0.08] bg-[rgba(13,22,34,0.88)] shadow-[0_20px_72px_rgba(0,0,0,0.2)]')}>
-          {isLoading ? <div className="flex min-h-[28rem] items-center justify-center text-slate-400"><LoaderCircle className="mr-3 h-5 w-5 animate-spin" /> Carregando blueprint...</div> : <div className="space-y-6">
+          {isLoading ? (
+            <div className="flex min-h-[28rem] items-center justify-center text-slate-400">
+              <LoaderCircle className="mr-3 h-5 w-5 animate-spin" /> Carregando blueprint...
+            </div>
+          ) : initError ? (
+            <div className="flex min-h-[28rem] flex-col items-center justify-center text-center">
+              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+              <h3 className={cn('mb-2 text-xl font-bold', mode === 'simple' ? 'text-slate-900' : 'text-white')}>
+                {initError}
+              </h3>
+              <p className={cn('max-w-md text-sm', mode === 'simple' ? 'text-slate-600' : 'text-slate-400')}>
+                Essa campanha nao pode ser editada via Wizard. O Wizard e exclusivo para automacoes criadas diretamente por ele.
+              </p>
+              <Link
+                href="/campanhas"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Voltar para Campanhas
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-6">
             {activeStep === 0 ? <div className="grid gap-5 lg:grid-cols-2"><TextField label="Cliente / operacao" value={clientName} onChange={setClientName} mode={mode} /><TextField label="Nome da campanha" value={campaignName} onChange={setCampaignName} mode={mode} /><TextField label="Nome do pipeline" value={pipelineName} onChange={setPipelineName} mode={mode} /><label className="block lg:col-span-2"><span className={cn('mb-2 block text-sm font-medium', mode === 'simple' ? 'text-slate-700' : 'text-slate-200')}>Descricao</span><textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className={cn('w-full rounded-[18px] border px-4 py-3 text-sm outline-none focus:border-cyan-300/35', mode === 'simple' ? 'border-slate-200 bg-slate-50 text-slate-950' : 'border-white/[0.08] bg-white/[0.04] text-white')} /></label></div> : null}
             {activeStep === 1 ? <div className="grid gap-4 lg:grid-cols-2">{(['FORM', 'WHATSAPP'] as const).map((type) => <button key={type} type="button" onClick={() => setInputType(type)} className={cn('rounded-[26px] border p-6 text-left transition', inputType === type ? 'border-cyan-300/20 bg-cyan-300/[0.08]' : mode === 'simple' ? 'border-slate-200 bg-white' : 'border-white/[0.08] bg-white/[0.03]')}><h3 className={cn('text-xl font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>{type === 'FORM' ? 'Formulario' : 'WhatsApp'}</h3><p className={cn('mt-2 text-sm leading-6', mode === 'simple' ? 'text-slate-600' : 'text-slate-400')}>{type === 'FORM' ? 'Capta leads via pagina publica.' : 'Recebe leads direto do canal e liga o piloto automatico.'}</p></button>)}</div> : null}
             {activeStep === 2 && inputType === 'FORM' ? (
@@ -808,7 +838,8 @@ export default function WizardPage() {
             ) : null}
             {activeStep === 4 ? <div className="space-y-5"><div className={cn('rounded-[26px] border p-5', mode === 'simple' ? 'border-slate-200 bg-white' : 'border-white/[0.08] bg-white/[0.03]')}><p className={cn('text-sm font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>Regua por etapas</p><p className={cn('mt-1 text-sm', mode === 'simple' ? 'text-slate-600' : 'text-slate-400')}>Cada caixa representa uma etapa. O botao de configuracao abre o painel lateral para revisar timing e template.</p></div><div className="overflow-x-auto"><div className="flex min-w-max items-start gap-4 pb-2">{rule.map((stage, index) => <div key={stage.stageKey} className="flex items-center gap-4"><button type="button" onClick={() => setSelectedStageKey(stage.stageKey)} className={cn('w-[19rem] rounded-[28px] border p-5 text-left transition', selectedStageKey === stage.stageKey ? 'border-cyan-300/25 bg-cyan-300/[0.08]' : mode === 'simple' ? 'border-slate-200 bg-white' : 'border-white/[0.08] bg-white/[0.03]')}><div className="flex items-center justify-between gap-3"><div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl border text-cyan-100', mode === 'simple' ? 'border-slate-200 bg-slate-50 text-cyan-600' : 'border-white/[0.08] bg-white/[0.04]')}><Workflow className="h-5 w-5" /></div><span className={cn('rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em]', mode === 'simple' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-white/[0.08] bg-white/[0.04] text-slate-300')}>{stage.tasks.length} acoes</span></div><h3 className={cn('mt-4 text-xl font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>{stage.stageName}</h3><p className={cn('mt-2 text-sm leading-6', mode === 'simple' ? 'text-slate-600' : 'text-slate-400')}>{stage.objective ?? stage.description ?? 'Sem objetivo definido.'}</p><div className="mt-4 flex items-center justify-between text-sm"><span className={cn(mode === 'simple' ? 'text-slate-700' : 'text-slate-300')}>Configurar etapa</span><Settings2 className={cn('h-4 w-4', mode === 'simple' ? 'text-cyan-600' : 'text-cyan-100')} /></div></button>{index < rule.length - 1 ? <ChevronRight className="h-5 w-5 text-slate-500" /> : null}</div>)}</div></div></div> : null}
             <div className={cn('flex items-center justify-between border-t pt-6', mode === 'simple' ? 'border-slate-200' : 'border-white/[0.08]')}><button type="button" disabled={activeStep === 0} onClick={() => setActiveStep((current) => Math.max(current - 1, 0))} className={cn('inline-flex items-center gap-2 rounded-[18px] border px-4 py-3 text-sm font-medium disabled:opacity-50', mode === 'simple' ? 'border-slate-200 bg-white text-slate-700' : 'border-white/[0.08] bg-white/[0.04] text-slate-100')}><ChevronLeft className="h-4 w-4" /> Voltar</button>{activeStep < STEPS.length - 1 ? <button type="button" disabled={!canGoNext} onClick={() => setActiveStep((current) => Math.min(current + 1, STEPS.length - 1))} className="inline-flex items-center gap-2 rounded-[18px] bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-60">Proximo <ChevronRight className="h-4 w-4" /></button> : <button type="button" disabled={!canGoNext || isSaving} onClick={() => void save()} className="inline-flex items-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#5bd0ff,#83f4c3)] px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-60">{isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />} {editingCampaignId ? 'Atualizar campanha' : 'Salvar campanha'}</button>}</div>
-          </div>}
+          </div>
+          )}
         </section>
       </div>
 

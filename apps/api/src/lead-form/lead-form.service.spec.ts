@@ -25,7 +25,8 @@ describe('LeadFormService', () => {
       $transaction: jest.fn(),
     };
 
-    service = new LeadFormService(prismaService as PrismaService);
+    const journeyService = {} as any;
+    service = new LeadFormService(prismaService as PrismaService, journeyService);
   });
 
   it('creates a form with normalized slug and fields', async () => {

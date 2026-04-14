@@ -1,12 +1,13 @@
 import {
-  ArrayMaxSize,
-  IsEnum,
   IsISO8601,
   IsNotEmpty,
   IsOptional,
   ValidateNested,
   IsString,
   MaxLength,
+  ValidateIf,
+  IsEnum,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CampaignChannel, CampaignStatus } from '@prisma/client';
@@ -43,6 +44,7 @@ export class CreateCampaignDto {
   audienceId?: string | null;
 
   @IsOptional()
+  @ValidateIf((o) => o.launchAt !== '' && o.launchAt !== null)
   @IsISO8601()
   launchAt?: string | null;
 

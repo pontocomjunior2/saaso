@@ -1,47 +1,42 @@
 'use client';
 
-import KanbanBoard from '@/components/board/KanbanBoard';
-import KanbanListView from '@/components/board/KanbanListView';
-import { CardFormModal } from '@/components/board/CardFormModal';
-import { CardDetailSheet } from '@/components/board/CardDetailSheet';
-import type { DetailedCard, PipelineSummary } from '@/components/board/board-types';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { useUIMode } from '@/components/layout/UIModeProvider';
-import { KanbanSquare, Orbit, RefreshCcw, Workflow, Plus, Search, Filter, Calendar, LayoutGrid, List } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { 
+  Workflow, 
+  Plus, 
+  Search, 
+  ArrowRight, 
+  LayoutGrid, 
+  Users, 
+  Activity,
+  ChevronRight
+} from 'lucide-react';
+import type { PipelineSummary } from '@/components/board/board-types';
+import { cn } from '@/lib/utils';
 
 export default function PipelinesPage() {
-  useUIMode();
+  const { mode } = useUIMode();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>([]);
-  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [selectedCard, setSelectedCard] = useState<DetailedCard | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCardLoading, setIsCardLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Estados para novas funcionalidades
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCard, setEditingCard] = useState<{ id: string; title: string; stageId: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     let isMounted = true;
 
-    const run = async () => {
+    const fetchPipelines = async () => {
       setIsLoading(true);
-      setError(null);
-
       try {
         const response = await api.get<PipelineSummary[]>('/pipelines');
         if (isMounted) {
           setPipelines(response.data);
-          setSelectedPipelineId((current) => current ?? response.data[0]?.id ?? null);
         }
       } catch {
         if (isMounted) {
-          setError('Nao foi possivel carregar os pipelines do tenant.');
+          setError('Nao foi possivel carregar a lista de pipelines.');
         }
       } finally {
         if (isMounted) {
@@ -50,216 +45,169 @@ export default function PipelinesPage() {
       }
     };
 
-    void run();
+    void fetchPipelines();
     return () => {
       isMounted = false;
     };
-  }, [refreshKey]);
+  }, []);
 
-  useEffect(() => {
-    if (!selectedCardId) {
-      setSelectedCard(null);
-      return;
-    }
-
-    let isMounted = true;
-
-    const run = async () => {
-      setIsCardLoading(true);
-
-      try {
-        const response = await api.get<DetailedCard>(`/cards/${selectedCardId}`);
-        if (isMounted) {
-          setSelectedCard(response.data);
-        }
-      } catch {
-        if (isMounted) {
-          setSelectedCard(null);
-        }
-      } finally {
-        if (isMounted) {
-          setIsCardLoading(false);
-        }
-      }
-    };
-
-    void run();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedCardId]);
-
-  const selectedPipeline = useMemo(
-    () => pipelines.find((pipeline) => pipeline.id === selectedPipelineId) ?? null,
-    [pipelines, selectedPipelineId],
+  const filteredPipelines = pipelines.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalCards = selectedPipeline?.stages.reduce((total, stage) => total + (stage.cards?.length ?? 0), 0) ?? 0;
-
   return (
-    <>
-      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 p-6 lg:p-8">
-        {error ? (
-          <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-600">
-            {error}
+    <div className="mx-auto w-full max-w-[1400px] p-6 lg:p-10">
+      {/* Header Section */}
+      <header className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-2xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[11px] font-medium uppercase tracking-widest text-cyan-100">
+            <Workflow className="h-3 w-3" />
+            Gestao Comercial
           </div>
-        ) : null}
-
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[12px] bg-[#594ded] text-white shadow-sm">
-                <Workflow className="h-6 w-6" />
-              </div>
-              <h1 className="text-[24px] font-bold text-[#1a202c]">
-                {selectedPipeline?.name ?? 'Board Operacional'}
-              </h1>
-              
-              <div className="ml-4 hidden items-center -space-x-2 sm:flex">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#fbfbfb] bg-[#${['dfdfdf', 'cfcfcf', 'bfbfbf'][i-1]}] text-[11px] font-semibold text-[#545a66]`}>
-                    U{i}
-                  </div>
-                ))}
-                <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#fbfbfb] bg-[#f0f0f0] text-[11px] font-medium text-[#718096]">
-                  +9
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setEditingCard(null);
-                setIsModalOpen(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#594ded] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#594ded]/20 transition hover:bg-[#4d42cc]"
-            >
-              <Plus className="h-4 w-4" />
-              New Task
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-4 border-b border-[#f0f0f0] pb-0 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-6">
-              {pipelines.map((pipeline) => {
-                const isActive = pipeline.id === selectedPipelineId;
-                return (
-                  <button
-                    key={pipeline.id}
-                    onClick={() => {
-                      setSelectedPipelineId(pipeline.id);
-                      setSelectedCardId(null);
-                      setSelectedCard(null);
-                    }}
-                    className={`flex items-center gap-2 border-b-2 px-1 pb-4 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'border-[#594ded] text-[#594ded]'
-                        : 'border-transparent text-[#718096] hover:text-[#1a202c]'
-                    }`}
-                  >
-                    <KanbanSquare className="h-[18px] w-[18px]" />
-                    {pipeline.name}
-                  </button>
-                );
-              })}
-              
-              <button 
-                onClick={() => setViewMode('kanban')}
-                className={`mt-1 flex items-center gap-2 border-b-2 px-1 pb-4 text-sm font-medium transition-colors ${
-                  viewMode === 'kanban' ? 'border-[#594ded] text-[#594ded]' : 'border-transparent text-[#718096] hover:text-[#1a202c]'
-                }`}
-              >
-                <LayoutGrid className="h-[18px] w-[18px]" /> Board
-              </button>
-              <button 
-                onClick={() => setViewMode('list')}
-                className={`mt-1 flex items-center gap-2 border-b-2 px-1 pb-4 text-sm font-medium transition-colors ${
-                  viewMode === 'list' ? 'border-[#594ded] text-[#594ded]' : 'border-transparent text-[#718096] hover:text-[#1a202c]'
-                }`}
-              >
-                <List className="h-[18px] w-[18px]" /> List
-              </button>
-              <button disabled className="mt-1 flex items-center gap-2 border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-[#a0aec0] transition-colors hover:text-[#718096]">
-                <Calendar className="h-[18px] w-[18px]" /> Calendar
-              </button>
-            </div>
-
-            <div className="mb-3 flex flex-wrap items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a0aec0]" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-full rounded-lg border border-[#f0f0f0] py-2 pl-9 pr-4 text-sm text-[#393939] placeholder-[#a0aec0] outline-none transition focus:border-[#594ded] focus:ring-1 focus:ring-[#594ded] sm:w-48"
-                />
-              </div>
-              
-              <button className="flex items-center gap-2 text-sm font-medium text-[#718096] transition hover:text-[#1a202c]">
-                <Filter className="h-4 w-4" /> Filter
-              </button>
-            </div>
-          </div>
+          <h1 className={cn(
+            "text-4xl font-bold tracking-tight",
+            mode === 'simple' ? "text-slate-900" : "text-white"
+          )}>
+            Pipelines Operacionais
+          </h1>
+          <p className={cn(
+            "mt-3 text-lg leading-relaxed",
+            mode === 'simple' ? "text-slate-600" : "text-slate-400"
+          )}>
+            Visualize e gerencie seus funis de venda. Clique em um pipeline para abrir o quadro kanban e gerir seus cards.
+          </p>
         </div>
 
-        {isLoading ? (
-          <div className="flex min-h-[46rem] items-center justify-center rounded-[30px] border border-[#f0f0f0] bg-white text-[#9e9e9e]">
-            Carregando board principal...
-          </div>
-        ) : selectedPipelineId ? (
-          <div className="rounded-[30px] bg-transparent min-h-[46rem]">
-            {viewMode === 'kanban' ? (
-              <KanbanBoard
-                pipelineId={selectedPipelineId}
-                selectedCardId={selectedCardId}
-                onCardSelect={(cardId) => setSelectedCardId(cardId)}
-                onAddCard={(stageId) => {
-                  setEditingCard(null);
-                  setIsModalOpen(true);
-                  // Pass initialStageId to modal if needed, but the modal already handles it via initialStageId prop
-                }}
-                onEditCard={(card) => {
-                  setEditingCard({ id: card.id, title: card.title, stageId: card.stageId });
-                  setIsModalOpen(true);
-                }}
-              />
-            ) : (
-              <KanbanListView 
-                onCardSelect={(cardId) => setSelectedCardId(cardId)}
-                onEditCard={(card) => {
-                  setEditingCard({ id: card.id, title: card.title, stageId: card.stageId });
-                  setIsModalOpen(true);
-                }}
-              />
+        <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#5bd0ff] px-6 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:scale-[1.02] active:scale-[0.98]">
+          <Plus className="h-5 w-5" />
+          Novo Pipeline
+        </button>
+      </header>
+
+      {/* Filters & Search */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Buscar pipeline por nome..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={cn(
+              "w-full rounded-2xl border py-3.5 pl-11 pr-4 text-sm outline-none transition-all",
+              mode === 'simple' 
+                ? "border-slate-200 bg-white text-slate-900 focus:border-cyan-500" 
+                : "border-white/10 bg-white/5 text-white focus:border-cyan-400/50"
             )}
-          </div>
-        ) : (
-          <div className="flex min-h-[42rem] items-center justify-center rounded-[30px] border border-[#f0f0f0] bg-white px-6 text-center text-[#9e9e9e]">
-            Nenhum pipeline encontrado. Rode o seed para popular o ambiente demo.
-          </div>
-        )}
+          />
+        </div>
       </div>
 
-      <CardDetailSheet
-        card={selectedCard}
-        isOpen={Boolean(selectedCardId)}
-        isLoading={isCardLoading}
-        onClose={() => {
-          setSelectedCardId(null);
-          setSelectedCard(null);
-        }}
-      />
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className={cn(
+              "h-64 animate-pulse rounded-[32px] border",
+              mode === 'simple' ? "border-slate-100 bg-slate-50" : "border-white/5 bg-white/5"
+            )} />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center text-rose-600">
+          {error}
+        </div>
+      ) : filteredPipelines.length === 0 ? (
+        <div className={cn(
+          "rounded-[32px] border border-dashed p-16 text-center",
+          mode === 'simple' ? "border-slate-200 bg-slate-50" : "border-white/10 bg-white/[0.02]"
+        )}>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <Search className="h-8 w-8" />
+          </div>
+          <h3 className={cn("text-xl font-semibold", mode === 'simple' ? "text-slate-900" : "text-white")}>
+            Nenhum pipeline encontrado
+          </h3>
+          <p className="mt-2 text-slate-500">Tente ajustar sua busca ou crie um novo pipeline.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredPipelines.map((pipeline) => {
+            const totalLeads = pipeline.stages.reduce((acc, s) => acc + (s.cards?.length || 0), 0);
+            
+            return (
+              <Link 
+                key={pipeline.id} 
+                href={`/pipelines/${pipeline.id}`}
+                className={cn(
+                  "group relative overflow-hidden rounded-[32px] border p-8 transition-all hover:scale-[1.02] active:scale-[0.98]",
+                  mode === 'simple'
+                    ? "border-slate-200 bg-white shadow-sm hover:shadow-xl hover:shadow-slate-200/50"
+                    : "border-white/10 bg-white/5 hover:bg-white/[0.08] hover:shadow-2xl hover:shadow-cyan-500/10"
+                )}
+              >
+                {/* Decorative background element */}
+                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl transition-all group-hover:bg-cyan-400/20" />
 
-      <CardFormModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingCard(null);
-        }}
-        pipelineId={selectedPipelineId || ''}
-        cardId={editingCard?.id}
-        initialTitle={editingCard?.title}
-        initialStageId={editingCard?.stageId}
-      />
-    </>
+                <div className="mb-6 flex items-center justify-between">
+                  <div className={cn(
+                    "flex h-14 w-14 items-center justify-center rounded-2xl border transition-colors",
+                    mode === 'simple' 
+                      ? "border-slate-100 bg-slate-50 text-cyan-600 group-hover:border-cyan-100 group-hover:bg-cyan-50" 
+                      : "border-white/10 bg-white/5 text-cyan-400 group-hover:border-cyan-400/20 group-hover:bg-cyan-400/10"
+                  )}>
+                    <LayoutGrid className="h-7 w-7" />
+                  </div>
+                  <div className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full border transition-all group-hover:translate-x-1",
+                    mode === 'simple' ? "border-slate-100 bg-slate-50 text-slate-400" : "border-white/10 bg-white/5 text-slate-500"
+                  )}>
+                    <ChevronRight className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <h3 className={cn(
+                  "text-2xl font-bold transition-colors",
+                  mode === 'simple' ? "text-slate-900 group-hover:text-cyan-700" : "text-white group-hover:text-cyan-300"
+                )}>
+                  {pipeline.name}
+                </h3>
+                
+                <div className="mt-8 grid grid-cols-2 gap-4">
+                  <div className={cn(
+                    "rounded-2xl p-4",
+                    mode === 'simple' ? "bg-slate-50" : "bg-white/5"
+                  )}>
+                    <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <Activity className="h-3 w-3" />
+                      Etapas
+                    </div>
+                    <div className={cn("text-xl font-bold", mode === 'simple' ? "text-slate-900" : "text-white")}>
+                      {pipeline.stages.length}
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "rounded-2xl p-4",
+                    mode === 'simple' ? "bg-slate-50" : "bg-white/5"
+                  )}>
+                    <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <Users className="h-3 w-3" />
+                      Cards
+                    </div>
+                    <div className={cn("text-xl font-bold", mode === 'simple' ? "text-slate-900" : "text-white")}>
+                      {totalLeads}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex items-center gap-2 text-sm font-semibold text-cyan-500 opacity-0 transition-all group-hover:opacity-100">
+                  Abrir board completo
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

@@ -573,10 +573,15 @@ export default function CampaignsPage() {
     setPanelError(null);
 
     try {
+      const payload = {
+        ...campaignDraft,
+        launchAt: campaignDraft.launchAt?.trim() || null,
+      };
+
       if (selectedCampaign) {
-        await updateCampaign(selectedCampaign.id, campaignDraft);
+        await updateCampaign(selectedCampaign.id, payload);
       } else {
-        await createCampaign(campaignDraft);
+        await createCampaign(payload);
       }
       closePanel();
     } catch (submitError) {

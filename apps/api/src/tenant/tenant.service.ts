@@ -420,8 +420,9 @@ export class TenantService {
     const existingStageIds = resources.stages.map((stage) => stage.stageId).filter(Boolean) as string[];
 
     if (existingStageIds.length !== dto.rule.length) {
+      console.error(`[Wizard Update] Stage count mismatch: existing=${existingStageIds.length}, incoming=${dto.rule.length}`);
       throw new BadRequestException(
-        'Erro no Backend: O wizard nao consegue alterar a quantidade de etapas desta campanha existente.',
+        `Erro no Backend: O wizard nao consegue alterar a quantidade de etapas desta campanha existente (atual: ${existingStageIds.length}, enviado: ${dto.rule.length}).`,
       );
     }
 
@@ -784,8 +785,9 @@ export class TenantService {
       where: {
         tenantId,
         OR: [
-          { name: `${campaign.name} · Regua` },
+          { name: { contains: campaign.name } },
           { name: { startsWith: campaign.name } },
+          { name: `${campaign.name} · Regua` },
         ],
       },
       orderBy: { updatedAt: 'desc' },

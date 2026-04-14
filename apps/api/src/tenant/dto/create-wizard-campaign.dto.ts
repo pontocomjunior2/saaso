@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -21,16 +22,19 @@ class WizardLeadFormConfigDto {
   @MaxLength(120)
   name: string;
 
+  @ValidateIf((o) => o.slug !== '' && o.slug !== null)
   @IsOptional()
   @IsString()
   @MaxLength(120)
   slug?: string;
 
+  @ValidateIf((o) => o.headline !== '' && o.headline !== null)
   @IsOptional()
   @IsString()
   @MaxLength(160)
   headline?: string;
 
+  @ValidateIf((o) => o.description !== '' && o.description !== null)
   @IsOptional()
   @IsString()
   @MaxLength(400)
@@ -45,16 +49,20 @@ class WizardWhatsAppConfigDto {
   @IsNotEmpty()
   phoneNumber: string;
 
+  @ValidateIf((o) => o.phoneNumberId !== '' && o.phoneNumberId !== null)
   @IsOptional()
   @IsString()
   phoneNumberId?: string;
 
+  @ValidateIf((o) => o.wabaId !== '' && o.wabaId !== null)
   @IsOptional()
   @IsString()
   wabaId?: string;
 
+  @ValidateIf((o) => o.accessToken !== '' && o.accessToken !== null)
   @IsOptional()
   @IsString()
+  @MaxLength(400)
   accessToken?: string;
 }
 
@@ -72,6 +80,7 @@ class WizardAgentConfigDto {
   @MaxLength(120)
   name: string;
 
+  @ValidateIf((o) => o.systemPrompt !== '' && o.systemPrompt !== null)
   @IsOptional()
   @IsString()
   systemPrompt?: string;
@@ -125,14 +134,17 @@ class WizardRuleStageDto {
   @MaxLength(120)
   stageName: string;
 
+  @ValidateIf((o) => o.description !== '' && o.description !== null)
   @IsOptional()
   @IsString()
   description?: string;
 
+  @ValidateIf((o) => o.objective !== '' && o.objective !== null)
   @IsOptional()
   @IsString()
   objective?: string;
 
+  @ValidateIf((o) => o.agentLabel !== '' && o.agentLabel !== null)
   @IsOptional()
   @IsString()
   agentLabel?: string;
