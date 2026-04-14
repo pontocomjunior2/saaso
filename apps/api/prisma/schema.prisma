@@ -43,6 +43,9 @@ model Tenant {
   enrichmentTasks       EnrichmentTask[]
   prospectTaskEvents    ProspectTaskEvent[]
   stageMessageTemplates StageMessageTemplate[]
+  stageRules            StageRule[]
+  stageRuleRuns         StageRuleRun[]
+  metaWebhookMappings   MetaWebhookMapping[]
 }
 
 model User {
@@ -70,6 +73,7 @@ model Pipeline {
   stages    Stage[]
   campaignId String?  @unique
   campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  metaWebhookMappings MetaWebhookMapping[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -80,10 +84,13 @@ model Stage {
   order      Int
   pipelineId String
   pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  classificationCriteria String?
   cards            Card[]
   agents           Agent[]
   leadForms        LeadForm[]
   messageTemplates StageMessageTemplate[]
+  stageRule        StageRule?
+  metaWebhookMappings MetaWebhookMapping[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -107,6 +114,8 @@ model Card {
   agentConversations AgentConversation[]
   leadFormSubmissions LeadFormSubmission[]
   sequenceRuns SequenceRun[]
+  stageRuleRuns StageRuleRun[]
+  metaLeadIngestions MetaLeadIngestion[]
 }
 
 model CardActivity {
@@ -132,6 +141,7 @@ model StageMessageTemplate {
   body      String
   tenantId  String
   tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  ruleSteps StageRuleStep[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
@@ -765,4 +775,127 @@ enum SequenceRunStepStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+enum StageRuleRunStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELED
+  FAILED
+}
+
+enum StageRuleRunStepStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model StageRule {
+  id        String   @id @default(uuid())
+  stageId   String   @unique
+  stage     Stage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  isActive  Boolean  @default(true)
+  steps     StageRuleStep[]
+  runs      StageRuleRun[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, stageId])
+}
+
+model StageRuleStep {
+  id                String          @id @default(uuid())
+  ruleId            String
+  rule              StageRule       @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  order             Int
+  dayOffset         Int
+  channel           CampaignChannel
+  messageTemplateId String
+  messageTemplate   StageMessageTemplate @relation(fields: [messageTemplateId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  runSteps StageRuleRunStep[]
+
+  @@unique([ruleId, order])
+  @@index([ruleId, order])
+}
+
+model StageRuleRun {
+  id            String             @id @default(uuid())
+  ruleId        String
+  rule          StageRule          @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  cardId        String
+  card          Card               @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  tenantId      String
+  tenant        Tenant             @relation(fields: [tenantId], references: [id])
+  status        StageRuleRunStatus @default(PENDING)
+  triggerSource String
+  startedAt     DateTime?
+  completedAt   DateTime?
+  pausedAt      DateTime?
+  canceledAt    DateTime?
+  lastError     String?
+  steps         StageRuleRunStep[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([tenantId, status])
+  @@index([cardId, status])
+}
+
+model StageRuleRunStep {
+  id                String                 @id @default(uuid())
+  runId             String
+  run               StageRuleRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  tenantId          String
+  ruleStepId        String
+  ruleStep          StageRuleStep          @relation(fields: [ruleStepId], references: [id])
+  order             Int
+  channel           CampaignChannel
+  scheduledFor      DateTime
+  status            StageRuleRunStepStatus @default(PENDING)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  attempts          Int                    @default(0)
+  lastError         String?
+  externalMessageId String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@unique([runId, order])
+  @@index([tenantId, status, scheduledFor])
+}
+
+model MetaWebhookMapping {
+  id               String   @id @default(uuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  metaFormId       String   @unique
+  pipelineId       String
+  pipeline         Pipeline @relation(fields: [pipelineId], references: [id])
+  stageId          String
+  stage            Stage    @relation(fields: [stageId], references: [id])
+  verifyToken      String
+  pageAccessToken  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model MetaLeadIngestion {
+  id          String   @id @default(uuid())
+  tenantId    String
+  metaLeadId  String   @unique
+  cardId      String?
+  card        Card?    @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
 }

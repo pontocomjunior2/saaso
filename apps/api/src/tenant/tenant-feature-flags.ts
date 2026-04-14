@@ -3,6 +3,13 @@ import type { Prisma } from '@prisma/client';
 export interface TenantFeatureFlags {
   outboundEnabled: boolean;
   coldOutboundEnabled: boolean;
+  businessHours?: {
+    enabled: boolean;
+    timezone: string;       // e.g., "America/Sao_Paulo"
+    days: number[];         // 0=Sun,1=Mon...6=Sat; default [1,2,3,4,5]
+    startHour: number;      // e.g., 8
+    endHour: number;        // e.g., 18
+  };
 }
 
 export const DEFAULT_TENANT_FEATURE_FLAGS: TenantFeatureFlags = {
