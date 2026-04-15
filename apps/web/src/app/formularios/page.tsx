@@ -562,8 +562,54 @@ export default function FormsPage() {
       return '';
     }
 
-    return `<iframe src="${publicUrl}" width="100%" height="860" frameborder="0" style="border:0;border-radius:24px;overflow:hidden;" title="${draft.name || 'Formulario Saaso'}"></iframe>`;
+    return [
+      '<iframe',
+      `  src="${publicUrl}"`,
+      '  width="100%"',
+      '  height="860"',
+      '  frameborder="0"',
+      '  sandbox="allow-scripts allow-same-origin allow-forms"',
+      `  title="${draft.name || 'Formulario Saaso'}"`,
+      '  style="border:0;border-radius:24px;overflow:hidden;"',
+      '></iframe>',
+    ].join('\n');
   }, [draft.name, publicUrl]);
+
+  const postMessageProtocolDoc = useMemo(() => {
+    return [
+      'postMessage Protocol Documentation',
+      '====================================',
+      '',
+      'Events emitted from the embedded form iframe to the parent window:',
+      '',
+      '1. saaso:form-resize',
+      '   { type: "saaso:form-resize", height: number }',
+      '   Sent when form content height changes (dynamic fields, validation errors).',
+      '   Parent should update iframe height: iframe.style.height = data.height + "px"',
+      '',
+      '2. saaso:form-submitting',
+      '   { type: "saaso:form-submitting" }',
+      '   Sent when user clicks submit and form is being sent to the backend.',
+      '   Parent can show a loading indicator.',
+      '',
+      '3. saaso:form-submitted',
+      '   { type: "saaso:form-submitted", cardId?: string }',
+      '   Sent when submission succeeds. cardId is included if a CRM card was created.',
+      '   Parent can navigate away, show confirmation, or track conversion.',
+      '',
+      '4. saaso:form-error',
+      '   { type: "saaso:form-error" }',
+      '   Sent when submission fails (network error, rate limit, validation error).',
+      '   Parent can show error UI or retry logic.',
+      '',
+      'Optional callback registration:',
+      '  window.saasoFormCallbacks = {',
+      '    onSubmitting: () => { console.log("Form submitting..."); },',
+      '    onSubmit: (cardId) => { console.log("Submitted! Card:", cardId); },',
+      '    onError: () => { console.log("Submission failed"); },',
+      '  };',
+    ].join('\n');
+  }, []);
 
   const embedScriptSnippet = useMemo(() => {
     if (!publicUrl) {
@@ -578,6 +624,13 @@ export default function FormsPage() {
     return [
       `<div id="${containerId}"></div>`,
       '<script>',
+      '// Saaso Form Embed — postMessage protocol:',
+      '// Events sent from iframe to parent:',
+      '//   { type: "saaso:form-resize", height: number } — height changed',
+      '//   { type: "saaso:form-submitting" } — form is submitting',
+      '//   { type: "saaso:form-submitted", cardId?: string } — submission success',
+      '//   { type: "saaso:form-error" } — submission failed',
+      '// Optional callbacks: window.saasoFormCallbacks = { onSubmitting, onSubmit, onError }',
       '(function () {',
       `  var container = document.getElementById('${containerId}');`,
       '  if (!container) return;',
@@ -591,15 +644,46 @@ export default function FormsPage() {
       "  iframe.style.borderRadius = '24px';",
       "  iframe.style.overflow = 'hidden';",
       "  iframe.style.background = 'transparent';",
+      "  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');",
       "  iframe.referrerPolicy = 'strict-origin-when-cross-origin';",
       "  container.innerHTML = '';",
       '  container.appendChild(iframe);',
+      '',
       '  function handleMessage(event) {',
-      "    if (!event || !event.data || event.data.type !== 'saaso:form-resize') return;",
+      '    if (!event || !event.data) return;',
       '    if (event.source !== iframe.contentWindow) return;',
-      "    if (typeof event.data.height !== 'number') return;",
-      "    iframe.style.height = Math.max(event.data.height, 520) + 'px';",
+      '    var data = event.data;',
+      '',
+      '    // Height resize (all status events should trigger resize)',
+      "    if (data.type === 'saaso:form-resize' && typeof data.height === 'number') {",
+      "      iframe.style.height = Math.max(data.height, 520) + 'px';",
+      '      return;',
+      '    }',
+      '',
+      '    // Submission lifecycle events',
+      '    var callbacks = window.saasoFormCallbacks || {};',
+      '',
+      "    if (data.type === 'saaso:form-submitting') {",
+      '      iframe.style.height = Math.max(iframe.scrollHeight, 520) + \'px\';',
+      '      if (typeof callbacks.onSubmitting === \'function\') callbacks.onSubmitting();',
+      '      return;',
+      '    }',
+      '',
+      "    if (data.type === 'saaso:form-submitted') {",
+      '      setTimeout(function() {',
+      "        iframe.style.height = Math.max(iframe.scrollHeight, 520) + 'px';",
+      '      }, 100);',
+      '      if (typeof callbacks.onSubmit === \'function\') callbacks.onSubmit(data.cardId);',
+      '      return;',
+      '    }',
+      '',
+      "    if (data.type === 'saaso:form-error') {",
+      '      iframe.style.height = Math.max(iframe.scrollHeight, 520) + \'px\';',
+      '      if (typeof callbacks.onError === \'function\') callbacks.onError();',
+      '      return;',
+      '    }',
       '  }',
+      '',
       "  window.addEventListener('message', handleMessage);",
       '})();',
       '</script>',
@@ -1520,6 +1604,22 @@ export default function FormsPage() {
                 </div>
                 <pre className="mt-4 overflow-auto rounded-2xl border border-white/10 bg-[rgba(7,16,29,0.82)] p-4 text-xs leading-6 text-slate-300">
                   {embedSnippet || '<iframe src="..." />'}
+                </pre>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="flex items-center gap-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">Protocolo postMessage</p>
+                  <button
+                    onClick={() => void copyText(postMessageProtocolDoc)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-white/[0.08]"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copiar
+                  </button>
+                </div>
+                <pre className="mt-4 overflow-auto rounded-2xl border border-white/10 bg-[rgba(7,16,29,0.82)] p-4 text-xs leading-6 text-slate-400">
+                  {postMessageProtocolDoc}
                 </pre>
               </div>
             </div>
