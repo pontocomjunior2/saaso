@@ -615,8 +615,9 @@ export class PipelineService {
   }
 
   public async remove(tenantId: string, id: string): Promise<Pipeline> {
-    // Valida se o pipeline existe e pertence ao tenant
     await this.findOne(tenantId, id);
+
+    await this.prisma.metaWebhookMapping.deleteMany({ where: { pipelineId: id } });
 
     return this.prisma.pipeline.delete({
       where: { id },

@@ -129,7 +129,7 @@ model CardActivity {
   channel      String?
   templateName String?
   actor        User?    @relation(fields: [actorId], references: [id])
-  card         Card     @relation(fields: [cardId], references: [id])
+  card         Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
 model StageMessageTemplate {
@@ -273,7 +273,7 @@ model SequenceRun {
   updatedAt        DateTime          @updatedAt
   audience         Audience?         @relation(fields: [audienceId], references: [id])
   campaign         Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  card             Card?             @relation(fields: [cardId], references: [id])
+  card             Card?             @relation(fields: [cardId], references: [id], onDelete: Cascade)
   contact          Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
   tenant           Tenant            @relation(fields: [tenantId], references: [id])
   steps            SequenceRunStep[]
@@ -324,7 +324,7 @@ model Agent {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   profile         Json?
-  knowledgeBase   KnowledgeBase?      @relation(fields: [knowledgeBaseId], references: [id])
+  knowledgeBase   KnowledgeBase?      @relation(fields: [knowledgeBaseId], references: [id], onDelete: SetNull)
   stage           Stage?              @relation(fields: [stageId], references: [id], onDelete: Cascade)
   tenant          Tenant              @relation(fields: [tenantId], references: [id])
   conversations   AgentConversation[]
@@ -341,9 +341,9 @@ model AgentConversation {
   status        AgentConversationStatus @default(OPEN)
   summary       String?
   tenantId      String
-  agent         Agent                   @relation(fields: [agentId], references: [id])
-  card          Card?                   @relation(fields: [cardId], references: [id])
-  contact       Contact                 @relation(fields: [contactId], references: [id])
+  agent         Agent                   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  card          Card?                   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  contact       Contact                 @relation(fields: [contactId], references: [id], onDelete: Cascade)
   tenant        Tenant                  @relation(fields: [tenantId], references: [id])
   messages      AgentMessage[]
 
@@ -358,8 +358,8 @@ model AgentMessage {
   content           String
   whatsAppMessageId String?           @unique
   createdAt         DateTime          @default(now())
-  conversation      AgentConversation @relation(fields: [conversationId], references: [id])
-  whatsAppMessage   WhatsAppMessage?  @relation(fields: [whatsAppMessageId], references: [id])
+  conversation      AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  whatsAppMessage   WhatsAppMessage?  @relation(fields: [whatsAppMessageId], references: [id], onDelete: SetNull)
 }
 
 model Journey {
@@ -467,9 +467,9 @@ model LeadFormSubmission {
   cardId    String?
   payload   Json
   createdAt DateTime @default(now())
-  card      Card?    @relation(fields: [cardId], references: [id])
+  card      Card?    @relation(fields: [cardId], references: [id], onDelete: Cascade)
   contact   Contact? @relation(fields: [contactId], references: [id])
-  form      LeadForm @relation(fields: [formId], references: [id])
+  form      LeadForm @relation(fields: [formId], references: [id], onDelete: Cascade)
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, formId])
@@ -659,7 +659,7 @@ model StageRuleStep {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   runSteps          StageRuleRunStep[]
-  messageTemplate   StageMessageTemplate @relation(fields: [messageTemplateId], references: [id])
+  messageTemplate   StageMessageTemplate @relation(fields: [messageTemplateId], references: [id], onDelete: Cascade)
   rule              StageRule            @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@unique([ruleId, order])
@@ -723,8 +723,8 @@ model MetaWebhookMapping {
   pageAccessToken String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  pipeline        Pipeline @relation(fields: [pipelineId], references: [id])
-  stage           Stage    @relation(fields: [stageId], references: [id])
+  pipeline        Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage           Stage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
   tenant          Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
@@ -740,7 +740,7 @@ model MetaLeadIngestion {
   metaLeadId String   @unique
   cardId     String?
   createdAt  DateTime @default(now())
-  card       Card?    @relation(fields: [cardId], references: [id])
+  card       Card?    @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
 enum WhatsAppStatus {

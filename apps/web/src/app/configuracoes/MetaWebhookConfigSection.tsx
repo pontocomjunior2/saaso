@@ -82,11 +82,11 @@ export function MetaWebhookConfigSection() {
   };
 
   return (
-    <section className="rounded-[30px] border border-white/10 bg-[rgba(8,18,34,0.82)] p-6 shadow-[0_20px_72px_rgba(0,0,0,0.22)]">
+    <section className="rounded-[30px] border border-[#e8e8e8] bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">Meta Lead Ads</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+          <h2 className="text-lg font-bold text-[#393939]">Meta Lead Ads</h2>
+          <p className="mt-2 text-sm leading-6 text-[#6b6b6b]">
             Vincule formulários do Meta a pipelines e etapas para captar leads automaticamente.
           </p>
         </div>
@@ -96,7 +96,7 @@ export function MetaWebhookConfigSection() {
             setIsAdding((current) => !current);
             setSavingError(null);
           }}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white transition hover:border-white/20 hover:bg-white/[0.1]"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-2 text-sm font-bold text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#f2f2f2]"
         >
           <Plus className="h-4 w-4" />
           Adicionar mapeamento
@@ -105,13 +105,13 @@ export function MetaWebhookConfigSection() {
 
       <div className="mt-6 space-y-3">
         {isAdding ? (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+          <div className="rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] p-4">
             <div className="grid gap-3 lg:grid-cols-2">
               <input
                 value={form.metaFormId}
                 onChange={(event) => setForm((current) => ({ ...current, metaFormId: event.target.value }))}
                 placeholder="ex: 123456789"
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500"
+                className="rounded-xl border border-[#e8e8e8] bg-white px-3 py-2 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]"
               />
               <select
                 value={form.pipelineId}
@@ -122,7 +122,7 @@ export function MetaWebhookConfigSection() {
                     stageId: '',
                   }))
                 }
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none"
+                className="rounded-xl border border-[#e8e8e8] bg-white px-3 py-2 text-sm text-[#393939] outline-none focus:border-[#594ded]"
               >
                 <option value="">Selecione o pipeline</option>
                 {pipelines.map((pipeline) => (
@@ -134,7 +134,7 @@ export function MetaWebhookConfigSection() {
               <select
                 value={form.stageId}
                 onChange={(event) => setForm((current) => ({ ...current, stageId: event.target.value }))}
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none"
+                className="rounded-xl border border-[#e8e8e8] bg-white px-3 py-2 text-sm text-[#393939] outline-none focus:border-[#594ded]"
               >
                 <option value="">Selecione a etapa</option>
                 {availableStages.map((stage) => (
@@ -147,10 +147,10 @@ export function MetaWebhookConfigSection() {
                 value={form.verifyToken}
                 onChange={(event) => setForm((current) => ({ ...current, verifyToken: event.target.value }))}
                 placeholder="Token de verificação"
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500"
+                className="rounded-xl border border-[#e8e8e8] bg-white px-3 py-2 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]"
               />
               <div className="lg:col-span-2">
-                <p className="text-xs leading-6 text-slate-400">
+                <p className="text-xs leading-6 text-[#6b6b6b]">
                   Token secreto que o Meta usará para verificar o webhook. Salve este valor com segurança — não será exibido novamente.
                 </p>
               </div>
@@ -159,16 +159,16 @@ export function MetaWebhookConfigSection() {
                 value={form.pageAccessToken}
                 onChange={(event) => setForm((current) => ({ ...current, pageAccessToken: event.target.value }))}
                 placeholder="Page Access Token (opcional)"
-                className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 lg:col-span-2"
+                className="rounded-xl border border-[#e8e8e8] bg-white px-3 py-2 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] lg:col-span-2 focus:border-[#594ded]"
               />
               <div className="lg:col-span-2">
-                <p className="text-xs leading-6 text-slate-400">
+                <p className="text-xs leading-6 text-[#6b6b6b]">
                   Opcional — necessário apenas para recuperar detalhes completos do lead.
                 </p>
               </div>
             </div>
 
-            {savingError ? <p className="mt-3 text-sm text-rose-300">{savingError}</p> : null}
+            {savingError ? <p className="mt-3 text-sm text-rose-600">{savingError}</p> : null}
 
             <div className="mt-4 flex items-center justify-end gap-3">
               <button
@@ -177,7 +177,7 @@ export function MetaWebhookConfigSection() {
                   resetForm();
                   setIsAdding(false);
                 }}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 hover:text-white"
+                className="rounded-xl px-4 py-2 text-sm font-medium text-[#6b6b6b] hover:text-[#393939]"
               >
                 Cancelar
               </button>
@@ -195,23 +195,23 @@ export function MetaWebhookConfigSection() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-6 text-sm text-slate-400">
+          <div className="rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] px-5 py-6 text-sm text-[#6b6b6b]">
             Carregando mapeamentos...
           </div>
         ) : mappings.length === 0 ? (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-6 text-sm text-slate-400">
+          <div className="rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] px-5 py-6 text-sm text-[#6b6b6b]">
             Nenhum formulário Meta mapeado. Adicione um mapeamento para captar leads automaticamente.
           </div>
         ) : (
           mappings.map((mapping) => (
-            <div key={mapping.id} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div key={mapping.id} className="rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] p-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-2">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Formulário Meta</p>
-                    <p className="font-mono text-sm text-white">{mapping.metaFormId}</p>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-[#9e9e9e]">Formulário Meta</p>
+                    <p className="font-mono text-sm text-[#393939]">{mapping.metaFormId}</p>
                   </div>
-                  <div className="inline-flex items-center gap-2 text-sm text-slate-300">
+                  <div className="inline-flex items-center gap-2 text-sm text-[#6b6b6b]">
                     <span>{mapping.pipeline?.name ?? mapping.pipelineName ?? mapping.pipelineId}</span>
                     <ArrowRight className="h-4 w-4" />
                     <span>{mapping.stage?.name ?? mapping.stageName ?? mapping.stageId}</span>
@@ -223,14 +223,14 @@ export function MetaWebhookConfigSection() {
                     <button
                       type="button"
                       onClick={() => void handleDelete(mapping.id)}
-                      className="font-semibold text-rose-300 hover:text-rose-200"
+                      className="font-semibold text-rose-600 hover:text-rose-500"
                     >
                       Confirmar
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmingDeleteId(null)}
-                      className="font-medium text-slate-300 hover:text-white"
+                      className="font-medium text-[#6b6b6b] hover:text-[#393939]"
                     >
                       Cancelar
                     </button>
@@ -240,7 +240,7 @@ export function MetaWebhookConfigSection() {
                     type="button"
                     onClick={() => setConfirmingDeleteId(mapping.id)}
                     disabled={removingId === mapping.id}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-60"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-[#9e9e9e] transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60"
                     aria-label="Remover mapeamento"
                   >
                     {removingId === mapping.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
