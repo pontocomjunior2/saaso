@@ -40,6 +40,15 @@ type ExistingAgent = {
   isActive: boolean;
   stage?: { id: string; name: string; pipeline: { id: string; name: string } } | null;
 };
+type WhatsAppAccountOption = {
+  id: string;
+  provider: string;
+  phoneNumber: string | null;
+  instanceName: string | null;
+  status: string;
+  assignedPipelineId: string | null;
+  assignedPipelineName: string | null;
+};
 type WizardSetupResponse = {
   campaignId: string;
   campaignName: string;
@@ -61,7 +70,11 @@ type WizardSetupResponse = {
     phoneNumberId: string | null;
     wabaId: string | null;
     accessToken: string | null;
+    provider: string | null;
+    instanceName: string | null;
   } | null;
+  pipelineWhatsAppAccountId: string | null;
+  pipelineWhatsAppInboundStageId: string | null;
   agents: Array<{
     id: string | null;
     stageKey: string;
@@ -248,6 +261,7 @@ export default function WizardPage() {
   const [campaignName, setCampaignName] = useState('');
   const [pipelineName, setPipelineName] = useState('');
   const [description, setDescription] = useState('');
+  const [existingPipelineId, setExistingPipelineId] = useState<string | null>(null);
   const [formName, setFormName] = useState('Formulario principal');
   const [formHeadline, setFormHeadline] = useState('Receba seus leads');
   const [formDescription, setFormDescription] = useState('Capture o lead e inicie a automacao.');
@@ -260,6 +274,10 @@ export default function WizardPage() {
   const [whatsPhoneId, setWhatsPhoneId] = useState('');
   const [whatsWabaId, setWhatsWabaId] = useState('');
   const [whatsAccessToken, setWhatsAccessToken] = useState('');
+  const [whatsProvider, setWhatsProvider] = useState<'meta_cloud' | 'evolution'>('evolution');
+  const [whatsInstanceName, setWhatsInstanceName] = useState('');
+  const [selectedWhatsAppAccountId, setSelectedWhatsAppAccountId] = useState('');
+  const [whatsAppAccounts, setWhatsAppAccounts] = useState<WhatsAppAccountOption[]>([]);
   const [selectedStageKey, setSelectedStageKey] = useState<string | null>(null);
   const [agentLibrary, setAgentLibrary] = useState<ExistingAgent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -272,9 +290,10 @@ export default function WizardPage() {
     let mounted = true;
     const run = async () => {
       try {
-        const [response, agentsResponse, setupResponse] = await Promise.all([
+        const [response, agentsResponse, accountsResponse, setupResponse] = await Promise.all([
           api.get<Blueprint>('/tenant/wizard-blueprint'),
           api.get<ExistingAgent[]>('/agents'),
+          api.get<WhatsAppAccountOption[]>('/whatsapp/accounts'),
           editingCampaignId
             ? api.get<WizardSetupResponse>(`/tenant/wizard-campaigns/${editingCampaignId}`)
             : Promise.resolve(null),
@@ -286,6 +305,7 @@ export default function WizardPage() {
         const productName = response.data.meta?.produto ?? 'Nova operacao';
         setRule(nextRule);
         setAgentLibrary(agentsResponse.data);
+        setWhatsAppAccounts(accountsResponse.data);
         setAgents(
           setupResponse?.data?.agents?.length
             ? setupResponse.data.agents.map((agent) => ({
@@ -300,6 +320,7 @@ export default function WizardPage() {
         setClientName(setupResponse?.data?.clientName ?? productName);
         setCampaignName(setupResponse?.data?.campaignName ?? `${productName} · Campanha Principal`);
         setPipelineName(setupResponse?.data?.pipelineName ?? `${productName} · Pipeline`);
+        setExistingPipelineId(setupResponse?.data?.pipelineId ?? null);
         setDescription(setupResponse?.data?.description ?? response.data.meta?.descricao ?? '');
         setSelectedStageKey(nextRule[0]?.stageKey ?? null);
         setInputType(setupResponse?.data?.inputType ?? 'FORM');
@@ -315,6 +336,13 @@ export default function WizardPage() {
         setWhatsPhoneId(setupResponse?.data?.whatsapp?.phoneNumberId ?? '');
         setWhatsWabaId(setupResponse?.data?.whatsapp?.wabaId ?? '');
         setWhatsAccessToken(setupResponse?.data?.whatsapp?.accessToken ?? '');
+        setWhatsProvider((setupResponse?.data?.whatsapp?.provider as 'meta_cloud' | 'evolution' | null) ?? 'evolution');
+        setWhatsInstanceName(setupResponse?.data?.whatsapp?.instanceName ?? '');
+        setSelectedWhatsAppAccountId(
+          setupResponse?.data?.pipelineWhatsAppAccountId ??
+            setupResponse?.data?.whatsapp?.id ??
+            '',
+        );
       } catch (err: any) {
         if (mounted) {
           setInitError(
@@ -332,7 +360,33 @@ export default function WizardPage() {
     };
   }, [editingCampaignId]);
 
+  useEffect(() => {
+    if (!selectedWhatsAppAccountId) {
+      return;
+    }
+
+    const account = whatsAppAccounts.find((item) => item.id === selectedWhatsAppAccountId);
+    if (!account) {
+      return;
+    }
+
+    setWhatsPhone(account.phoneNumber ?? '');
+    setWhatsProvider((account.provider as 'meta_cloud' | 'evolution') ?? 'evolution');
+    setWhatsInstanceName(account.instanceName ?? '');
+  }, [selectedWhatsAppAccountId, whatsAppAccounts]);
+
   const selectedStage = useMemo(() => rule.find((stage) => stage.stageKey === selectedStageKey) ?? null, [rule, selectedStageKey]);
+  const selectedWhatsAppAccount = useMemo(
+    () => whatsAppAccounts.find((item) => item.id === selectedWhatsAppAccountId) ?? null,
+    [selectedWhatsAppAccountId, whatsAppAccounts],
+  );
+  const availableWhatsAppAccounts = useMemo(
+    () =>
+      whatsAppAccounts.filter(
+        (account) => !account.assignedPipelineId || account.assignedPipelineId === existingPipelineId || account.id === selectedWhatsAppAccountId,
+      ),
+    [existingPipelineId, selectedWhatsAppAccountId, whatsAppAccounts],
+  );
   const suggestedAgentsByStage = useMemo(() => {
     return rule.reduce<Record<string, ExistingAgent[]>>((accumulator, stage) => {
       const stageName = stage.stageName.toLowerCase();
@@ -345,7 +399,7 @@ export default function WizardPage() {
       return accumulator;
     }, {});
   }, [agentLibrary, rule]);
-  const canGoNext = activeStep === 0 ? Boolean(clientName.trim() && campaignName.trim() && pipelineName.trim()) : activeStep === 2 ? inputType === 'FORM' ? Boolean(formName.trim()) : Boolean(whatsPhone.trim()) : activeStep === 3 ? agents.every((agent) => agent.name.trim()) : true;
+  const canGoNext = activeStep === 0 ? Boolean(clientName.trim() && campaignName.trim() && pipelineName.trim()) : activeStep === 2 ? inputType === 'FORM' ? Boolean(formName.trim()) : Boolean(selectedWhatsAppAccountId || whatsPhone.trim()) : activeStep === 3 ? agents.every((agent) => agent.name.trim()) : true;
 
   const updateFormField = (fieldId: string, patch: Partial<LeadFormField>) => {
     setFormFields((current) =>
@@ -476,7 +530,7 @@ export default function WizardPage() {
     setError(null);
     setResult(null);
     try {
-      const payload = { clientName, campaignName, pipelineName, description, inputType, form: inputType === 'FORM' ? { name: formName, slug: slugify(formName), headline: formHeadline, description: formDescription, fields: formFields } : undefined, whatsapp: inputType === 'WHATSAPP' ? { phoneNumber: whatsPhone, phoneNumberId: whatsPhoneId || undefined, wabaId: whatsWabaId || undefined, accessToken: whatsAccessToken || undefined } : undefined, agents: agents.map(({ selectedTemplateId, stageKey, name, systemPrompt, profile }) => ({ id: selectedTemplateId || undefined, stageKey, name, systemPrompt, profile })), rule };
+      const payload = { clientName, campaignName, pipelineName, description, inputType, form: inputType === 'FORM' ? { name: formName, slug: slugify(formName), headline: formHeadline, description: formDescription, fields: formFields } : undefined, whatsapp: inputType === 'WHATSAPP' ? { accountId: selectedWhatsAppAccountId || undefined, provider: whatsProvider, instanceName: whatsInstanceName || undefined, phoneNumber: whatsPhone || undefined, phoneNumberId: whatsPhoneId || undefined, wabaId: whatsWabaId || undefined, accessToken: whatsAccessToken || undefined } : undefined, agents: agents.map(({ selectedTemplateId, stageKey, name, systemPrompt, profile }) => ({ id: selectedTemplateId || undefined, stageKey, name, systemPrompt, profile })), rule };
       const response = editingCampaignId
         ? await api.patch<Result>(`/tenant/wizard-campaigns/${editingCampaignId}`, payload)
         : await api.post<Result>('/tenant/wizard-campaign', payload);
@@ -720,7 +774,66 @@ export default function WizardPage() {
                 </div>
               </div>
             ) : null}
-            {activeStep === 2 && inputType === 'WHATSAPP' ? <div className="space-y-5"><div className="grid gap-5 lg:grid-cols-2"><TextField label="Numero principal" value={whatsPhone} onChange={setWhatsPhone} mode={mode} /><TextField label="Phone Number ID" value={whatsPhoneId} onChange={setWhatsPhoneId} mode={mode} /><TextField label="WABA ID" value={whatsWabaId} onChange={setWhatsWabaId} mode={mode} /><TextField label="Access token" value={whatsAccessToken} onChange={setWhatsAccessToken} mode={mode} /></div><div className={cn('rounded-[24px] border p-4 text-sm leading-6', mode === 'simple' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-amber-300/15 bg-amber-300/10 text-amber-100')}>O backend atual usa a conta WhatsApp do tenant. A adaptacao especifica para Evolution API ainda nao existe.</div></div> : null}
+            {activeStep === 2 && inputType === 'WHATSAPP' ? (
+              <div className="space-y-5">
+                <div className={cn('rounded-[24px] border p-5', mode === 'simple' ? 'border-slate-200 bg-[#f8fbff]' : 'border-white/[0.08] bg-white/[0.03]')}>
+                  <p className={cn('text-sm font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>Canal de entrada do funil</p>
+                  <p className={cn('mt-1 text-sm leading-6', mode === 'simple' ? 'text-slate-600' : 'text-slate-400')}>
+                    Este canal fica vinculado ao pipeline criado pelo wizard. Novos inbounds entram pela etapa inicial deste funil.
+                  </p>
+                </div>
+
+                <label className="block">
+                  <span className={cn('mb-2 block text-sm font-medium', mode === 'simple' ? 'text-slate-700' : 'text-slate-200')}>Conta WhatsApp</span>
+                  <select
+                    value={selectedWhatsAppAccountId}
+                    onChange={(e) => setSelectedWhatsAppAccountId(e.target.value)}
+                    className={cn('h-12 w-full rounded-[18px] border px-4 text-sm outline-none', mode === 'simple' ? 'border-slate-200 bg-slate-50 text-slate-950' : 'border-white/[0.08] bg-white/[0.04] text-white')}
+                  >
+                    <option value="">Criar nova conta para este funil</option>
+                    {availableWhatsAppAccounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.phoneNumber || account.instanceName || account.id} · {account.provider}
+                        {account.assignedPipelineName ? ` · vinculada a ${account.assignedPipelineName}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {selectedWhatsAppAccount?.assignedPipelineName && selectedWhatsAppAccount.assignedPipelineId !== existingPipelineId ? (
+                  <div className={cn('rounded-[20px] border p-4 text-sm leading-6', mode === 'simple' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-amber-300/15 bg-amber-300/10 text-amber-100')}>
+                    Essa conta ja esta vinculada ao pipeline {selectedWhatsAppAccount.assignedPipelineName}. Ao salvar, o vinculo sera movido para este funil.
+                  </div>
+                ) : null}
+
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <label className="block">
+                    <span className={cn('mb-2 block text-sm font-medium', mode === 'simple' ? 'text-slate-700' : 'text-slate-200')}>Provider</span>
+                    <select
+                      value={whatsProvider}
+                      onChange={(e) => setWhatsProvider(e.target.value as 'meta_cloud' | 'evolution')}
+                      className={cn('h-12 w-full rounded-[18px] border px-4 text-sm outline-none', mode === 'simple' ? 'border-slate-200 bg-slate-50 text-slate-950' : 'border-white/[0.08] bg-white/[0.04] text-white')}
+                    >
+                      <option value="evolution">Evolution API</option>
+                      <option value="meta_cloud">Meta Cloud API</option>
+                    </select>
+                  </label>
+                  <TextField label="Numero principal" value={whatsPhone} onChange={setWhatsPhone} mode={mode} />
+                  {whatsProvider === 'evolution' ? <TextField label="Nome da instance" value={whatsInstanceName} onChange={setWhatsInstanceName} mode={mode} /> : null}
+                  {whatsProvider === 'meta_cloud' ? (
+                    <>
+                      <TextField label="Phone Number ID" value={whatsPhoneId} onChange={setWhatsPhoneId} mode={mode} />
+                      <TextField label="WABA ID" value={whatsWabaId} onChange={setWhatsWabaId} mode={mode} />
+                      <TextField label="Access token" value={whatsAccessToken} onChange={setWhatsAccessToken} mode={mode} />
+                    </>
+                  ) : null}
+                </div>
+
+                <div className={cn('rounded-[20px] border p-4 text-sm leading-6', mode === 'simple' ? 'border-cyan-200 bg-cyan-50 text-cyan-800' : 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100')}>
+                  O wizard vincula uma conta por pipeline. Isso permite operar funis diferentes com canais e empresas diferentes dentro do mesmo tenant.
+                </div>
+              </div>
+            ) : null}
             {activeStep === 3 ? (
               <div className="space-y-5">
                 <div className={cn('rounded-[24px] border p-5', mode === 'simple' ? 'border-slate-200 bg-[#f8fbff]' : 'border-white/[0.08] bg-white/[0.03]')}>

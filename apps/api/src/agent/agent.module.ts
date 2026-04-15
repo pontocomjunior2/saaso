@@ -6,9 +6,10 @@ import {
 } from './agent.controller';
 import { AgentRunnerService } from './agent-runner.service';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [forwardRef(() => WhatsappModule)],
+  imports: [forwardRef(() => WhatsappModule), EmailModule],
   providers: [AgentService, AgentRunnerService],
   controllers: [AgentController, AgentConversationController],
   exports: [AgentService, AgentRunnerService],

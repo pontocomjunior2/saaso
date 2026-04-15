@@ -30,6 +30,7 @@ export class EmailService {
     to: string;
     subject: string;
     body: string;
+    html?: string;
   }): Promise<{
     success: boolean;
     deliveryMode: 'smtp' | 'local_demo';
@@ -47,6 +48,7 @@ export class EmailService {
       to: params.to,
       subject: params.subject,
       text: params.body,
+      html: params.html,
     });
 
     this.logger.log(

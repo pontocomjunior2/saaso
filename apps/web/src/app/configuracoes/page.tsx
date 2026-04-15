@@ -3,7 +3,7 @@
 import { useAppSession } from '@/components/layout/SessionProvider';
 import api from '@/lib/api';
 import { useLeadFormStore } from '@/stores/useLeadFormStore';
-import { useWhatsAppStore, type WhatsAppAccount } from '@/stores/useWhatsAppStore';
+import { useWhatsAppAccountStore } from '@/stores/useWhatsAppAccountStore';
 import {
   Activity,
   ArrowUpRight,
@@ -16,6 +16,7 @@ import {
   LogOut,
   MessageSquare,
   RefreshCw,
+  QrCode,
 } from 'lucide-react';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -23,25 +24,10 @@ import { MetaWebhookConfigSection } from './MetaWebhookConfigSection';
 
 type ApiStatus = 'checking' | 'online' | 'offline';
 
-function getWhatsAppModeLabel(account: WhatsAppAccount | null): string {
-  if (!account) {
-    return 'Pendente';
-  }
-
-  switch (account.connectionMode) {
-    case 'cloud_api':
-      return 'Cloud API';
-    case 'local_demo':
-      return 'Demo local';
-    default:
-      return 'Configuração parcial';
-  }
-}
-
 export default function SettingsPage() {
   const { apiBaseUrl, email, isDemoSession, logout, tenantSlug } = useAppSession();
   const { forms, isLoading: formsLoading, error: formsError, fetchForms } = useLeadFormStore();
-  const { account, isLoading: whatsappLoading, error: whatsappError, fetchAccount } = useWhatsAppStore();
+  const { accounts, isLoading: whatsappLoading, error: whatsappError, fetchAccounts } = useWhatsAppAccountStore();
   const [apiStatus, setApiStatus] = useState<ApiStatus>('checking');
   const [apiMessage, setApiMessage] = useState<string>('Consultando backend...');
 
@@ -50,7 +36,7 @@ export default function SettingsPage() {
 
     const run = async () => {
       try {
-        const [apiResponse] = await Promise.all([api.get<string>('/'), fetchForms(), fetchAccount()]);
+        const [apiResponse] = await Promise.all([api.get<string>('/'), fetchForms(), fetchAccounts()]);
         if (!isMounted) {
           return;
         }
@@ -72,7 +58,7 @@ export default function SettingsPage() {
     return () => {
       isMounted = false;
     };
-  }, [fetchAccount, fetchForms]);
+  }, [fetchAccounts, fetchForms]);
 
   const activeForms = useMemo(() => forms.filter((form) => form.isActive), [forms]);
   const latestForms = useMemo(() => forms.slice(0, 3), [forms]);
@@ -83,8 +69,15 @@ export default function SettingsPage() {
 
     return `${window.location.origin}/f/${tenantSlug}`;
   }, [tenantSlug]);
-  const whatsappModeLabel = useMemo(() => getWhatsAppModeLabel(account), [account]);
-  const whatsappOperational = Boolean(account?.isOperational);
+  const whatsappOperationalAccounts = useMemo(
+    () => accounts.filter((account) => account.isOperational),
+    [accounts],
+  );
+  const evolutionAccounts = useMemo(
+    () => accounts.filter((account) => account.provider === 'evolution'),
+    [accounts],
+  );
+  const whatsappOperational = whatsappOperationalAccounts.length > 0;
 
   const checklist = [
     {
@@ -95,8 +88,8 @@ export default function SettingsPage() {
     {
       label: 'Canal WhatsApp pronto',
       description:
-        account?.isOperational
-          ? `${account.phoneNumber ?? 'Numero configurado'} operacional em modo ${whatsappModeLabel.toLowerCase()}.`
+        whatsappOperational
+          ? `${whatsappOperationalAccounts.length} conta(s) operacional(is) no workspace.`
           : 'Workspace ainda sem conta WhatsApp operacional.',
       ready: whatsappOperational,
     },
@@ -118,18 +111,17 @@ export default function SettingsPage() {
   const channelCards = [
     {
       title: 'WhatsApp',
-      detail:
-        account?.isOperational
-          ? `Numero ${account.phoneNumber ?? 'configurado'} pronto no modo ${whatsappModeLabel.toLowerCase()}.`
-          : 'Conecte o canal para receber e responder mensagens direto no inbox.',
-      badge: account?.isOperational ? whatsappModeLabel : 'Pendente',
+      detail: whatsappOperational
+        ? `${accounts.length} conta(s), ${whatsappOperationalAccounts.length} operacional(is), ${evolutionAccounts.length} em Evolution.`
+        : 'Conecte uma ou mais contas para receber e responder mensagens direto no inbox.',
+      badge: whatsappOperational ? `${whatsappOperationalAccounts.length} ativa(s)` : 'Pendente',
       tone:
-        account?.isOperational
+        whatsappOperational
           ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
           : 'border-amber-400/20 bg-amber-500/10 text-amber-100',
       icon: MessageSquare,
       href: '/whatsapp',
-      cta: account?.isOperational ? 'Revisar canal' : 'Configurar canal',
+      cta: whatsappOperational ? 'Gerenciar contas' : 'Configurar contas',
     },
     {
       title: 'Formularios',
@@ -174,7 +166,7 @@ export default function SettingsPage() {
             <button
               onClick={() => {
                 void fetchForms();
-                void fetchAccount();
+                void fetchAccounts();
               }}
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.12]"
             >
@@ -209,8 +201,8 @@ export default function SettingsPage() {
         <StatusCard
           icon={MessageSquare}
           label="WhatsApp"
-          value={whatsappLoading ? 'Consultando' : whatsappModeLabel}
-          detail={account?.phoneNumber ?? 'Sem numero configurado'}
+          value={whatsappLoading ? 'Consultando' : `${accounts.length} conta(s)`}
+          detail={whatsappOperational ? `${whatsappOperationalAccounts.length} operacional(is)` : 'Sem conta operacional'}
           tone={whatsappOperational ? 'text-emerald-100' : 'text-amber-100'}
         />
         <StatusCard
@@ -391,6 +383,74 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-[30px] border border-white/10 bg-[rgba(8,18,34,0.82)] p-6 shadow-[0_20px_72px_rgba(0,0,0,0.22)]">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">WhatsApp multicanal</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Providers, QR e vínculo por funil</h2>
+          </div>
+          <Link
+            href="/whatsapp"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.1]"
+          >
+            Abrir central WhatsApp
+            <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-cyan-100" />
+              <p className="text-sm font-medium text-white">Contas no workspace</p>
+            </div>
+            <p className="mt-3 text-2xl font-semibold text-white">{accounts.length}</p>
+            <p className="mt-2 text-sm text-slate-400">Cada pipeline pode apontar para uma conta dedicada.</p>
+          </div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-center gap-2">
+              <QrCode className="h-4 w-4 text-cyan-100" />
+              <p className="text-sm font-medium text-white">Evolution prontas</p>
+            </div>
+            <p className="mt-3 text-2xl font-semibold text-white">{evolutionAccounts.length}</p>
+            <p className="mt-2 text-sm text-slate-400">Leitura de QR e estado da instância ficam na central WhatsApp.</p>
+          </div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-100" />
+              <p className="text-sm font-medium text-white">Operacionais</p>
+            </div>
+            <p className="mt-3 text-2xl font-semibold text-white">{whatsappOperationalAccounts.length}</p>
+            <p className="mt-2 text-sm text-slate-400">Contas já prontas para rodar automação e inbound.</p>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {accounts.length === 0 ? (
+            <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-slate-400">
+              Nenhuma conta WhatsApp cadastrada. Crie a primeira conta na central WhatsApp e depois vincule-a ao pipeline.
+            </div>
+          ) : (
+            accounts.slice(0, 4).map((account) => (
+              <div key={account.id} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">{account.phoneNumber || account.instanceName || account.id}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.22em] text-slate-500">{account.provider}</p>
+                    <p className="mt-2 text-sm text-slate-400">
+                      {account.assignedPipelineName ? `Ligada ao pipeline ${account.assignedPipelineName}` : 'Sem pipeline vinculado'}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] ${account.isOperational ? 'bg-emerald-500/10 text-emerald-100' : 'bg-amber-500/10 text-amber-100'}`}>
+                    {account.isOperational ? 'Operacional' : 'Pendente'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 

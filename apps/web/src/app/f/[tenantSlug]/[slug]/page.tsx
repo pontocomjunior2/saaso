@@ -69,6 +69,7 @@ interface SubmitSuccess {
   success: true;
   successTitle: string;
   successMessage: string;
+  cardId?: string | null;
 }
 
 function getApiBaseUrl() {

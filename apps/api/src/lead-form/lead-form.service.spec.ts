@@ -25,7 +25,9 @@ describe('LeadFormService', () => {
       $transaction: jest.fn(),
     };
 
-    const journeyService = {} as any;
+    const journeyService = {
+      triggerJourneysForEvent: jest.fn().mockResolvedValue(undefined),
+    } as any;
     service = new LeadFormService(prismaService as PrismaService, journeyService);
   });
 
@@ -198,6 +200,12 @@ describe('LeadFormService', () => {
       },
       leadFormSubmission: {
         create: jest.fn().mockResolvedValue({ id: 'submission-1' }),
+      },
+      agent: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      agentConversation: {
+        create: jest.fn().mockResolvedValue({ id: 'conversation-1' }),
       },
     };
 

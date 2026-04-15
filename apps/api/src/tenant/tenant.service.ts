@@ -138,8 +138,12 @@ export class TenantService {
             phoneNumberId: whatsapp.phoneNumberId,
             wabaId: whatsapp.wabaId,
             accessToken: whatsapp.accessToken,
+            provider: whatsapp.provider ?? null,
+            instanceName: whatsapp.instanceName ?? null,
           }
         : null,
+      pipelineWhatsAppAccountId: pipeline?.whatsAppAccountId ?? null,
+      pipelineWhatsAppInboundStageId: pipeline?.whatsAppInboundStageId ?? null,
       agents: stages.map((stage) => {
         const linkedAgent =
           (stage.stageId ? agentByStageId.get(stage.stageId) : null) ?? null;
@@ -254,30 +258,20 @@ export class TenantService {
           : null;
 
       const whatsapp =
-        dto.inputType === WizardInputType.WHATSAPP && dto.whatsapp
-          ? await tx.whatsAppAccount.create({
-              data: {
-                tenantId,
-                phoneNumber: dto.whatsapp.phoneNumber.trim(),
-                phoneNumberId:
-                  this.normalizeOptionalText(dto.whatsapp.phoneNumberId) ??
-                  null,
-                wabaId: this.normalizeOptionalText(dto.whatsapp.wabaId) ?? null,
-                accessToken:
-                  this.normalizeOptionalText(dto.whatsapp.accessToken) ?? null,
-                status: this.resolveStoredAccountStatus({
-                  phoneNumber: dto.whatsapp.phoneNumber.trim(),
-                  phoneNumberId: this.normalizeOptionalText(
-                    dto.whatsapp.phoneNumberId,
-                  ),
-                  accessToken: this.normalizeOptionalText(
-                    dto.whatsapp.accessToken,
-                  ),
-                  wabaId: this.normalizeOptionalText(dto.whatsapp.wabaId),
-                }),
-              },
-            })
+        dto.inputType === WizardInputType.WHATSAPP
+          ? await this.resolveWizardWhatsAppAccount(tx, tenantId, dto.whatsapp)
           : null;
+
+      await tx.pipeline.update({
+        where: { id: pipeline.id },
+        data: {
+          whatsAppAccountId: whatsapp?.id ?? null,
+          whatsAppInboundStageId:
+            dto.inputType === WizardInputType.WHATSAPP
+              ? createdStages[0]?.id ?? null
+              : null,
+        },
+      });
 
       const agents = await Promise.all(
         dto.agents.map((agent) =>
@@ -394,6 +388,8 @@ export class TenantService {
               id: whatsapp.id,
               phoneNumber: whatsapp.phoneNumber,
               status: whatsapp.status,
+              provider: whatsapp.provider ?? null,
+              instanceName: whatsapp.instanceName ?? null,
             }
           : null,
         agents: agents.map((agent) => ({
@@ -468,6 +464,10 @@ export class TenantService {
               this.normalizeOptionalText(dto.pipelineName) ??
               `${dto.clientName.trim()} · Operacao`,
             campaignId: campaignId, // Vínculo para deleção em cascata
+            whatsAppInboundStageId:
+              dto.inputType === WizardInputType.WHATSAPP
+                ? normalizedRule[0]?.stageId ?? null
+                : null,
           },
         });
       }
@@ -530,44 +530,27 @@ export class TenantService {
         }
       }
 
-      if (dto.inputType === WizardInputType.WHATSAPP && dto.whatsapp) {
-        if (resources.whatsapp) {
-          await tx.whatsAppAccount.update({
-            where: { id: resources.whatsapp.id },
-            data: {
-              phoneNumber: dto.whatsapp.phoneNumber.trim(),
-              phoneNumberId:
-                this.normalizeOptionalText(dto.whatsapp.phoneNumberId) ?? null,
-              wabaId: this.normalizeOptionalText(dto.whatsapp.wabaId) ?? null,
-              accessToken:
-                this.normalizeOptionalText(dto.whatsapp.accessToken) ?? null,
-              status: this.resolveStoredAccountStatus({
-                phoneNumber: dto.whatsapp.phoneNumber.trim(),
-                phoneNumberId: this.normalizeOptionalText(dto.whatsapp.phoneNumberId),
-                accessToken: this.normalizeOptionalText(dto.whatsapp.accessToken),
-                wabaId: this.normalizeOptionalText(dto.whatsapp.wabaId),
-              }),
-            },
-          });
-        } else {
-          await tx.whatsAppAccount.create({
-            data: {
+      const resolvedWhatsApp =
+        dto.inputType === WizardInputType.WHATSAPP
+          ? await this.resolveWizardWhatsAppAccount(
+              tx,
               tenantId,
-              phoneNumber: dto.whatsapp.phoneNumber.trim(),
-              phoneNumberId:
-                this.normalizeOptionalText(dto.whatsapp.phoneNumberId) ?? null,
-              wabaId: this.normalizeOptionalText(dto.whatsapp.wabaId) ?? null,
-              accessToken:
-                this.normalizeOptionalText(dto.whatsapp.accessToken) ?? null,
-              status: this.resolveStoredAccountStatus({
-                phoneNumber: dto.whatsapp.phoneNumber.trim(),
-                phoneNumberId: this.normalizeOptionalText(dto.whatsapp.phoneNumberId),
-                accessToken: this.normalizeOptionalText(dto.whatsapp.accessToken),
-                wabaId: this.normalizeOptionalText(dto.whatsapp.wabaId),
-              }),
-            },
-          });
-        }
+              dto.whatsapp,
+              resources.pipeline?.whatsAppAccountId ?? resources.whatsapp?.id ?? null,
+            )
+          : null;
+
+      if (resources.pipeline) {
+        await tx.pipeline.update({
+          where: { id: resources.pipeline.id },
+          data: {
+            whatsAppAccountId: resolvedWhatsApp?.id ?? null,
+            whatsAppInboundStageId:
+              dto.inputType === WizardInputType.WHATSAPP
+                ? normalizedRule[0]?.stageId ?? null
+                : null,
+          },
+        });
       }
 
       for (const agentInput of dto.agents) {
@@ -695,14 +678,18 @@ export class TenantService {
         whatsapp:
           dto.inputType === WizardInputType.WHATSAPP
             ? {
-                id: resources.whatsapp?.id ?? '',
-                phoneNumber: dto.whatsapp?.phoneNumber ?? null,
+                id: resolvedWhatsApp?.id ?? '',
+                phoneNumber: resolvedWhatsApp?.phoneNumber ?? null,
                 status: this.resolveStoredAccountStatus({
-                  phoneNumber: dto.whatsapp?.phoneNumber ?? '',
-                  phoneNumberId: this.normalizeOptionalText(dto.whatsapp?.phoneNumberId),
-                  accessToken: this.normalizeOptionalText(dto.whatsapp?.accessToken),
-                  wabaId: this.normalizeOptionalText(dto.whatsapp?.wabaId),
+                  phoneNumber: resolvedWhatsApp?.phoneNumber ?? '',
+                  phoneNumberId: resolvedWhatsApp?.phoneNumberId ?? null,
+                  accessToken: resolvedWhatsApp?.accessToken ?? null,
+                  wabaId: resolvedWhatsApp?.wabaId ?? null,
+                  provider: resolvedWhatsApp?.provider ?? null,
+                  instanceName: resolvedWhatsApp?.instanceName ?? null,
                 }),
+                provider: resolvedWhatsApp?.provider ?? null,
+                instanceName: resolvedWhatsApp?.instanceName ?? null,
               }
             : null,
         agents: refreshedAgents.map((agent) => ({
@@ -717,6 +704,95 @@ export class TenantService {
   private normalizeOptionalText(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
+  }
+
+  private async resolveWizardWhatsAppAccount(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    input: CreateWizardCampaignDto['whatsapp'] | undefined,
+    fallbackAccountId?: string | null,
+  ) {
+    if (!input && !fallbackAccountId) {
+      return null;
+    }
+
+    const accountId = this.normalizeOptionalText(input?.accountId) ?? fallbackAccountId ?? null;
+    const provider = this.normalizeOptionalText(input?.provider) ?? 'evolution';
+    const phoneNumber = this.normalizeOptionalText(input?.phoneNumber);
+    const phoneNumberId = this.normalizeOptionalText(input?.phoneNumberId);
+    const accessToken = this.normalizeOptionalText(input?.accessToken);
+    const wabaId = this.normalizeOptionalText(input?.wabaId);
+    const instanceName = this.normalizeOptionalText(input?.instanceName);
+
+    if (accountId) {
+      const existing = await tx.whatsAppAccount.findFirst({
+        where: { id: accountId, tenantId },
+      });
+
+      if (!existing) {
+        throw new NotFoundException(
+          `Erro no Backend: Conta WhatsApp com ID '${accountId}' nao encontrada neste tenant.`,
+        );
+      }
+
+      const shouldUpdate =
+        Boolean(phoneNumber) ||
+        typeof input?.phoneNumberId !== 'undefined' ||
+        typeof input?.accessToken !== 'undefined' ||
+        typeof input?.wabaId !== 'undefined' ||
+        typeof input?.provider !== 'undefined' ||
+        typeof input?.instanceName !== 'undefined';
+
+      if (!shouldUpdate) {
+        return existing;
+      }
+
+      return tx.whatsAppAccount.update({
+        where: { id: existing.id },
+        data: {
+          phoneNumber: phoneNumber ?? existing.phoneNumber,
+          phoneNumberId: phoneNumberId ?? null,
+          accessToken: accessToken ?? null,
+          wabaId: wabaId ?? null,
+          provider,
+          instanceName: instanceName ?? null,
+          status: this.resolveStoredAccountStatus({
+            phoneNumber: phoneNumber ?? existing.phoneNumber,
+            phoneNumberId,
+            accessToken,
+            wabaId,
+            provider,
+            instanceName,
+          }),
+        },
+      });
+    }
+
+    if (!phoneNumber) {
+      throw new BadRequestException(
+        'Erro no Backend: O wizard precisa de um telefone para criar uma conta WhatsApp nova.',
+      );
+    }
+
+    return tx.whatsAppAccount.create({
+      data: {
+        tenantId,
+        phoneNumber,
+        phoneNumberId,
+        accessToken,
+        wabaId,
+        provider,
+        instanceName,
+        status: this.resolveStoredAccountStatus({
+          phoneNumber,
+          phoneNumberId,
+          accessToken,
+          wabaId,
+          provider,
+          instanceName,
+        }),
+      },
+    });
   }
 
   private async resolveWizardBlueprintPath() {
@@ -889,7 +965,12 @@ export class TenantService {
       ? await this.prisma.stage.findMany({
           where: { id: { in: stageIds } },
           include: {
-            pipeline: true,
+            pipeline: {
+              include: {
+                whatsAppAccount: true,
+                whatsAppInboundStage: true,
+              },
+            },
             leadForms: {
               orderBy: { updatedAt: 'desc' },
             },
@@ -918,12 +999,13 @@ export class TenantService {
         .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0] ?? null;
 
     const whatsapp =
-      campaign.channel === CampaignChannel.WHATSAPP
+      pipeline?.whatsAppAccount ??
+      (campaign.channel === CampaignChannel.WHATSAPP
         ? await this.prisma.whatsAppAccount.findFirst({
             where: { tenantId },
             orderBy: { updatedAt: 'desc' },
           })
-        : null;
+        : null);
 
     return {
       campaign,
@@ -1148,7 +1230,16 @@ export class TenantService {
     phoneNumberId: string | null;
     accessToken: string | null;
     wabaId: string | null;
+    provider?: string | null;
+    instanceName?: string | null;
   }): WhatsAppStatus {
+    if (
+      (input.provider ?? 'meta_cloud') === 'evolution' &&
+      input.instanceName?.trim()
+    ) {
+      return WhatsAppStatus.CONNECTED;
+    }
+
     if (
       input.phoneNumber &&
       input.phoneNumberId &&

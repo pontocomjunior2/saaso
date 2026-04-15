@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import {
   AgentConversationStatus,
@@ -18,6 +19,7 @@ import {
   normalizeAgentPromptProfile,
 } from './agent-prompt.builder';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { EmailService } from '../email/email.service';
 
 export interface AgentRunnerResult {
   status:
@@ -67,11 +69,14 @@ type AgentRuntime = Prisma.AgentGetPayload<{
 
 @Injectable()
 export class AgentRunnerService {
+  private readonly logger = new Logger(AgentRunnerService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService,
+    private readonly emailService: EmailService,
   ) {}
 
   public async processInboundMessage(input: {
@@ -342,6 +347,17 @@ export class AgentRunnerService {
       return;
     }
 
+    const emailCard = card.contact.email
+      ? {
+          id: card.id,
+          contactId: card.contactId,
+          contact: {
+            name: card.contact.name,
+            email: card.contact.email,
+          },
+        }
+      : null;
+
     const existingConversation = await this.prisma.agentConversation.findFirst({
       where: { cardId, tenantId },
     });
@@ -366,9 +382,10 @@ export class AgentRunnerService {
       },
     });
 
+    const contactName = card.contact.name ?? 'sem nome';
     const greeting = await this.aiService.generateResponse(
       compiledPrompt,
-      `Inicie uma conversa proativa via WhatsApp com o lead ${card.contact.name ?? 'sem nome'} que acabou de entrar na etapa. Responda em uma única mensagem curta, natural e pronta para envio.`,
+      `Inicie uma conversa proativa com o lead ${contactName} que acabou de entrar na etapa. Responda em uma única mensagem curta, natural e pronta para envio.`,
       {
         model: profile?.model,
         temperature: profile?.temperature,
@@ -376,12 +393,51 @@ export class AgentRunnerService {
       },
     );
 
-    const outboundMessage = await this.whatsappService.logMessage(tenantId, {
-      contactId: card.contactId,
-      cardId,
-      content: greeting,
-    });
+    // Channel fallback: WhatsApp (phone) > Email (email) > CardActivity log (neither)
+    let activityType: string;
+    let activityContent: string;
+    let whatsAppMessageId: string | null = null;
 
+    if (card.contact.phone) {
+      // Path 1: WhatsApp
+      try {
+        const outboundMessage = await this.whatsappService.logMessage(
+          tenantId,
+          {
+            contactId: card.contactId,
+            cardId,
+            content: greeting,
+          },
+        );
+        whatsAppMessageId = outboundMessage.id;
+        activityType = 'AGENT_PROACTIVE_WHATSAPP';
+        activityContent = `Agente ${agent.name} enviou WhatsApp proativo para ${card.contact.phone}: "${greeting.substring(0, 100)}..."`;
+      } catch (error) {
+        this.logger.error(
+          '[initiateProactiveIfAssigned] WhatsApp failed, falling back to email',
+          error instanceof Error ? error.stack : String(error),
+        );
+        if (emailCard) {
+          await this.sendProactiveEmail(tenantId, emailCard, greeting, agent);
+          return;
+        }
+
+        activityType = 'AGENT_PROACTIVE_LOGGED';
+        activityContent = `Agente ${agent.name} gerou saudação proativa mas o WhatsApp falhou e não há email de fallback para o card ${cardId}.`;
+        whatsAppMessageId = null;
+      }
+    } else if (emailCard) {
+      // Path 2: Email
+      await this.sendProactiveEmail(tenantId, emailCard, greeting, agent);
+      return;
+    } else {
+      // Path 3: Log only — no channel available
+      activityType = 'AGENT_PROACTIVE_LOGGED';
+      activityContent = `Agente ${agent.name} gerou saudação proativa mas sem canal de envio (sem phone/email) para card ${cardId}.`;
+      whatsAppMessageId = null;
+    }
+
+    // Create AgentConversation in all cases
     const conversation = await this.prisma.agentConversation.create({
       data: {
         tenantId,
@@ -400,17 +456,82 @@ export class AgentRunnerService {
         conversationId: conversation.id,
         role: AgentMessageRole.AGENT,
         content: greeting,
-        whatsAppMessageId: outboundMessage.id,
+        whatsAppMessageId,
       },
     });
 
     await this.prisma.cardActivity.create({
       data: {
         cardId,
-        type: 'AGENT_PROACTIVE',
-        content: `Agente ${agent.name} iniciou conversa automaticamente (D0).`,
+        type: activityType,
+        content: activityContent,
       },
     });
+  }
+
+  private async sendProactiveEmail(
+    tenantId: string,
+    card: { id: string; contactId: string; contact: { name: string | null; email: string } },
+    greeting: string,
+    agent: { id: string; name: string },
+  ): Promise<void> {
+    const contactName = card.contact.name ?? 'sem nome';
+    const htmlBody = this.wrapGreetingInHtml(greeting, contactName);
+
+    const result = await this.emailService.sendEmail({
+      to: card.contact.email,
+      subject: `Olá, ${contactName}! Bem-vindo(a)!`,
+      body: greeting,
+      html: htmlBody,
+    });
+
+    const activityType = result.deliveryMode === 'smtp'
+      ? 'AGENT_PROACTIVE_EMAIL'
+      : 'AGENT_PROACTIVE_EMAIL';
+
+    // Create AgentConversation
+    const conversation = await this.prisma.agentConversation.create({
+      data: {
+        tenantId,
+        agentId: agent.id,
+        contactId: card.contactId,
+        cardId: card.id,
+        status: AgentConversationStatus.OPEN,
+        summary:
+          'Conversa iniciada automaticamente pelo agente via email ao entrar na etapa.',
+        lastMessageAt: new Date(),
+      },
+    });
+
+    await this.prisma.agentMessage.create({
+      data: {
+        conversationId: conversation.id,
+        role: AgentMessageRole.AGENT,
+        content: greeting,
+      },
+    });
+
+    await this.prisma.cardActivity.create({
+      data: {
+        cardId: card.id,
+        type: activityType,
+        content: `Agente ${agent.name} enviou email proativo para ${card.contact.email}: "${greeting.substring(0, 100)}..."`,
+      },
+    });
+  }
+
+  private wrapGreetingInHtml(greeting: string, name?: string): string {
+    const displayName = name ? name.split(' ')[0] : '';
+    return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1a1a1a;">
+  <p>Olá${displayName ? `, ${displayName}` : ''}!</p>
+  <p>${greeting}</p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+  <p style="font-size: 12px; color: #888;">Esta mensagem foi enviada automaticamente.</p>
+</body>
+</html>`;
   }
 
   public async toggleTakeover(

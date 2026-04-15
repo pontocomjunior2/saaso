@@ -32,6 +32,8 @@ export interface WizardCampaignSetupResponse {
     id: string;
     phoneNumber: string | null;
     status: string;
+    provider?: string | null;
+    instanceName?: string | null;
   } | null;
   agents: Array<{
     id: string;
@@ -61,7 +63,11 @@ export interface WizardCampaignSetupDetailResponse {
     phoneNumberId: string | null;
     wabaId: string | null;
     accessToken: string | null;
+    provider: string | null;
+    instanceName: string | null;
   } | null;
+  pipelineWhatsAppAccountId: string | null;
+  pipelineWhatsAppInboundStageId: string | null;
   agents: Array<{
     id: string | null;
     stageKey: string;

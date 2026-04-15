@@ -92,6 +92,18 @@ export interface Stage {
 export interface Pipeline {
   id: string;
   name: string;
+  whatsAppAccountId?: string | null;
+  whatsAppInboundStageId?: string | null;
+  whatsAppAccount?: {
+    id: string;
+    phoneNumber: string | null;
+    provider: string;
+    instanceName: string | null;
+  } | null;
+  whatsAppInboundStage?: {
+    id: string;
+    name: string;
+  } | null;
   stages: Stage[];
 }
 

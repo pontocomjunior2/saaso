@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, Length, IsOptional } from 'class-validator';
+import { ValidateIf } from 'class-validator';
 
 export class UpdatePipelineDto {
   @IsOptional()
@@ -9,4 +10,14 @@ export class UpdatePipelineDto {
       'Erro no Backend: O nome do pipeline deve ter entre 2 e 50 caracteres.',
   })
   name?: string;
+
+  @ValidateIf((o) => o.whatsAppAccountId !== '' && o.whatsAppAccountId !== null)
+  @IsOptional()
+  @IsString()
+  whatsAppAccountId?: string | null;
+
+  @ValidateIf((o) => o.whatsAppInboundStageId !== '' && o.whatsAppInboundStageId !== null)
+  @IsOptional()
+  @IsString()
+  whatsAppInboundStageId?: string | null;
 }

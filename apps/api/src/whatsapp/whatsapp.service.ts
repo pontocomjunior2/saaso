@@ -20,6 +20,9 @@ import {
 } from '@prisma/client';
 import { AgentRunnerService } from '../agent/agent-runner.service';
 import { JourneyService } from '../journey/journey.service';
+import { IWhatsAppProvider } from './providers/whatsapp-provider.interface';
+import { MetaCloudProvider } from './providers/meta-cloud.provider';
+import { EvolutionApiService } from './evolution.service';
 
 export interface WhatsAppAccountResponse {
   id: string;
@@ -27,6 +30,10 @@ export interface WhatsAppAccountResponse {
   phoneNumberId: string | null;
   wabaId: string | null;
   status: WhatsAppStatus;
+  provider: string;
+  instanceName: string | null;
+  assignedPipelineId: string | null;
+  assignedPipelineName: string | null;
   hasAccessToken: boolean;
   connectionMode: 'cloud_api' | 'local_demo' | 'configuration_incomplete';
   isOperational: boolean;
@@ -115,6 +122,7 @@ export interface WhatsAppEventResponse {
 
 interface ReceiveInboundInput {
   tenantId: string;
+  accountId?: string | null;
   fromPhoneNumber: string;
   message: string;
   contactName?: string;
@@ -171,6 +179,8 @@ export class WhatsappService {
     @Inject(forwardRef(() => AgentRunnerService))
     private readonly agentRunnerService: AgentRunnerService,
     private readonly journeyService: JourneyService,
+    private readonly metaCloudProvider: MetaCloudProvider,
+    private readonly evolutionProvider: EvolutionApiService,
   ) {}
 
   public async upsertAccount(
@@ -183,15 +193,22 @@ export class WhatsappService {
 
     const nextAccessToken =
       dto.accessToken?.trim() || existing?.accessToken || null;
-    const nextPhoneNumber = dto.phoneNumber.trim();
+    const nextPhoneNumber = dto.phoneNumber?.trim() || existing?.phoneNumber || '';
     const nextPhoneNumberId =
       dto.phoneNumberId?.trim() || existing?.phoneNumberId || null;
     const nextWabaId = dto.wabaId?.trim() || existing?.wabaId || null;
+    const nextProvider = dto.provider?.trim() || existing?.provider || 'meta_cloud';
+    const nextInstanceName =
+      dto.instanceName?.trim() || existing?.instanceName || null;
+    const nextApiKey = dto.apiKey?.trim() || existing?.apiKey || null;
+    const nextWebhookUrl = dto.webhookUrl?.trim() || existing?.webhookUrl || null;
     const nextStatus = this.resolveStoredAccountStatus({
       phoneNumber: nextPhoneNumber,
       phoneNumberId: nextPhoneNumberId,
       accessToken: nextAccessToken,
       wabaId: nextWabaId,
+      provider: nextProvider,
+      instanceName: nextInstanceName,
     });
 
     const account = existing
@@ -203,16 +220,24 @@ export class WhatsappService {
             wabaId: nextWabaId,
             accessToken: nextAccessToken,
             status: nextStatus,
+            provider: nextProvider,
+            instanceName: nextInstanceName,
+            apiKey: nextApiKey,
+            webhookUrl: nextWebhookUrl,
           },
         })
       : await this.prisma.whatsAppAccount.create({
           data: {
-            phoneNumber: nextPhoneNumber,
+            phoneNumber: nextPhoneNumber || undefined,
             phoneNumberId: nextPhoneNumberId || undefined,
             wabaId: nextWabaId || undefined,
             accessToken: nextAccessToken || undefined,
             status: nextStatus,
             tenantId,
+            provider: nextProvider,
+            instanceName: nextInstanceName || undefined,
+            apiKey: nextApiKey || undefined,
+            webhookUrl: nextWebhookUrl || undefined,
           },
         });
 
@@ -231,9 +256,180 @@ export class WhatsappService {
   ): Promise<WhatsAppAccountResponse | null> {
     const account = await this.prisma.whatsAppAccount.findFirst({
       where: { tenantId },
+      include: {
+        pipeline: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     return this.mapAccount(account);
+  }
+
+  public async listAccounts(
+    tenantId: string,
+  ): Promise<WhatsAppAccountResponse[]> {
+    const accounts = await this.prisma.whatsAppAccount.findMany({
+      where: { tenantId },
+      include: {
+        pipeline: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+    return accounts.map((a) => this.mapAccount(a)).filter(Boolean) as WhatsAppAccountResponse[];
+  }
+
+  public async createAccount(
+    tenantId: string,
+    dto: {
+      provider?: string;
+      phoneNumber?: string;
+      phoneNumberId?: string;
+      wabaId?: string;
+      accessToken?: string;
+      instanceName?: string;
+      apiKey?: string;
+      webhookUrl?: string;
+    },
+  ): Promise<WhatsAppAccountResponse> {
+    const provider = dto.provider || 'meta_cloud';
+    const phoneNumber = dto.phoneNumber?.trim() || null;
+    const phoneNumberId = dto.phoneNumberId?.trim() || null;
+    const wabaId = dto.wabaId?.trim() || null;
+    const accessToken = dto.accessToken?.trim() || null;
+    const instanceName = dto.instanceName?.trim() || null;
+    const apiKey = dto.apiKey?.trim() || null;
+    const webhookUrl = dto.webhookUrl?.trim() || null;
+    const account = await this.prisma.whatsAppAccount.create({
+      data: {
+        tenantId,
+        provider,
+        phoneNumber,
+        phoneNumberId,
+        wabaId,
+        accessToken,
+        instanceName,
+        apiKey,
+        webhookUrl,
+        status: this.resolveStoredAccountStatus({
+          phoneNumber,
+          phoneNumberId,
+          accessToken,
+          wabaId,
+          provider,
+          instanceName,
+        }),
+      },
+    });
+    return this.mapAccount(account)!;
+  }
+
+  public async updateAccount(
+    tenantId: string,
+    id: string,
+    dto: {
+      provider?: string;
+      phoneNumber?: string;
+      phoneNumberId?: string;
+      wabaId?: string;
+      accessToken?: string;
+      instanceName?: string;
+      apiKey?: string;
+      webhookUrl?: string;
+    },
+  ): Promise<WhatsAppAccountResponse> {
+    const existing = await this.prisma.whatsAppAccount.findFirst({
+      where: { id, tenantId },
+    });
+    if (!existing) {
+      throw new BadRequestException(
+        'Erro no Backend: Conta WhatsApp nao encontrada neste tenant.',
+      );
+    }
+    const provider = dto.provider?.trim() || existing.provider;
+    const phoneNumber =
+      dto.phoneNumber !== undefined ? dto.phoneNumber.trim() || null : existing.phoneNumber;
+    const phoneNumberId =
+      dto.phoneNumberId !== undefined ? dto.phoneNumberId.trim() || null : existing.phoneNumberId;
+    const wabaId = dto.wabaId !== undefined ? dto.wabaId.trim() || null : existing.wabaId;
+    const accessToken =
+      dto.accessToken !== undefined ? dto.accessToken.trim() || null : existing.accessToken;
+    const instanceName =
+      dto.instanceName !== undefined ? dto.instanceName.trim() || null : existing.instanceName;
+    const apiKey = dto.apiKey !== undefined ? dto.apiKey.trim() || null : existing.apiKey;
+    const webhookUrl =
+      dto.webhookUrl !== undefined ? dto.webhookUrl.trim() || null : existing.webhookUrl;
+    const account = await this.prisma.whatsAppAccount.update({
+      where: { id },
+      data: {
+        provider,
+        phoneNumber,
+        phoneNumberId,
+        wabaId,
+        accessToken,
+        instanceName,
+        apiKey,
+        webhookUrl,
+        status: this.resolveStoredAccountStatus({
+          phoneNumber,
+          phoneNumberId,
+          accessToken,
+          wabaId,
+          provider,
+          instanceName,
+        }),
+      },
+    });
+    return this.mapAccount(account)!;
+  }
+
+  public async disconnectAccount(
+    tenantId: string,
+    id: string,
+  ): Promise<{ ok: true }> {
+    const existing = await this.prisma.whatsAppAccount.findFirst({
+      where: { id, tenantId },
+    });
+    if (!existing) {
+      throw new BadRequestException(
+        'Erro no Backend: Conta WhatsApp nao encontrada neste tenant.',
+      );
+    }
+    if (existing.provider === 'evolution' && existing.instanceName) {
+      await this.evolutionProvider.disconnectInstance(existing.instanceName);
+    }
+    await this.prisma.whatsAppAccount.update({
+      where: { id },
+      data: { status: 'DISCONNECTED' },
+    });
+    return { ok: true };
+  }
+
+  public async deleteAccount(
+    tenantId: string,
+    id: string,
+  ): Promise<{ ok: true }> {
+    const existing = await this.prisma.whatsAppAccount.findFirst({
+      where: { id, tenantId },
+    });
+    if (!existing) {
+      throw new BadRequestException(
+        'Erro no Backend: Conta WhatsApp nao encontrada neste tenant.',
+      );
+    }
+    await this.prisma.whatsAppAccount.delete({ where: { id } });
+    return { ok: true };
+  }
+
+  public async getEvolutionConnectionState(instanceName: string): Promise<string> {
+    return this.evolutionProvider.getInstanceState(instanceName);
   }
 
   public async listInboxThreads(
@@ -642,6 +838,10 @@ export class WhatsappService {
     });
   }
 
+  public async receiveProviderInboundMessage(input: ReceiveInboundInput) {
+    return this.receiveInboundMessage(input);
+  }
+
   public async getMessages(
     tenantId: string,
     contactId: string,
@@ -744,6 +944,7 @@ export class WhatsappService {
 
       await this.receiveInboundMessage({
         tenantId: account.tenantId,
+        accountId: account.id,
         fromPhoneNumber: event.fromPhoneNumber,
         contactName: event.contactName,
         message: event.message,
@@ -800,11 +1001,30 @@ export class WhatsappService {
     return challenge;
   }
 
+  // -- Provider resolution (new) --
+
+  private async resolveProvider(account: {
+    provider?: string | null;
+    instanceName?: string | null;
+    phoneNumber?: string | null;
+    phoneNumberId?: string | null;
+    accessToken?: string | null;
+    wabaId?: string | null;
+  }): Promise<IWhatsAppProvider> {
+    const providerName = account.provider ?? 'meta_cloud';
+    if (providerName === 'evolution') {
+      return this.evolutionProvider;
+    }
+    return this.metaCloudProvider;
+  }
+
   private async dispatchOutboundMessage(
     account: {
       phoneNumber: string | null;
       phoneNumberId: string | null;
       accessToken: string | null;
+      provider?: string | null;
+      instanceName?: string | null;
     },
     toPhoneNumber: string,
     content: string,
@@ -824,6 +1044,30 @@ export class WhatsappService {
       );
     }
 
+    // Provider-based dispatch
+    const providerName = account.provider ?? 'meta_cloud';
+    if (providerName === 'evolution') {
+      try {
+        await this.evolutionProvider.sendMessage(normalizedPhone, content);
+        return {
+          deliveryMode: 'cloud_api',
+          status: MessageStatus.SENT,
+          externalId: externalId ?? `wamid.evolution.${Date.now()}`,
+          deliveryError: null,
+        };
+      } catch (error) {
+        return {
+          deliveryMode: 'cloud_api',
+          status: MessageStatus.FAILED,
+          externalId: externalId ?? null,
+          deliveryError:
+            error instanceof Error
+              ? error.message
+              : 'Erro desconhecido ao enviar via Evolution API.',
+        };
+      }
+    }
+
     if (
       operationalState.connectionMode === 'cloud_api' &&
       account.accessToken &&
@@ -838,12 +1082,26 @@ export class WhatsappService {
       });
     }
 
-    return {
-      deliveryMode: 'local_demo',
-      status: MessageStatus.SENT,
-      externalId: externalId ?? `wamid.local.${Date.now()}`,
-      deliveryError: null,
-    };
+    // Meta Cloud with local_demo fallback
+    try {
+      await this.metaCloudProvider.sendMessage(normalizedPhone, content);
+      return {
+        deliveryMode: 'cloud_api',
+        status: MessageStatus.SENT,
+        externalId: externalId ?? `wamid.cloud.${Date.now()}`,
+        deliveryError: null,
+      };
+    } catch (error) {
+      return {
+        deliveryMode: 'cloud_api',
+        status: MessageStatus.FAILED,
+        externalId: externalId ?? null,
+        deliveryError:
+          error instanceof Error
+            ? error.message
+            : 'Erro desconhecido ao enviar via Meta Cloud API.',
+      };
+    }
   }
 
   private async recordWhatsAppEvent(input: {
@@ -953,11 +1211,18 @@ export class WhatsappService {
       );
     }
 
-    const account = await this.prisma.whatsAppAccount.findFirst({
-      where: {
-        tenantId: input.tenantId,
-      },
-    });
+    const account = input.accountId
+      ? await this.prisma.whatsAppAccount.findFirst({
+          where: {
+            id: input.accountId,
+            tenantId: input.tenantId,
+          },
+        })
+      : await this.prisma.whatsAppAccount.findFirst({
+          where: {
+            tenantId: input.tenantId,
+          },
+        });
 
     if (!account) {
       throw new BadRequestException(
@@ -1040,11 +1305,20 @@ export class WhatsappService {
             },
           });
 
-      const existingCard = await tx.card.findFirst({
-        where: {
-          tenantId: input.tenantId,
-          contactId: contact.id,
-        },
+        const existingCard = await tx.card.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            contactId: contact.id,
+            ...(account?.id
+              ? {
+                  stage: {
+                    pipeline: {
+                      whatsAppAccountId: account.id,
+                    },
+                  },
+                }
+              : {}),
+          },
         orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
         select: {
           id: true,
@@ -1056,12 +1330,13 @@ export class WhatsappService {
       let cardId = existingCard?.id;
       let stageId = existingCard?.stageId;
 
-      if (!cardId) {
-        const targetStage = await this.resolveInboundStage(
-          tx,
-          input.tenantId,
-          input.stageId,
-        );
+        if (!cardId) {
+          const targetStage = await this.resolveInboundStage(
+            tx,
+            input.tenantId,
+            input.stageId,
+            account?.id,
+          );
         const lastCardInfo = await tx.card.aggregate({
           where: { stageId: targetStage.id },
           _max: { position: true },
@@ -1196,6 +1471,7 @@ export class WhatsappService {
     tx: Prisma.TransactionClient,
     tenantId: string,
     stageId?: string,
+    accountId?: string | null,
   ): Promise<{
     id: string;
     name: string;
@@ -1231,6 +1507,49 @@ export class WhatsappService {
       }
 
       return stage;
+    }
+
+    if (accountId) {
+      const pipelineWithConfiguredStage = await tx.pipeline.findFirst({
+        where: {
+          tenantId,
+          whatsAppAccountId: accountId,
+        },
+        select: {
+          id: true,
+          name: true,
+          whatsAppInboundStage: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          stages: {
+            orderBy: { order: 'asc' },
+            take: 1,
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      const configuredStage =
+        pipelineWithConfiguredStage?.whatsAppInboundStage ??
+        pipelineWithConfiguredStage?.stages[0] ??
+        null;
+
+      if (pipelineWithConfiguredStage && configuredStage) {
+        return {
+          id: configuredStage.id,
+          name: configuredStage.name,
+          pipeline: {
+            id: pipelineWithConfiguredStage.id,
+            name: pipelineWithConfiguredStage.name,
+          },
+        };
+      }
     }
 
     const pipeline = await tx.pipeline.findFirst({
@@ -1603,19 +1922,22 @@ export class WhatsappService {
     phoneNumberId?: string | null;
     accessToken?: string | null;
     wabaId?: string | null;
+    provider?: string | null;
+    instanceName?: string | null;
   }): WhatsAppStatus {
     const hasPhoneNumber = Boolean(this.normalizePhone(input.phoneNumber));
+    const hasInstanceName = Boolean(input.instanceName);
     const hasCloudHints = Boolean(
       input.accessToken?.trim() ||
       input.phoneNumberId?.trim() ||
       input.wabaId?.trim(),
     );
 
-    if (!hasPhoneNumber && hasCloudHints) {
+    if (!hasPhoneNumber && !hasInstanceName && hasCloudHints) {
       return WhatsAppStatus.ERROR;
     }
 
-    if (!hasPhoneNumber) {
+    if (!hasPhoneNumber && !hasInstanceName) {
       return WhatsAppStatus.DISCONNECTED;
     }
 
@@ -1627,8 +1949,12 @@ export class WhatsappService {
     phoneNumberId?: string | null;
     accessToken?: string | null;
     wabaId?: string | null;
+    provider?: string | null;
+    instanceName?: string | null;
   }): WhatsAppOperationalState {
+    const providerName = input.provider ?? 'meta_cloud';
     const hasPhoneNumber = Boolean(this.normalizePhone(input.phoneNumber));
+    const hasInstanceName = Boolean(input.instanceName);
     const hasAccessToken = Boolean(input.accessToken?.trim());
     const hasPhoneNumberId = Boolean(input.phoneNumberId?.trim());
     const hasWabaId = Boolean(input.wabaId?.trim());
@@ -1642,13 +1968,24 @@ export class WhatsappService {
       hasPhoneNumber && hasAccessToken && hasPhoneNumberId;
     const canReceiveOfficialWebhook = hasPhoneNumber && hasPhoneNumberId;
 
-    if (!hasPhoneNumber) {
+    if (!hasPhoneNumber && !hasInstanceName) {
       return {
         connectionMode: 'configuration_incomplete',
         isOperational: false,
         supportsSimulator: false,
         canSendOfficialOutbound: false,
         canReceiveOfficialWebhook: false,
+        verifyTokenConfigured,
+      };
+    }
+
+    if (providerName === 'evolution' && hasInstanceName) {
+      return {
+        connectionMode: 'cloud_api',
+        isOperational: true,
+        supportsSimulator: true,
+        canSendOfficialOutbound: true,
+        canReceiveOfficialWebhook: true,
         verifyTokenConfigured,
       };
     }
@@ -1745,6 +2082,12 @@ export class WhatsappService {
       wabaId: string | null;
       accessToken: string | null;
       status: WhatsAppStatus;
+      provider?: string | null;
+      instanceName?: string | null;
+      pipeline?: {
+        id: string;
+        name: string;
+      } | null;
       createdAt: Date;
       updatedAt: Date;
     } | null,
@@ -1761,6 +2104,10 @@ export class WhatsappService {
       phoneNumberId: account.phoneNumberId,
       wabaId: account.wabaId,
       status: account.status,
+      provider: account.provider ?? 'meta_cloud',
+      instanceName: account.instanceName ?? null,
+      assignedPipelineId: account.pipeline?.id ?? null,
+      assignedPipelineName: account.pipeline?.name ?? null,
       hasAccessToken: Boolean(account.accessToken),
       connectionMode: operationalState.connectionMode,
       isOperational: operationalState.isOperational,

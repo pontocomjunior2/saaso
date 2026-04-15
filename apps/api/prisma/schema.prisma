@@ -61,16 +61,22 @@ model User {
 }
 
 model Pipeline {
-  id                  String               @id @default(uuid())
-  name                String
-  tenantId            String
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  campaignId          String?              @unique
-  metaWebhookMappings MetaWebhookMapping[]
-  campaign            Campaign?            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  tenant              Tenant               @relation(fields: [tenantId], references: [id])
-  stages              Stage[]
+  id                    String               @id @default(uuid())
+  name                  String
+  tenantId              String
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  campaignId            String?              @unique
+  whatsAppAccountId     String?              @unique
+  whatsAppInboundStageId String?
+  metaWebhookMappings   MetaWebhookMapping[]
+  campaign              Campaign?            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tenant                Tenant               @relation(fields: [tenantId], references: [id])
+  stages                Stage[]
+  whatsAppAccount       WhatsAppAccount?     @relation("PipelineWhatsAppAccount", fields: [whatsAppAccountId], references: [id], onDelete: SetNull)
+  whatsAppInboundStage  Stage?               @relation("PipelineInboundStage", fields: [whatsAppInboundStageId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, whatsAppAccountId])
 }
 
 model Stage {
@@ -83,6 +89,7 @@ model Stage {
   classificationCriteria String?
   agents                 Agent[]
   cards                  Card[]
+  inboundForPipelines    Pipeline[]             @relation("PipelineInboundStage")
   leadForms              LeadForm[]
   metaWebhookMappings    MetaWebhookMapping[]
   pipeline               Pipeline               @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
@@ -497,6 +504,7 @@ model WhatsAppAccount {
   webhookUrl    String?
   tenant        Tenant          @relation(fields: [tenantId], references: [id])
   events        WhatsAppEvent[]
+  pipeline      Pipeline?       @relation("PipelineWhatsAppAccount")
 }
 
 model WhatsAppEvent {

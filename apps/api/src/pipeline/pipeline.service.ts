@@ -10,6 +10,63 @@ import { Pipeline } from '@prisma/client';
 export class PipelineService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async validateWhatsAppAccount(
+    tenantId: string,
+    whatsAppAccountId?: string | null,
+  ) {
+    if (!whatsAppAccountId) {
+      return null;
+    }
+
+    const account = await this.prisma.whatsAppAccount.findFirst({
+      where: { id: whatsAppAccountId, tenantId },
+      select: {
+        id: true,
+        phoneNumber: true,
+        provider: true,
+        instanceName: true,
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException(
+        `Erro no Backend: Conta WhatsApp com ID '${whatsAppAccountId}' não encontrada neste tenant.`,
+      );
+    }
+
+    return account;
+  }
+
+  private async validateInboundStage(
+    tenantId: string,
+    pipelineId: string,
+    whatsAppInboundStageId?: string | null,
+  ) {
+    if (!whatsAppInboundStageId) {
+      return null;
+    }
+
+    const stage = await this.prisma.stage.findFirst({
+      where: {
+        id: whatsAppInboundStageId,
+        pipelineId,
+        pipeline: { tenantId },
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!stage) {
+      throw new NotFoundException(
+        `Erro no Backend: Etapa inbound com ID '${whatsAppInboundStageId}' não pertence a este pipeline.`,
+      );
+    }
+
+    return stage;
+  }
+
   private mapLifecycleRun(run: any) {
     const steps = (run?.steps ?? []).map((step: any) => ({
       id: step.id,
@@ -176,10 +233,16 @@ export class PipelineService {
     tenantId: string,
     dto: CreatePipelineDto,
   ): Promise<Pipeline> {
+    const account = await this.validateWhatsAppAccount(
+      tenantId,
+      dto.whatsAppAccountId,
+    );
+
     return this.prisma.pipeline.create({
       data: {
         name: dto.name,
         tenantId,
+        whatsAppAccountId: account?.id ?? null,
       },
     });
   }
@@ -234,6 +297,20 @@ export class PipelineService {
     const pipelines = await this.prisma.pipeline.findMany({
       where: { tenantId },
       include: {
+        whatsAppAccount: {
+          select: {
+            id: true,
+            phoneNumber: true,
+            provider: true,
+            instanceName: true,
+          },
+        },
+        whatsAppInboundStage: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         stages: {
           orderBy: { order: 'asc' },
           include: {
@@ -353,6 +430,20 @@ export class PipelineService {
     const pipeline = await this.prisma.pipeline.findFirst({
       where: { id, tenantId },
       include: {
+        whatsAppAccount: {
+          select: {
+            id: true,
+            phoneNumber: true,
+            provider: true,
+            instanceName: true,
+          },
+        },
+        whatsAppInboundStage: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         stages: {
           orderBy: { order: 'asc' },
           include: {
@@ -478,12 +569,48 @@ export class PipelineService {
     id: string,
     dto: UpdatePipelineDto,
   ): Promise<Pipeline> {
-    // Valida se o pipeline existe e pertence ao tenant
     await this.findOne(tenantId, id);
+    const current = await this.prisma.pipeline.findFirst({
+      where: { id, tenantId },
+      select: {
+        id: true,
+        whatsAppAccountId: true,
+        whatsAppInboundStageId: true,
+      },
+    });
+
+    if (!current) {
+      throw new NotFoundException(
+        `Erro no Backend: Pipeline com ID '${id}' não encontrado neste tenant.`,
+      );
+    }
+    const account = await this.validateWhatsAppAccount(
+      tenantId,
+      typeof dto.whatsAppAccountId === 'undefined'
+        ? current.whatsAppAccountId ?? null
+        : dto.whatsAppAccountId,
+    );
+    const inboundStage = await this.validateInboundStage(
+      tenantId,
+      id,
+      typeof dto.whatsAppInboundStageId === 'undefined'
+        ? current.whatsAppInboundStageId ?? null
+        : dto.whatsAppInboundStageId,
+    );
 
     return this.prisma.pipeline.update({
       where: { id },
-      data: { ...dto },
+      data: {
+        name: dto.name,
+        whatsAppAccountId:
+          typeof dto.whatsAppAccountId === 'undefined'
+            ? current.whatsAppAccountId ?? null
+            : account?.id ?? null,
+        whatsAppInboundStageId:
+          typeof dto.whatsAppInboundStageId === 'undefined'
+            ? current.whatsAppInboundStageId ?? null
+            : inboundStage?.id ?? null,
+      },
     });
   }
 

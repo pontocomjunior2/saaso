@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { LeadFormService } from './lead-form.service';
 
 @Controller('public/forms')
@@ -18,7 +19,9 @@ export class PublicLeadFormController {
     @Param('tenantSlug') tenantSlug: string,
     @Param('slug') slug: string,
     @Body() payload: Record<string, unknown>,
+    @Req() req: Request,
   ) {
-    return this.leadFormService.submitPublicForm(tenantSlug, slug, payload);
+    const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    return this.leadFormService.submitPublicForm(tenantSlug, slug, payload, ip);
   }
 }

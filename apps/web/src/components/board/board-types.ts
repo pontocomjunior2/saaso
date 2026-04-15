@@ -1,6 +1,18 @@
 export interface PipelineSummary {
   id: string;
   name: string;
+  whatsAppAccountId?: string | null;
+  whatsAppInboundStageId?: string | null;
+  whatsAppAccount?: {
+    id: string;
+    phoneNumber: string | null;
+    provider: string;
+    instanceName: string | null;
+  } | null;
+  whatsAppInboundStage?: {
+    id: string;
+    name: string;
+  } | null;
   stages: Array<{
     id: string;
     name: string;

@@ -14,6 +14,7 @@ import { CreateLeadFormDto } from './dto/create-lead-form.dto';
 import { UpdateLeadFormDto } from './dto/update-lead-form.dto';
 import { LeadFormFieldDto } from './dto/lead-form-field.dto';
 import { JourneyService } from '../journey/journey.service';
+import { RateLimitService } from './rate-limit.service';
 
 export interface LeadFormFieldOption {
   label: string;
@@ -120,6 +121,7 @@ export class LeadFormService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly journeyService: JourneyService,
+    private readonly rateLimitService: RateLimitService,
   ) {}
 
   public async create(
@@ -367,6 +369,7 @@ export class LeadFormService {
     tenantSlug: string,
     slug: string,
     payload: Record<string, unknown>,
+    ip?: string,
   ): Promise<{ success: true; successTitle: string; successMessage: string }> {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new BadRequestException(
@@ -401,6 +404,11 @@ export class LeadFormService {
       throw new NotFoundException(
         'Erro no Backend: Formulario publico nao encontrado ou inativo.',
       );
+    }
+
+    // Rate limiting (IP-based, 5 submissions per 15 minutes)
+    if (ip) {
+      this.rateLimitService.check(ip, form.tenant.id);
     }
 
     const fields = this.normalizeStoredFields(form.fields);

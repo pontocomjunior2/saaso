@@ -4,6 +4,7 @@ import { AgentRunnerService } from './agent-runner.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../common/services/ai.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { EmailService } from '../email/email.service';
 
 describe('AgentRunnerService', () => {
   let service: AgentRunnerService;
@@ -21,6 +22,7 @@ describe('AgentRunnerService', () => {
   };
   let aiService: { generateResponse: jest.Mock };
   let whatsappService: { logMessage: jest.Mock };
+  let emailService: { sendEmail: jest.Mock };
 
   beforeEach(async () => {
     prismaService = {
@@ -54,6 +56,10 @@ describe('AgentRunnerService', () => {
       logMessage: jest.fn(),
     };
 
+    emailService = {
+      sendEmail: jest.fn().mockResolvedValue({ success: true, deliveryMode: 'local_demo' }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentRunnerService,
@@ -68,6 +74,10 @@ describe('AgentRunnerService', () => {
         {
           provide: WhatsappService,
           useValue: whatsappService,
+        },
+        {
+          provide: EmailService,
+          useValue: emailService,
         },
       ],
     }).compile();
@@ -300,8 +310,8 @@ describe('AgentRunnerService', () => {
     expect(prismaService.cardActivity.create).toHaveBeenCalledWith({
       data: {
         cardId: 'card-1',
-        type: 'AGENT_PROACTIVE',
-        content: 'Agente Qualificador iniciou conversa automaticamente (D0).',
+        type: 'AGENT_PROACTIVE_WHATSAPP',
+        content: expect.stringContaining('Agente Qualificador enviou WhatsApp proativo'),
       },
     });
   });
@@ -351,5 +361,265 @@ describe('AgentRunnerService', () => {
         actorId: undefined,
       },
     });
+  });
+
+  it('initiateProactiveIfAssigned sends WhatsApp when contact has phone (regardless of email)', async () => {
+    prismaService.agent.findFirst.mockResolvedValue({
+      id: 'agent-1',
+      name: 'Qualificador',
+      systemPrompt: 'Seja consultivo.',
+      profile: { objective: 'Abrir a conversa' },
+      isActive: true,
+      stageId: 'stage-1',
+      knowledgeBaseId: null,
+      tenantId: 'tenant-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stage: {
+        id: 'stage-1',
+        name: 'Entrada',
+        classificationCriteria: 'Leads Meta',
+        pipeline: { id: 'pipeline-1', name: 'Inbound' },
+      },
+      tenant: { id: 'tenant-1', name: 'Saaso Demo' },
+      knowledgeBase: null,
+    });
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-1',
+      contactId: 'contact-1',
+      contact: {
+        id: 'contact-1',
+        name: 'João',
+        phone: '+5511988888888',
+        email: 'joao@example.com',
+      },
+    });
+    prismaService.agentConversation.findFirst.mockResolvedValue(null);
+    aiService.generateResponse.mockResolvedValue('Olá João!');
+    whatsappService.logMessage.mockResolvedValue({ id: 'wa-out-1' });
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-1' });
+
+    await service.initiateProactiveIfAssigned('card-1', 'stage-1', 'tenant-1');
+
+    expect(whatsappService.logMessage).toHaveBeenCalled();
+    expect(emailService.sendEmail).not.toHaveBeenCalled();
+    const activityCall = prismaService.cardActivity.create.mock.calls[0][0];
+    expect(activityCall.data.type).toBe('AGENT_PROACTIVE_WHATSAPP');
+  });
+
+  it('initiateProactiveIfAssigned logs activity when WhatsApp fails and contact has no fallback email', async () => {
+    prismaService.agent.findFirst.mockResolvedValue({
+      id: 'agent-1',
+      name: 'Qualificador',
+      systemPrompt: 'Seja consultivo.',
+      profile: { objective: 'Abrir a conversa' },
+      isActive: true,
+      stageId: 'stage-1',
+      knowledgeBaseId: null,
+      tenantId: 'tenant-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stage: {
+        id: 'stage-1',
+        name: 'Entrada',
+        classificationCriteria: 'Leads Meta',
+        pipeline: { id: 'pipeline-1', name: 'Inbound' },
+      },
+      tenant: { id: 'tenant-1', name: 'Saaso Demo' },
+      knowledgeBase: null,
+    });
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-1',
+      contactId: 'contact-1',
+      contact: {
+        id: 'contact-1',
+        name: 'João',
+        phone: '+5511988888888',
+        email: null,
+      },
+    });
+    prismaService.agentConversation.findFirst.mockResolvedValue(null);
+    aiService.generateResponse.mockResolvedValue('Olá João!');
+    whatsappService.logMessage.mockRejectedValue(new Error('gateway offline'));
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-1' });
+
+    await service.initiateProactiveIfAssigned('card-1', 'stage-1', 'tenant-1');
+
+    expect(emailService.sendEmail).not.toHaveBeenCalled();
+    const activityCall = prismaService.cardActivity.create.mock.calls[0][0];
+    expect(activityCall.data.type).toBe('AGENT_PROACTIVE_LOGGED');
+    expect(activityCall.data.content).toContain('WhatsApp falhou');
+  });
+
+  it('initiateProactiveIfAssigned sends email when contact has email but no phone', async () => {
+    prismaService.agent.findFirst.mockResolvedValue({
+      id: 'agent-2',
+      name: 'Qualificador',
+      systemPrompt: 'Seja consultivo.',
+      profile: { objective: 'Abrir a conversa' },
+      isActive: true,
+      stageId: 'stage-1',
+      knowledgeBaseId: null,
+      tenantId: 'tenant-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stage: {
+        id: 'stage-1',
+        name: 'Entrada',
+        classificationCriteria: 'Leads Meta',
+        pipeline: { id: 'pipeline-1', name: 'Inbound' },
+      },
+      tenant: { id: 'tenant-1', name: 'Saaso Demo' },
+      knowledgeBase: null,
+    });
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-2',
+      contactId: 'contact-2',
+      contact: {
+        id: 'contact-2',
+        name: 'Ana',
+        phone: null,
+        email: 'ana@example.com',
+      },
+    });
+    prismaService.agentConversation.findFirst.mockResolvedValue(null);
+    aiService.generateResponse.mockResolvedValue('Olá Ana!');
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-2' });
+
+    await service.initiateProactiveIfAssigned('card-2', 'stage-1', 'tenant-1');
+
+    expect(whatsappService.logMessage).not.toHaveBeenCalled();
+    expect(emailService.sendEmail).toHaveBeenCalledWith({
+      to: 'ana@example.com',
+      subject: 'Olá, Ana! Bem-vindo(a)!',
+      body: 'Olá Ana!',
+      html: expect.stringContaining('Olá, Ana'),
+    });
+    const activityCall = prismaService.cardActivity.create.mock.calls[0][0];
+    expect(activityCall.data.type).toBe('AGENT_PROACTIVE_EMAIL');
+  });
+
+  it('initiateProactiveIfAssigned logs CardActivity when contact has neither phone nor email', async () => {
+    prismaService.agent.findFirst.mockResolvedValue({
+      id: 'agent-3',
+      name: 'Qualificador',
+      systemPrompt: 'Seja consultivo.',
+      profile: { objective: 'Abrir a conversa' },
+      isActive: true,
+      stageId: 'stage-1',
+      knowledgeBaseId: null,
+      tenantId: 'tenant-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stage: {
+        id: 'stage-1',
+        name: 'Entrada',
+        classificationCriteria: 'Leads Meta',
+        pipeline: { id: 'pipeline-1', name: 'Inbound' },
+      },
+      tenant: { id: 'tenant-1', name: 'Saaso Demo' },
+      knowledgeBase: null,
+    });
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-3',
+      contactId: 'contact-3',
+      contact: {
+        id: 'contact-3',
+        name: 'Sem Canal',
+        phone: null,
+        email: null,
+      },
+    });
+    prismaService.agentConversation.findFirst.mockResolvedValue(null);
+    aiService.generateResponse.mockResolvedValue('Saudação sem canal.');
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-3' });
+
+    await service.initiateProactiveIfAssigned('card-3', 'stage-1', 'tenant-1');
+
+    expect(whatsappService.logMessage).not.toHaveBeenCalled();
+    expect(emailService.sendEmail).not.toHaveBeenCalled();
+    const activityCall = prismaService.cardActivity.create.mock.calls[0][0];
+    expect(activityCall.data.type).toBe('AGENT_PROACTIVE_LOGGED');
+    expect(activityCall.data.content).toContain('sem canal de envio');
+  });
+
+  it('initiateProactiveIfAssigned creates AgentConversation with status OPEN in all paths', async () => {
+    // WhatsApp path
+    prismaService.agent.findFirst.mockResolvedValue({
+      id: 'agent-1',
+      name: 'Agent',
+      systemPrompt: 'Test',
+      profile: {},
+      isActive: true,
+      stageId: 'stage-1',
+      knowledgeBaseId: null,
+      tenantId: 'tenant-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stage: {
+        id: 'stage-1',
+        name: 'Entrada',
+        classificationCriteria: null,
+        pipeline: { id: 'pipeline-1', name: 'Inbound' },
+      },
+      tenant: { id: 'tenant-1', name: 'Demo' },
+      knowledgeBase: null,
+    });
+
+    // WhatsApp path test
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-wa',
+      contactId: 'c1',
+      contact: { id: 'c1', name: 'A', phone: '123', email: null },
+    });
+    prismaService.agentConversation.findFirst.mockResolvedValue(null);
+    aiService.generateResponse.mockResolvedValue('Hello');
+    whatsappService.logMessage.mockResolvedValue({ id: 'wa-1' });
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-wa' });
+
+    await service.initiateProactiveIfAssigned('card-wa', 'stage-1', 'tenant-1');
+
+    expect(prismaService.agentConversation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: AgentConversationStatus.OPEN }),
+      }),
+    );
+
+    // Email path test (clear previous calls)
+    prismaService.agentConversation.create.mockClear();
+    prismaService.cardActivity.create.mockClear();
+    whatsappService.logMessage.mockClear();
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-em',
+      contactId: 'c2',
+      contact: { id: 'c2', name: 'B', phone: null, email: 'b@test.com' },
+    });
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-em' });
+
+    await service.initiateProactiveIfAssigned('card-em', 'stage-1', 'tenant-1');
+
+    expect(prismaService.agentConversation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: AgentConversationStatus.OPEN }),
+      }),
+    );
+
+    // Logged path test
+    prismaService.agentConversation.create.mockClear();
+    prismaService.cardActivity.create.mockClear();
+    prismaService.card.findFirst.mockResolvedValue({
+      id: 'card-log',
+      contactId: 'c3',
+      contact: { id: 'c3', name: 'C', phone: null, email: null },
+    });
+    prismaService.agentConversation.create.mockResolvedValue({ id: 'conv-log' });
+
+    await service.initiateProactiveIfAssigned('card-log', 'stage-1', 'tenant-1');
+
+    expect(prismaService.agentConversation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: AgentConversationStatus.OPEN }),
+      }),
+    );
   });
 });

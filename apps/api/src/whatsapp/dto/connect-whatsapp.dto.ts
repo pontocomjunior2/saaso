@@ -18,4 +18,20 @@ export class ConnectWhatsAppDto {
   @IsOptional()
   @IsString()
   wabaId?: string;
+
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @IsOptional()
+  @IsString()
+  instanceName?: string;
+
+  @IsOptional()
+  @IsString()
+  apiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  webhookUrl?: string;
 }

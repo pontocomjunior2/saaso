@@ -45,9 +45,15 @@ class WizardLeadFormConfigDto {
 }
 
 class WizardWhatsAppConfigDto {
+  @ValidateIf((o) => !o.accountId)
   @IsString()
   @IsNotEmpty()
-  phoneNumber: string;
+  phoneNumber?: string;
+
+  @ValidateIf((o) => o.accountId !== '' && o.accountId !== null)
+  @IsOptional()
+  @IsString()
+  accountId?: string;
 
   @ValidateIf((o) => o.phoneNumberId !== '' && o.phoneNumberId !== null)
   @IsOptional()
@@ -64,6 +70,16 @@ class WizardWhatsAppConfigDto {
   @IsString()
   @MaxLength(400)
   accessToken?: string;
+
+  @ValidateIf((o) => o.provider !== '' && o.provider !== null)
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @ValidateIf((o) => o.instanceName !== '' && o.instanceName !== null)
+  @IsOptional()
+  @IsString()
+  instanceName?: string;
 }
 
 class WizardAgentConfigDto {

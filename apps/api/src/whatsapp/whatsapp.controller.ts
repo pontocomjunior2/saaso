@@ -1,9 +1,11 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
+  Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -32,6 +34,77 @@ export class WhatsappController {
   @Get('account')
   public async getAccount(@CurrentTenant() tenantId: string) {
     return this.whatsappService.getAccount(tenantId);
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Get('accounts')
+  public async listAccounts(@CurrentTenant() tenantId: string) {
+    return this.whatsappService.listAccounts(tenantId);
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Post('accounts')
+  public async createAccount(
+    @CurrentTenant() tenantId: string,
+    @Body()
+    dto: {
+      provider?: string;
+      phoneNumber?: string;
+      phoneNumberId?: string;
+      wabaId?: string;
+      accessToken?: string;
+      instanceName?: string;
+      apiKey?: string;
+      webhookUrl?: string;
+    },
+  ) {
+    return this.whatsappService.createAccount(tenantId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Patch('accounts/:id')
+  public async updateAccount(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      provider?: string;
+      phoneNumber?: string;
+      phoneNumberId?: string;
+      wabaId?: string;
+      accessToken?: string;
+      instanceName?: string;
+      apiKey?: string;
+      webhookUrl?: string;
+    },
+  ) {
+    return this.whatsappService.updateAccount(tenantId, id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Post('accounts/:id/disconnect')
+  public async disconnectAccount(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.whatsappService.disconnectAccount(tenantId, id);
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Delete('accounts/:id')
+  public async deleteAccount(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.whatsappService.deleteAccount(tenantId, id);
+  }
+
+  // Evolution API connection state endpoint
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Get('evolution/instance/:name/connection-state')
+  public async getConnectionState(@Param('name') name: string) {
+    const state = await this.whatsappService.getEvolutionConnectionState(name);
+    return { state };
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
