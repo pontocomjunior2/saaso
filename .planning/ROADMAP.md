@@ -8,7 +8,9 @@ Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutriç
 
 - [ ] **Phase 1: CRM v1 — Funil Manual** - Kanban vazio por padrão, etapas configuráveis inline, templates de pipeline, click-to-send WhatsApp/Email por card
 - [ ] **Phase 2: CRM v2 — Automação de Réguas** - Disparos automáticos por régua/dia, webhook Meta Lead Ads, agente IA por etapa
-- [ ] **Phase 3: Agentes Efetivos + Formulários + Canais** - Evolution API WhatsApp, form entry com trigger de agente, editor de formulários embeddable, Meta Lead Forms integration
+- [x] **Phase 3: Agentes Efetivos + Formulários + Canais** - Evolution API WhatsApp, form entry com trigger de agente, rate limiting, channel fallback
+- [ ] **Phase 4: Form Editor + Embed + Frontend** - Editor visual de formulários, embed script, Meta Lead Forms integration, frontend form builder UI
+- [ ] **Phase 5: Agent Conversation Flow** - Multi-turn memory, hybrid qualification (agent marks + human confirms), structured output, unified audit timeline
 
 ## Phase Details
 
@@ -71,3 +73,13 @@ Plans:
 | 1. CRM v1 — Funil Manual | 0/4 | Planning complete | - |
 | 2. CRM v2 — Automação de Réguas | 4/5 | Executing | 2026-04-14 |
 | 3. Agentes Efetivos + Formulários + Canais | 0/5 | Planning complete | 2026-04-14 |
+
+### Phase 5: Agent Conversation Flow — Multi-turn Memory, Hybrid Qualification, Audit Timeline
+
+**Goal:** Agente conversa de forma multi-turn com memória persistida, decide via structured output (should_respond/mark_qualified/request_handoff/suggested_next_stage_id), sinaliza qualificação para humano confirmar avanço, e toda interação fica auditável em timeline unificada.
+**Requirements**: TBD
+**Depends on:** Phase 3, Phase 4
+**Plans:** 0 plans (CONTEXT ready at `.planning/phases/05-agent-conversation-flow/05-CONTEXT.md`)
+
+Plans:
+- [ ] TBD (run `/gsd-plan-phase 5` to break down)
