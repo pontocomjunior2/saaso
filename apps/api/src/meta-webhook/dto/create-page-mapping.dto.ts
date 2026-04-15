@@ -1,13 +1,13 @@
-import { IsString, IsOptional, IsNotEmpty, Length } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 
-export class CreateMetaMappingDto {
+export class CreatePageMappingDto {
   @IsOptional()
   @IsString()
   metaFormId?: string;
 
-  @IsOptional()
   @IsString()
-  pageId?: string;
+  @IsNotEmpty()
+  pageId: string;
 
   @IsString()
   @IsNotEmpty()
@@ -17,12 +17,11 @@ export class CreateMetaMappingDto {
   @IsNotEmpty()
   stageId: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @Length(8, 128)
-  verifyToken: string;
-
-  @IsString()
   @IsOptional()
+  @IsString()
+  verifyToken?: string;
+
+  @IsOptional()
+  @IsString()
   pageAccessToken?: string;
 }

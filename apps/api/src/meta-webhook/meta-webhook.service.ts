@@ -10,7 +10,7 @@ import { StageRuleService } from '../stage-rule/stage-rule.service';
 import { AgentRunnerService } from '../agent/agent-runner.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateMetaMappingDto } from './dto/create-meta-mapping.dto';
-import { MetaLeadPayload } from './dto/meta-lead-payload.dto';
+import { MetaLeadPayload, MetaLeadChangeValue } from './dto/meta-lead-payload.dto';
 
 function isPrismaUniqueViolation(e: unknown): boolean {
   return (
@@ -60,9 +60,13 @@ export class MetaWebhookService {
   }
 
   /**
-   * Iterates all entry[].changes[] where field==='leadgen' and calls
-   * processLead for each one. Each call is individually wrapped in try/catch
-   * so one failure cannot block processing of subsequent entries.
+   * Iterates all entry[].changes[] where field==='leadgen' and routes
+   * each lead to the appropriate handler based on payload type:
+   * - campaign_id present -> processLead (Lead Ads / campaign-based)
+   * - campaign_id absent  -> processOrganicLead (Lead Forms / organic)
+   *
+   * Each call is individually wrapped in try/catch so one failure cannot
+   * block processing of subsequent entries.
    */
   async ingestLead(payload: MetaLeadPayload): Promise<void> {
     if (!payload?.entry?.length) {
@@ -77,14 +81,25 @@ export class MetaWebhookService {
         if (change.field !== 'leadgen') {
           continue;
         }
+
+        const value = change.value as MetaLeadChangeValue;
+        const isCampaign = !!value.campaign_id;
+
         try {
-          await this.processLead(
-            change.value.form_id,
-            change.value.leadgen_id,
-          );
+          if (isCampaign) {
+            // Existing flow — campaign-based Lead Ads
+            await this.processLead(value.form_id, value.leadgen_id);
+          } else {
+            // New flow — organic Lead Forms (page-based)
+            await this.processOrganicLead(
+              value.form_id,
+              value.leadgen_id,
+              value.page_id,
+            );
+          }
         } catch (err) {
           this.logger.error(
-            `[ingestLead] processLead failed for formId=${change.value.form_id} leadgenId=${change.value.leadgen_id}`,
+            `[ingestLead] process failed for formId=${value.form_id} leadgenId=${value.leadgen_id} isCampaign=${isCampaign}`,
             err,
           );
         }
@@ -235,6 +250,150 @@ export class MetaWebhookService {
     }
   }
 
+  /**
+   * Processes organic leads from Meta Lead Forms (page-based, no campaign_id).
+   * Mapping resolution: exact metaFormId -> pageId catch-all -> skip if no match.
+   * Flow: fetch lead details -> upsert Contact -> create Card -> LeadFormSubmission.
+   * Idempotency via MetaLeadIngestion table (same as campaign leads).
+   */
+  private async processOrganicLead(
+    formId: string,
+    leadgenId: string,
+    pageId?: string,
+  ): Promise<void> {
+    // Step 1: Mapping resolution — try exact formId first
+    let mapping = await this.prisma.metaWebhookMapping.findFirst({
+      where: { metaFormId: formId },
+      include: { stage: true },
+    });
+
+    // Fallback: pageId catch-all (metaFormId is null, pageId matches)
+    if (!mapping && pageId) {
+      mapping = await this.prisma.metaWebhookMapping.findFirst({
+        where: { pageId, metaFormId: null },
+        include: { stage: true },
+      });
+    }
+
+    if (!mapping) {
+      this.logger.log(
+        `[processOrganicLead] No mapping for formId=${formId} pageId=${pageId} — skipping`,
+      );
+      return;
+    }
+
+    // Step 2: Idempotency gate (reuse MetaLeadIngestion table)
+    try {
+      await this.prisma.metaLeadIngestion.create({
+        data: {
+          tenantId: mapping.tenantId,
+          metaLeadId: leadgenId,
+        },
+      });
+    } catch (e) {
+      if (isPrismaUniqueViolation(e)) {
+        this.logger.log(`[processOrganicLead] Duplicate leadgenId=${leadgenId} — skipping`);
+        return;
+      }
+      throw e;
+    }
+
+    // Step 3: Fetch lead details from Meta Graph API (same as processLead)
+    let name: string | undefined;
+    let phone: string | undefined;
+    let email: string | undefined;
+    let fieldData: Array<{ name: string; values: string[] }> | undefined;
+
+    if (mapping.pageAccessToken) {
+      try {
+        const url = `https://graph.facebook.com/v19.0/${leadgenId}?fields=field_data&access_token=${mapping.pageAccessToken}`;
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const data = (await resp.json()) as {
+            field_data?: Array<{ name: string; values: string[] }>;
+          };
+          fieldData = data.field_data ?? [];
+          const getField = (key: string) =>
+            (data.field_data ?? []).find((f) => f.name === key)?.values?.[0];
+
+          name = getField('full_name') ?? getField('first_name');
+          phone = getField('phone_number') ?? getField('phone');
+          email = getField('email');
+        }
+      } catch (err) {
+        this.logger.warn(
+          `[processOrganicLead] Failed to fetch lead details — using placeholder`,
+          err,
+        );
+        name = 'Lead (Form)';
+      }
+    } else {
+      name = 'Lead (Form)';
+    }
+
+    // Step 4: Upsert Contact
+    const contact = await this.upsertContact(mapping.tenantId, phone, email, name);
+
+    // Step 5: Create Card (CardService.create already triggers startRuleRun + initiateProactiveIfAssigned)
+    const card = await this.cardService.create(mapping.tenantId, {
+      title: name || 'Lead (Form)',
+      stageId: mapping.stageId,
+      contactId: contact.id,
+      customFields: {
+        source: 'meta-form',
+        metaLeadId: leadgenId,
+        metaFormId: formId,
+        pageId: pageId,
+      },
+    });
+
+    // Step 6: Create LeadFormSubmission (link card to form entry source)
+    await this.prisma.leadFormSubmission.create({
+      data: {
+        formId: formId,
+        tenantId: mapping.tenantId,
+        cardId: card.id,
+        contactId: contact.id,
+        payload: {
+          fieldData: fieldData ?? [],
+          pageId,
+          leadgenId,
+          ingestedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Step 7: Link MetaLeadIngestion to card
+    await this.prisma.metaLeadIngestion.update({
+      where: { metaLeadId: leadgenId },
+      data: { cardId: card.id },
+    });
+
+    // Step 8: Record activity
+    await this.prisma.cardActivity.create({
+      data: {
+        cardId: card.id,
+        type: 'META_LEAD_INGESTED',
+        content: `Lead recebido via Meta Lead Forms (orgânico, form ${formId})`,
+      },
+    });
+
+    // Step 9: D0 rule trigger — already handled by CardService.create (commented for clarity)
+    // Step 10: Agent proactive trigger — already handled by CardService.create (commented for clarity)
+
+    // Step 11: In-app notification
+    try {
+      this.notificationService.emit(mapping.tenantId, {
+        type: 'meta_form_arrived',
+        cardId: card.id,
+        cardTitle: name ?? 'Lead (Form)',
+        at: new Date().toISOString(),
+      });
+    } catch (err) {
+      this.logger.error('[processOrganicLead] notification emit failed', err);
+    }
+  }
+
   private async upsertContact(
     tenantId: string,
     phone?: string,
@@ -290,6 +449,7 @@ export class MetaWebhookService {
       data: {
         tenantId,
         metaFormId: dto.metaFormId,
+        pageId: dto.pageId,
         pipelineId: dto.pipelineId,
         stageId: dto.stageId,
         verifyToken: dto.verifyToken,
@@ -305,6 +465,7 @@ export class MetaWebhookService {
         id: true,
         tenantId: true,
         metaFormId: true,
+        pageId: true,
         pipelineId: true,
         stageId: true,
         verifyToken: true,

@@ -12,6 +12,7 @@ import {
 import type { Response } from 'express';
 import { MetaWebhookService } from './meta-webhook.service';
 import { CreateMetaMappingDto } from './dto/create-meta-mapping.dto';
+import { CreatePageMappingDto } from './dto/create-page-mapping.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
@@ -73,5 +74,22 @@ export class MetaWebhookController {
     @Param('id') id: string,
   ) {
     return this.service.deleteMapping(tenantId, id);
+  }
+
+  // Authenticated — page-level mapping for organic Lead Forms
+  @Post('meta-mappings/page')
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  public async createPageMapping(
+    @CurrentTenant() tenantId: string,
+    @Body() dto: CreatePageMappingDto,
+  ) {
+    return this.service.createMapping(tenantId, {
+      metaFormId: dto.metaFormId,
+      pageId: dto.pageId,
+      pipelineId: dto.pipelineId,
+      stageId: dto.stageId,
+      verifyToken: dto.verifyToken ?? '',
+      pageAccessToken: dto.pageAccessToken,
+    });
   }
 }
