@@ -79,7 +79,12 @@ Plans:
 **Goal:** Agente conversa de forma multi-turn com memória persistida, decide via structured output (should_respond/mark_qualified/request_handoff/suggested_next_stage_id), sinaliza qualificação para humano confirmar avanço, e toda interação fica auditável em timeline unificada.
 **Requirements**: TBD
 **Depends on:** Phase 3, Phase 4
-**Plans:** 0 plans (CONTEXT ready at `.planning/phases/05-agent-conversation-flow/05-CONTEXT.md`)
+**Plans:** 6 plans
 
 Plans:
-- [ ] TBD (run `/gsd-plan-phase 5` to break down)
+- [ ] 05-01-PLAN.md — Foundations: zod install, Prisma metadata columns, StructuredReplySchema, AiService.generateStructuredResponse
+- [ ] 05-02-PLAN.md — Handlers: ConversationHistoryLoader + StructuredReplyGenerator + QualificationHandler + HandoffHandler + OutboundDispatcher
+- [ ] 05-03-PLAN.md — Queues: ConversationSummarizerQueue + AgentRetryQueue (BullMQ, exponential backoff)
+- [ ] 05-04-PLAN.md — Runner refactor: thin orchestrator cascade (D-11) with optimistic lock + opt-out; delete shouldRequireHandoff (D-10)
+- [ ] 05-05-PLAN.md — Timeline endpoint: GET /cards/:id/timeline (merged whatsapp+activity+agent, tenant-scoped, paginated)
+- [ ] 05-06-PLAN.md — Frontend: QualifiedBadge, SuggestedStageButton, Atendimento tab, IMPORTANTE banner, advanced prompt profile inputs
