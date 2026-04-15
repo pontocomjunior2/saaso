@@ -1,9 +1,58 @@
 'use client';
 
 import { CheckCircle2, LoaderCircle, Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { LeadFormField } from '../../../../stores/useLeadFormStore';
+
+type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
+
+interface FieldErrors {
+  [fieldKey: string]: string;
+}
+
+function validateField(field: LeadFormField, value: string): string | null {
+  // Required check
+  if (field.required && (!value || value.trim() === '')) {
+    return 'Este campo e obrigatorio';
+  }
+
+  // Skip further validation if empty and not required
+  if (!value || value.trim() === '') {
+    return null;
+  }
+
+  // Email format
+  if (field.type === 'email') {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) return 'E-mail invalido';
+  }
+
+  // Phone format (lenient Brazilian/international)
+  if (field.type === 'phone') {
+    const phoneRegex = /^[\d\s()+-]{8,}$/;
+    if (!phoneRegex.test(value)) return 'Telefone invalido';
+  }
+
+  // Select option validation
+  if (field.type === 'select' && field.options) {
+    const validValues = field.options.map((o) => o.value);
+    if (!validValues.includes(value)) return 'Valor nao e uma opcao valida';
+  }
+
+  return null;
+}
+
+function validateAll(fields: LeadFormField[], values: Record<string, string>): FieldErrors {
+  const errors: FieldErrors = {};
+  for (const field of fields) {
+    const error = validateField(field, values[field.key] ?? '');
+    if (error) {
+      errors[field.key] = error;
+    }
+  }
+  return errors;
+}
 
 interface PublicLeadFormResponse {
   name: string;
@@ -44,8 +93,10 @@ export default function PublicLeadFormPage() {
   const [form, setForm] = useState<PublicLeadFormResponse | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState<string>('');
   const [success, setSuccess] = useState<SubmitSuccess | null>(null);
 
   useEffect(() => {
@@ -57,7 +108,7 @@ export default function PublicLeadFormPage() {
 
     const loadForm = async () => {
       setIsLoading(true);
-      setError(null);
+      setLoadError(null);
 
       try {
         const response = await fetch(`${getApiBaseUrl()}/public/forms/${tenantSlug}/${slug}`, {
@@ -81,7 +132,7 @@ export default function PublicLeadFormPage() {
         );
       } catch (requestError: unknown) {
         if (isMounted) {
-          setError(requestError instanceof Error ? requestError.message : 'Erro ao carregar formulario.');
+          setLoadError(requestError instanceof Error ? requestError.message : 'Erro ao carregar formulario.');
         }
       } finally {
         if (isMounted) {
@@ -137,7 +188,16 @@ export default function PublicLeadFormPage() {
       window.removeEventListener('resize', schedulePost);
       resizeObserver?.disconnect();
     };
-  }, [error, form, isEmbedMode, isLoading, isSubmitting, slug, success, tenantSlug, values]);
+  }, [form, isEmbedMode, isLoading, slug, submissionState, success, tenantSlug, values, fieldErrors, submitError]);
+
+  const notifyParent = useCallback(
+    (data: Record<string, unknown>) => {
+      if (isEmbedMode && typeof window !== 'undefined' && window.parent !== window) {
+        window.parent.postMessage(data, '*');
+      }
+    },
+    [isEmbedMode],
+  );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -145,16 +205,27 @@ export default function PublicLeadFormPage() {
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
+    // Client-side validation
+    const errors = validateAll(form.fields, values);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setSubmissionState('loading');
+    setFieldErrors({});
+    setSubmitError('');
 
     try {
+      // Notify parent in embed mode
+      notifyParent({ type: 'saaso:form-submitting' });
+
       const response = await fetch(`${getApiBaseUrl()}/public/forms/${tenantSlug}/${slug}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ payload: values }),
       });
 
       const data = (await response.json()) as SubmitSuccess | { message?: string | string[] };
@@ -165,12 +236,38 @@ export default function PublicLeadFormPage() {
         throw new Error(message || 'Nao foi possivel enviar o formulario.');
       }
 
-      setSuccess(data as SubmitSuccess);
+      const result = data as SubmitSuccess;
+      setSuccess(result);
+      setSubmissionState('success');
+
+      // Notify parent of success
+      notifyParent({ type: 'saaso:form-submitted', cardId: result.cardId ?? null });
+
+      // Final height sync after success screen renders
+      setTimeout(() => {
+        if (rootRef.current) {
+          window.parent.postMessage(
+            {
+              type: 'saaso:form-resize',
+              formKey: `${tenantSlug}:${slug}`,
+              height: Math.ceil(rootRef.current.scrollHeight),
+            },
+            '*',
+          );
+        }
+      }, 100);
     } catch (requestError: unknown) {
-      setError(requestError instanceof Error ? requestError.message : 'Erro ao enviar formulario.');
-    } finally {
-      setIsSubmitting(false);
+      setSubmissionState('error');
+      setSubmitError(requestError instanceof Error ? requestError.message : 'Erro ao enviar formulario.');
+
+      // Notify parent of error
+      notifyParent({ type: 'saaso:form-error' });
     }
+  };
+
+  const handleRetry = () => {
+    setSubmissionState('idle');
+    setSubmitError('');
   };
 
   return (
@@ -202,22 +299,43 @@ export default function PublicLeadFormPage() {
               <LoaderCircle className={`h-5 w-5 animate-spin ${isEmbedMode ? 'text-slate-700' : 'text-cyan-300'}`} />
               Carregando formulario...
             </div>
-          ) : error ? (
+          ) : loadError ? (
             <div className="mt-6 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-              {error}
+              {loadError}
             </div>
           ) : success ? (
             <div className="mt-8 rounded-[32px] border border-emerald-400/20 bg-emerald-400/10 px-6 py-10 text-center">
               <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-200" />
               <h1 className={`mt-5 text-3xl font-semibold ${isEmbedMode ? 'text-slate-950' : 'text-white'}`}>
-                {success.successTitle}
+                {form?.successTitle ?? success.successTitle}
               </h1>
               <p className={`mt-3 text-sm leading-7 ${isEmbedMode ? 'text-slate-700' : 'text-emerald-50/85'}`}>
-                {success.successMessage}
+                {form?.successMessage ?? success.successMessage}
               </p>
+            </div>
+          ) : submissionState === 'error' ? (
+            <div className="mt-8 rounded-[32px] border border-rose-400/20 bg-rose-500/10 px-6 py-10 text-center">
+              <h2 className={`text-xl font-semibold ${isEmbedMode ? 'text-rose-600' : 'text-rose-200'}`}>Erro no envio</h2>
+              <p className={`mt-3 text-sm ${isEmbedMode ? 'text-slate-600' : 'text-rose-100/85'}`}>{submitError}</p>
+              <button
+                onClick={handleRetry}
+                className={`mt-5 inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                  isEmbedMode
+                    ? 'bg-slate-950 text-white'
+                    : 'bg-white/10 text-white hover:bg-white/15'
+                }`}
+              >
+                Tentar novamente
+              </button>
             </div>
           ) : form ? (
             <>
+              {isEmbedMode ? (
+                <meta
+                  httpEquiv="Content-Security-Policy"
+                  content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors *;"
+                />
+              ) : null}
               <h1 className={`text-3xl font-semibold lg:text-4xl ${isEmbedMode ? 'text-slate-950' : 'mt-6 text-white'}`}>
                 {title}
               </h1>
@@ -239,9 +357,13 @@ export default function PublicLeadFormPage() {
                         onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
                         placeholder={field.placeholder}
                         className={`w-full rounded-[24px] border px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 ${
-                          isEmbedMode
-                            ? 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-400'
-                            : 'border-white/10 bg-white/[0.05] text-white focus:border-cyan-300/50 focus:bg-white/[0.07]'
+                          fieldErrors[field.key]
+                            ? isEmbedMode
+                              ? 'border-rose-400 bg-rose-50 text-slate-900 focus:border-rose-500'
+                              : 'border-rose-400/50 bg-rose-500/5 text-white focus:border-rose-400'
+                            : isEmbedMode
+                              ? 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-400'
+                              : 'border-white/10 bg-white/[0.05] text-white focus:border-cyan-300/50 focus:bg-white/[0.07]'
                         }`}
                       />
                     ) : field.type === 'select' ? (
@@ -249,9 +371,13 @@ export default function PublicLeadFormPage() {
                         value={values[field.key] ?? ''}
                         onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
                         className={`w-full rounded-[24px] border px-4 py-3 text-sm outline-none transition ${
-                          isEmbedMode
-                            ? 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-400'
-                            : 'border-white/10 bg-white/[0.05] text-white focus:border-cyan-300/50 focus:bg-white/[0.07]'
+                          fieldErrors[field.key]
+                            ? isEmbedMode
+                              ? 'border-rose-400 bg-rose-50 text-slate-900 focus:border-rose-500'
+                              : 'border-rose-400/50 bg-rose-500/5 text-white focus:border-rose-400'
+                            : isEmbedMode
+                              ? 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-400'
+                              : 'border-white/10 bg-white/[0.05] text-white focus:border-cyan-300/50 focus:bg-white/[0.07]'
                         }`}
                       >
                         <option value="">Selecione</option>
@@ -268,13 +394,19 @@ export default function PublicLeadFormPage() {
                         onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}
                         placeholder={field.placeholder}
                         className={`w-full rounded-[24px] border px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 ${
-                          isEmbedMode
-                            ? 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-400'
-                            : 'border-white/10 bg-white/[0.05] text-white focus:border-cyan-300/50 focus:bg-white/[0.07]'
+                          fieldErrors[field.key]
+                            ? isEmbedMode
+                              ? 'border-rose-400 bg-rose-50 text-slate-900 focus:border-rose-500'
+                              : 'border-rose-400/50 bg-rose-500/5 text-white focus:border-rose-400'
+                            : isEmbedMode
+                              ? 'border-slate-200 bg-slate-50 text-slate-900 focus:border-slate-400'
+                              : 'border-white/10 bg-white/[0.05] text-white focus:border-cyan-300/50 focus:bg-white/[0.07]'
                         }`}
                       />
                     )}
-                    {field.helpText ? (
+                    {fieldErrors[field.key] ? (
+                      <p className="mt-1 text-xs text-rose-500">{fieldErrors[field.key]}</p>
+                    ) : field.helpText ? (
                       <p className={`mt-2 text-xs ${isEmbedMode ? 'text-slate-500' : 'text-slate-500'}`}>{field.helpText}</p>
                     ) : null}
                   </label>
@@ -282,15 +414,19 @@ export default function PublicLeadFormPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={submissionState === 'loading'}
                   className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium transition hover:translate-y-[-1px] disabled:opacity-60 ${
                     isEmbedMode
                       ? 'bg-slate-950 text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]'
                       : 'bg-cyan-300 text-slate-950 shadow-[0_18px_48px_rgba(89,211,255,0.24)]'
                   }`}
                 >
-                  {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {isSubmitting ? 'Enviando...' : form.submitButtonLabel}
+                  {submissionState === 'loading' ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {submissionState === 'loading' ? 'Enviando...' : form.submitButtonLabel}
                 </button>
               </form>
             </>

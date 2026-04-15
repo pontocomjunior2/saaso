@@ -8,6 +8,7 @@ Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutriç
 
 - [ ] **Phase 1: CRM v1 — Funil Manual** - Kanban vazio por padrão, etapas configuráveis inline, templates de pipeline, click-to-send WhatsApp/Email por card
 - [ ] **Phase 2: CRM v2 — Automação de Réguas** - Disparos automáticos por régua/dia, webhook Meta Lead Ads, agente IA por etapa
+- [ ] **Phase 3: Agentes Efetivos + Formulários + Canais** - Evolution API WhatsApp, form entry com trigger de agente, editor de formulários embeddable, Meta Lead Forms integration
 
 ## Phase Details
 
@@ -45,9 +46,28 @@ Plans:
 - [x] 02-04-PLAN.md — Card move hooks + agent proactive D0 + card-move endpoint (REQ-06+REQ-08 integration)
 - [ ] 02-05-PLAN.md — Frontend: StageRuleDrawer, CardRuleStatusPanel, AgentStatusBadge, MetaWebhookConfigSection
 
+### Phase 3: Agentes Efetivos + Formulários + Canais
+**Goal**: Agentes funcionam efetivamente — entrada de leads via formulário (próprio e Meta), integração WhatsApp via Evolution API, email via Mailtrap. Formulários embeddáveis no site do cliente com editor visual. Lead que entra no funil dispara agente proativo automaticamente.
+**Depends on**: Phase 1, Phase 2
+**Requirements**: REQ-09, REQ-10, REQ-11
+**Success Criteria** (what must be TRUE):
+  1. Formulário embedded no site do cliente captura lead e cria card no Kanban automaticamente
+  2. Agente IA dispara WhatsApp real via Evolution API ao entrar nova etapa (D0)
+  3. Email de régua é enviado via Mailtrap API (já configurado, validar integração)
+  4. Editor de formulário permite cliente criar/editar campos e embedar no site
+  5. Meta Lead Forms integration captura leads de formulários do Facebook/Instagram
+**Plans:** 5 plans
+Plans:
+- [ ] 03-01-PLAN.md — Evolution API WhatsApp service + provider abstraction
+- [ ] 03-02-PLAN.md — Lead form entry flows + agent proactive trigger hooks
+- [ ] 03-03-PLAN.md — Form editor + embed script (iframe + postMessage secure)
+- [ ] 03-04-PLAN.md — Meta Lead Forms webhook integration
+- [ ] 03-05-PLAN.md — Frontend: form builder UI, embed code generator, form preview
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. CRM v1 — Funil Manual | 0/4 | Planning complete | - |
 | 2. CRM v2 — Automação de Réguas | 4/5 | Executing | 2026-04-14 |
+| 3. Agentes Efetivos + Formulários + Canais | 0/5 | Planning complete | 2026-04-14 |
