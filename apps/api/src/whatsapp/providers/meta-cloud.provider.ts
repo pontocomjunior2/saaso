@@ -151,6 +151,21 @@ export class MetaCloudProvider implements IWhatsAppProvider {
     // Meta Cloud does not require explicit disconnect — no-op
   }
 
+  async getInstanceState(instanceName: string): Promise<string> {
+    return 'unknown';
+  }
+
+  async getQrCode(instanceName: string): Promise<string> {
+    return '';
+  }
+
+  async syncInstanceStatus(
+    tenantId: string,
+    instanceName: string,
+  ): Promise<{ evolutionState: string; dbStatus: string; synced: boolean }> {
+    return { evolutionState: 'unknown', dbStatus: 'CONNECTED', synced: false };
+  }
+
   verifyWebhookChallenge(query: Record<string, unknown>): string | null {
     const mode =
       typeof query['hub.mode'] === 'string'

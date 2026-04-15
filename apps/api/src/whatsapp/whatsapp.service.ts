@@ -428,6 +428,10 @@ export class WhatsappService {
     return { ok: true };
   }
 
+  public async getEvolutionQrCode(instanceName: string): Promise<string> {
+    return this.evolutionProvider.getQrCode(instanceName);
+  }
+
   public async getEvolutionConnectionState(instanceName: string): Promise<string> {
     return this.evolutionProvider.getInstanceState(instanceName);
   }
@@ -1001,6 +1005,13 @@ export class WhatsappService {
     return challenge;
   }
 
+  async syncEvolutionInstanceStatus(
+    tenantId: string,
+    instanceName: string,
+  ): Promise<{ evolutionState: string; dbStatus: string; synced: boolean }> {
+    return this.evolutionProvider.syncInstanceStatus(tenantId, instanceName);
+  }
+
   // -- Provider resolution (new) --
 
   private async resolveProvider(account: {
@@ -1048,7 +1059,7 @@ export class WhatsappService {
     const providerName = account.provider ?? 'meta_cloud';
     if (providerName === 'evolution') {
       try {
-        await this.evolutionProvider.sendMessage(normalizedPhone, content);
+        await this.evolutionProvider.sendMessage(normalizedPhone, content, undefined, { instanceName: account.instanceName ?? undefined });
         return {
           deliveryMode: 'cloud_api',
           status: MessageStatus.SENT,

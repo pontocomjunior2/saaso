@@ -99,12 +99,30 @@ export class WhatsappController {
     return this.whatsappService.deleteAccount(tenantId, id);
   }
 
+  // Evolution API QR code endpoint
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Get('evolution/instance/:name/qr')
+  public async getQrCode(@Param('name') name: string) {
+    const qr = await this.whatsappService.getEvolutionQrCode(name);
+    return { qr };
+  }
+
   // Evolution API connection state endpoint
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get('evolution/instance/:name/connection-state')
   public async getConnectionState(@Param('name') name: string) {
     const state = await this.whatsappService.getEvolutionConnectionState(name);
     return { state };
+  }
+
+  // Evolution API status sync endpoint
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Post('evolution/instance/:name/sync')
+  public async syncEvolutionStatus(
+    @CurrentTenant() tenantId: string,
+    @Param('name') name: string,
+  ) {
+    return this.whatsappService.syncEvolutionInstanceStatus(tenantId, name);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)

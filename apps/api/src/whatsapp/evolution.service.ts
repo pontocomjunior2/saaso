@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  forwardRef,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { IWhatsAppProvider } from './providers/whatsapp-provider.interface';
@@ -30,52 +36,131 @@ export class EvolutionApiService implements IWhatsAppProvider {
   ): Promise<any> {
     this.ensureConfigured();
 
-    const result = await this.httpPost('/instance/create', {
-      instanceName,
-      webhookUrl: `${this.baseUrl}/webhook`,
-      webhook_base64: false,
-      reject_call: false,
-    });
+    try {
+      const result = await this.httpPost('/instance/create', {
+        instanceName,
+        integration: 'WHATSAPP-BAILEYS',
+        webhook_base64: false,
+        reject_call: false,
+      });
 
-    await this.prisma.whatsAppAccount.updateMany({
-      where: { tenantId },
-      data: { instanceName, status: 'PENDING' as any },
-    });
+      await this.prisma.whatsAppAccount.updateMany({
+        where: { tenantId },
+        data: { instanceName, status: 'QR_READY' as any },
+      });
 
-    return result;
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create instance "${instanceName}": ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      throw new BadRequestException(
+        `Erro ao criar instância "${instanceName}": ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+      );
+    }
   }
 
   async getInstanceState(instanceName: string): Promise<string> {
     this.ensureConfigured();
-    const data = await this.httpGet(
-      `/instance/${instanceName}/connection-state`,
-    );
-    return data?.state ?? 'unknown';
+    try {
+      const data = await this.httpGet(
+        `/instance/connectionState/${instanceName}`,
+      );
+      return data?.instance?.state ?? 'unknown';
+    } catch (error) {
+      this.logger.error(
+        `Failed to get connection state for instance "${instanceName}": ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      throw new BadRequestException(
+        `Erro ao obter estado da conexão para instância "${instanceName}": ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+      );
+    }
   }
 
   async getQrCode(instanceName: string): Promise<string> {
     this.ensureConfigured();
-    const data = await this.httpGet(`/instance/${instanceName}/qr-code`);
-    return data?.base64 ?? data?.qrCode ?? '';
+    try {
+      const data = await this.httpGet(`/instance/connect/${instanceName}`);
+      return data?.base64 ?? '';
+    } catch (error) {
+      this.logger.error(
+        `Failed to get QR code for instance "${instanceName}": ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      throw new BadRequestException(
+        `Erro ao obter QR Code para instância "${instanceName}": ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+      );
+    }
   }
 
   async disconnectInstance(instanceName: string): Promise<void> {
     try {
-      await this.httpPost(`/instance/${instanceName}/logout`, {});
+      await this.httpPost(`/instance/logout/${instanceName}`, {});
     } catch {
       // Instance may already be disconnected
     }
   }
 
-  // -- IWhatsAppProvider implementation --
+  // -- Status Sync --
 
-  async sendMessage(to: string, body: string, html?: string): Promise<void> {
+  async syncInstanceStatus(
+    tenantId: string,
+    instanceName: string,
+  ): Promise<{ evolutionState: string; dbStatus: string; synced: boolean }> {
     this.ensureConfigured();
 
+    let evolutionState: string;
+    try {
+      const data = await this.httpGet(
+        `/instance/connectionState/${instanceName}`,
+      );
+      evolutionState = data?.instance?.state ?? 'unknown';
+    } catch {
+      evolutionState = 'unknown';
+    }
+
+    const expectedDbStatus = this.mapEvolutionStateToStatus(evolutionState);
+    const result = await this.prisma.whatsAppAccount.updateMany({
+      where: { tenantId, instanceName },
+      data: { status: expectedDbStatus as any },
+    });
+
+    return {
+      evolutionState,
+      dbStatus: expectedDbStatus,
+      synced: result.count > 0,
+    };
+  }
+
+  private mapEvolutionStateToStatus(state: string): string {
+    switch (state) {
+      case 'open':
+      case 'connected':
+        return 'CONNECTED';
+      case 'close':
+      case 'disconnected':
+        return 'DISCONNECTED';
+      case 'qr_code':
+      case 'connecting':
+        return 'QR_READY';
+      default:
+        return 'DISCONNECTED';
+    }
+  }
+
+  // -- IWhatsAppProvider implementation --
+
+  async sendMessage(to: string, body: string, _html?: string, options?: { instanceName?: string }): Promise<void> {
+    this.ensureConfigured();
+
+    const instanceName = options?.instanceName;
+    if (!instanceName) {
+      throw new Error('Evolution API requires instanceName to send messages');
+    }
+
     const normalizedPhone = to.replace(/\D/g, '');
-    await this.httpPost('/message/sendText', {
+    await this.httpPost(`/message/sendText/${instanceName}`, {
       number: normalizedPhone,
-      textMessage: { text: body },
+      text: body,
     });
   }
 
