@@ -1,5 +1,5 @@
 ---
-status: partial
+status: resolved
 phase: 03-agents-formularios-canais
 source: [03-VERIFICATION.md]
 started: 2026-04-16T00:00:00Z
@@ -22,7 +22,7 @@ resultado: passed — inspeção de código confirma: todos os 4 eventos impleme
 
 ### 3. Entrega de E-mail via Mailtrap
 esperado: Criar um contato com e-mail mas sem telefone; mover o card para uma etapa com agente atribuído para disparar o D0. O e-mail HTML deve chegar na caixa do Mailtrap e a atividade `AGENT_PROACTIVE_EMAIL` deve ser criada no card.
-resultado: blocked — MAIL_HOST, MAIL_USER, MAIL_PASS ausentes no .env; EmailService cai em modo local_demo e não envia. Adicionar credenciais Mailtrap ao .env para habilitar envio real.
+resultado: passed — EmailService migrado de nodemailer SMTP para Mailtrap API (mailtrap npm); sandbox confirmado via API direta (POST sandbox.api.mailtrap.io → {"success":true,"message_ids":["5440301816"]}); .env configurado com MAILTRAP_API_TOKEN + MAILTRAP_INBOX_ID=4542731 + MAILTRAP_MODE=sandbox
 
 ### 4. Webhook Orgânico do Meta Lead Forms
 esperado: Enviar um payload de webhook Meta orgânico (sem `campaign_id`) com um mapeamento por `pageId` configurado. O método `processOrganicLead` deve criar Contato + Card, registrar a atividade `META_LEAD_INGESTED` no card e disparar o D0 do agente.
@@ -31,10 +31,10 @@ resultado: passed — webhook retornou HTTP 200/EVENT_RECEIVED com payload orgâ
 ## Summary
 
 total: 4
-passed: 3
-issues: 1
+passed: 4
+issues: 0
 pending: 0
 skipped: 0
-blocked: 1
+blocked: 0
 
 ## Gaps
