@@ -1,29 +1,35 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import { MailtrapClient } from 'mailtrap';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter | null = null;
+  private client: MailtrapClient | null = null;
+  private mode: 'api' | 'sandbox' | 'local_demo' = 'local_demo';
 
   constructor() {
-    const host = process.env.MAIL_HOST;
-    const port = Number(process.env.MAIL_PORT || '2525');
-    const user = process.env.MAIL_USER;
-    const pass = process.env.MAIL_PASS;
+    const token = process.env.MAILTRAP_API_TOKEN;
+    const isSandbox = (process.env.MAILTRAP_MODE ?? 'sandbox') === 'sandbox';
+    const testInboxId = process.env.MAILTRAP_INBOX_ID
+      ? Number(process.env.MAILTRAP_INBOX_ID)
+      : undefined;
 
-    if (host && user && pass) {
-      this.transporter = nodemailer.createTransport({
-        host,
-        port,
-        auth: { user, pass },
-      });
-      this.logger.log(`Email transporter configurado: ${host}:${port}`);
-    } else {
+    if (!token) {
       this.logger.warn(
-        'Variaveis MAIL_HOST/MAIL_USER/MAIL_PASS ausentes — email em modo local_demo (nao envia de verdade).',
+        'MAILTRAP_API_TOKEN ausente — email em modo local_demo (não envia de verdade).',
       );
+      return;
     }
+
+    if (isSandbox) {
+      this.client = new MailtrapClient({ token, testInboxId, sandbox: true });
+      this.mode = 'sandbox';
+    } else {
+      this.client = new MailtrapClient({ token });
+      this.mode = 'api';
+    }
+
+    this.logger.log(`Email configurado via Mailtrap API (modo: ${this.mode})`);
   }
 
   async sendEmail(params: {
@@ -33,27 +39,35 @@ export class EmailService {
     html?: string;
   }): Promise<{
     success: boolean;
-    deliveryMode: 'smtp' | 'local_demo';
+    deliveryMode: 'api' | 'sandbox' | 'local_demo';
     messageId?: string;
   }> {
-    if (!this.transporter) {
+    if (!this.client) {
       this.logger.log(
         `[local_demo] Email simulado para ${params.to}: ${params.subject}`,
       );
       return { success: true, deliveryMode: 'local_demo' };
     }
 
-    const info = await this.transporter.sendMail({
-      from: process.env.MAIL_FROM || 'noreply@saaso.app',
-      to: params.to,
+    const resp = await this.client.send({
+      from: {
+        email: process.env.MAIL_FROM ?? 'noreply@saaso.app',
+        name: process.env.MAIL_FROM_NAME ?? 'Saaso CRM',
+      },
+      to: [{ email: params.to }],
       subject: params.subject,
       text: params.body,
-      html: params.html,
+      ...(params.html ? { html: params.html } : {}),
+      category: 'agent_proactive',
     });
 
     this.logger.log(
-      `Email enviado para ${params.to}, messageId: ${info.messageId}`,
+      `Email enviado para ${params.to} [${this.mode}], id: ${resp.message_ids?.[0]}`,
     );
-    return { success: true, deliveryMode: 'smtp', messageId: info.messageId };
+    return {
+      success: true,
+      deliveryMode: this.mode,
+      messageId: resp.message_ids?.[0],
+    };
   }
 }
