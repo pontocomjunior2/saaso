@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -97,4 +98,19 @@ export class AgentPromptProfileDto {
   @Min(100)
   @Max(4000)
   maxTokens?: number;
+
+  // Phase 5 additions — see 05-CONTEXT.md D-15.
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(10)
+  @Max(50)
+  historyWindow?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(5)
+  @Max(20)
+  summaryThreshold?: number;
 }

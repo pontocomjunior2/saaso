@@ -17,6 +17,11 @@ export interface AgentPromptProfile {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  // Phase 5 additions — see 05-CONTEXT.md D-15, 05-RESEARCH.md Pitfall #7.
+  // historyWindow: number of prior turns loaded into the model input. Clamp [10, 50].
+  historyWindow?: number;
+  // summaryThreshold: after this many AGENT turns the summarizer queue runs. Clamp [5, 20].
+  summaryThreshold?: number;
 }
 
 export interface AgentPromptContext {
@@ -59,6 +64,23 @@ function normalizeNumber(value: number | undefined | null): number | undefined {
   return value;
 }
 
+function clampInteger(
+  value: unknown,
+  lo: number,
+  hi: number,
+): number | undefined {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(n)) {
+    return undefined;
+  }
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+
 export function normalizeAgentPromptProfile(
   value: Prisma.JsonValue | AgentPromptProfile | null | undefined,
 ): AgentPromptProfile | null {
@@ -95,6 +117,8 @@ export function normalizeAgentPromptProfile(
     model: normalizeString(record.model as string | undefined),
     temperature: normalizeNumber(record.temperature as number | undefined),
     maxTokens: normalizeNumber(record.maxTokens as number | undefined),
+    historyWindow: clampInteger(record.historyWindow, 10, 50),
+    summaryThreshold: clampInteger(record.summaryThreshold, 5, 20),
   };
 
   const hasAnyValue = Object.values(profile).some((item) => {
@@ -246,6 +270,23 @@ export function buildAgentCompiledPrompt(input: {
 
   sections.push(
     'Regras finais\nSeja claro, objetivo e útil. Não invente informações. Quando faltar contexto relevante, faça perguntas curtas para avançar a conversa com segurança.',
+  );
+
+  // [CITED: 05-CONTEXT.md D-17, 05-AI-SPEC.md §4b Prompt Engineering Discipline]
+  // Structured-output contract block appended verbatim. Mentions all 7 fields of
+  // StructuredReplySchema so the model knows the exact JSON shape to emit.
+  sections.push(
+    [
+      'Formato de saída',
+      'Responda SEMPRE com um objeto JSON válido no esquema definido. NÃO inclua texto antes ou depois do JSON.',
+      'Campos:',
+      '- should_respond (bool): true para enviar, false para segurar (fragmentação).',
+      '- reply (string|null): texto pronto ao lead; null se should_respond=false.',
+      '- mark_qualified (bool), qualification_reason (string|null)',
+      '- suggested_next_stage_id (string|null): id de uma etapa válida do pipeline atual.',
+      '- request_handoff (bool), handoff_reason (string|null)',
+      'Se houver dúvida, prefira should_respond=false e explique brevemente em qualification_reason.',
+    ].join('\n'),
   );
 
   return sections.join('\n\n');

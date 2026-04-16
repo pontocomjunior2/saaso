@@ -49,4 +49,88 @@ describe('agent-prompt.builder', () => {
     );
     expect(compiledPrompt).toContain('Pedido para falar com humano');
   });
+
+  it('builds prompt containing the Formato de saída section with all 7 field names', () => {
+    const compiledPrompt = buildAgentCompiledPrompt({
+      name: 'Qualificador',
+      systemPrompt: null,
+      profile: null,
+    });
+
+    expect(compiledPrompt).toContain('Formato de saída');
+    expect(compiledPrompt).toContain('should_respond');
+    expect(compiledPrompt).toContain('reply');
+    expect(compiledPrompt).toContain('mark_qualified');
+    expect(compiledPrompt).toContain('qualification_reason');
+    expect(compiledPrompt).toContain('suggested_next_stage_id');
+    expect(compiledPrompt).toContain('request_handoff');
+    expect(compiledPrompt).toContain('handoff_reason');
+  });
+
+  describe('normalizeAgentPromptProfile — historyWindow / summaryThreshold clamping', () => {
+    it('clamps historyWindow above 50 to 50', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        historyWindow: 999,
+      });
+
+      expect(profile?.historyWindow).toBe(50);
+    });
+
+    it('clamps historyWindow below 10 to 10', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        historyWindow: 2,
+      });
+
+      expect(profile?.historyWindow).toBe(10);
+    });
+
+    it('clamps summaryThreshold above 20 to 20', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        summaryThreshold: 100,
+      });
+
+      expect(profile?.summaryThreshold).toBe(20);
+    });
+
+    it('clamps summaryThreshold below 5 to 5', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        summaryThreshold: 1,
+      });
+
+      expect(profile?.summaryThreshold).toBe(5);
+    });
+
+    it('coerces numeric strings to integers', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        historyWindow: '30',
+        summaryThreshold: '12',
+      });
+
+      expect(profile?.historyWindow).toBe(30);
+      expect(profile?.summaryThreshold).toBe(12);
+    });
+
+    it('ignores non-numeric summaryThreshold', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        summaryThreshold: 'abc',
+      });
+
+      expect(profile?.summaryThreshold).toBeUndefined();
+    });
+
+    it('rounds fractional historyWindow before clamping', () => {
+      const profile = normalizeAgentPromptProfile({
+        persona: 'SDR',
+        historyWindow: 22.6,
+      });
+
+      expect(profile?.historyWindow).toBe(23);
+    });
+  });
 });
