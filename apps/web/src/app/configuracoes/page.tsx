@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
 import { MetaWebhookConfigSection } from './MetaWebhookConfigSection';
+import { WhatsAppSettingsSection } from '@/components/configuracoes/WhatsAppSettingsSection';
 
 type ApiStatus = 'checking' | 'online' | 'offline';
 
@@ -462,6 +463,8 @@ export default function SettingsPage() {
       </section>
 
       <MetaWebhookConfigSection />
+
+      <WhatsAppSettingsSection />
     </div>
   );
 }
