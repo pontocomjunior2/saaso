@@ -63,6 +63,10 @@ export interface LeadForm {
       name: string;
     };
   };
+  /** Total number of form submissions (included in list response if backend supports it) */
+  submissionCount?: number;
+  /** ISO datetime of the most recent submission */
+  lastSubmissionAt?: string | null;
 }
 
 export interface LeadFormAnalytics {

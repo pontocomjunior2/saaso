@@ -259,6 +259,12 @@ const FIELD_PRESETS: FieldPreset[] = [
   },
 ];
 
+function isRecent(dateStr: string, hours: number): boolean {
+  const date = new Date(dateStr);
+  const now = new Date();
+  return now.getTime() - date.getTime() < hours * 60 * 60 * 1000;
+}
+
 function slugify(value: string) {
   return value
     .normalize('NFD')
@@ -1057,6 +1063,18 @@ export default function FormsPage() {
                       <p className="mt-4 text-xs leading-6 text-slate-400">
                         {form.stage.pipeline.name} / {form.stage.name}
                       </p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 font-medium">
+                          <MessageSquare className="h-3 w-3" />
+                          {form.submissionCount ?? 0} envios
+                        </span>
+                        {form.lastSubmissionAt && isRecent(form.lastSubmissionAt, 24) && (
+                          <span className="inline-flex items-center gap-1 text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Recentemente
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))
                 )}
