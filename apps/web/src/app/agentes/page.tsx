@@ -205,22 +205,22 @@ function getConversationStatusMeta(status: string): { label: string; className: 
     case 'OPEN':
       return {
         label: 'Aberta',
-        className: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100',
+        className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
       };
     case 'HANDOFF_REQUIRED':
       return {
         label: 'Handoff',
-        className: 'border-amber-300/20 bg-amber-300/10 text-amber-100',
+        className: 'border-amber-200 bg-amber-50 text-amber-700',
       };
     case 'CLOSED':
       return {
         label: 'Fechada',
-        className: 'border-slate-300/20 bg-slate-300/10 text-slate-200',
+        className: 'border-slate-200 bg-slate-100 text-slate-600',
       };
     default:
       return {
         label: status,
-        className: 'border-white/10 bg-white/[0.08] text-slate-200',
+        className: 'border-slate-200 bg-slate-100 text-slate-600',
       };
   }
 }
@@ -242,13 +242,13 @@ function WizardListArea({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-slate-300">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>
       <p className="mb-2 text-xs text-slate-500">{hint}</p>
       <textarea
         rows={4}
         value={listToText(value)}
         onChange={(event) => onChange(textToList(event.target.value))}
-        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
       />
     </label>
   );
@@ -403,7 +403,7 @@ export default function AgentsPage() {
     { title: 'Identidade', detail: 'Persona, objetivo e preset' },
     { title: 'Contexto', detail: 'Pipeline, etapa e contexto comercial' },
     { title: 'Regras', detail: 'Checklist, handoff e limites' },
-    { title: 'Fine-tuning', detail: 'Prompt final, modelo e ativação' },
+    { title: 'Fine-tuning', detail: 'Prompt final, modelo, ativação e avançado' },
   ];
 
   const updateDraft = (patch: Partial<AgentDraft>) => {
@@ -667,33 +667,33 @@ export default function AgentsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 lg:p-8">
-      <section className="rounded-[30px] border border-white/10 bg-[rgba(7,16,29,0.88)] p-5 shadow-[0_20px_72px_rgba(0,0,0,0.22)] lg:p-6">
+      <section className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-[0_20px_48px_rgba(15,23,42,0.08)] lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">Agentes</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">Operação de agentes, bases e takeover.</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-400">
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Operação de agentes, bases e takeover.</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
               Aqui o admin decide quem atende, em qual etapa, com qual base de conhecimento e qual grau de autonomia
               cada agente mantém no runtime.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3 xl:max-w-[44rem] xl:justify-end">
-            <div className="grid min-w-[14rem] flex-1 gap-2 rounded-[24px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
+            <div className="grid min-w-[14rem] flex-1 gap-2 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Agentes</span>
-                <span className="text-lg font-semibold text-white">{agents.length}</span>
+                <span className="text-lg font-semibold text-slate-900">{agents.length}</span>
               </div>
-              <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
+              <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
                 <span>Ativos {agentMetrics.active}</span>
                 <span>Com base {agentMetrics.withKnowledgeBase}</span>
                 <span>Em etapa {agentMetrics.staged}</span>
               </div>
             </div>
-            <div className="grid min-w-[11rem] gap-1 rounded-[24px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
+            <div className="grid min-w-[11rem] gap-1 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               <span className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Knowledge base</span>
-              <span className="text-lg font-semibold text-white">{agentMetrics.bases}</span>
-              <span className="text-xs text-slate-400">bases prontas para acoplar no prompt</span>
+              <span className="text-lg font-semibold text-slate-900">{agentMetrics.bases}</span>
+              <span className="text-xs text-slate-500">bases prontas para acoplar no prompt</span>
             </div>
             <button
               onClick={() => openWizard()}
@@ -710,8 +710,8 @@ export default function AgentsPage() {
         <div
           className={`rounded-2xl border px-4 py-3 text-sm ${
             operationFeedback.tone === 'success'
-              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-              : 'border-rose-400/20 bg-rose-500/10 text-rose-100'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-rose-200 bg-rose-50 text-rose-700'
           }`}
         >
           {operationFeedback.message}
@@ -720,13 +720,13 @@ export default function AgentsPage() {
 
       {isWizardOpen ? (
         <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[32px] border border-white/10 bg-[rgba(7,16,29,0.82)] p-6 shadow-[0_20px_72px_rgba(0,0,0,0.24)]">
-            <div className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">
                   {editingAgent ? 'Editando agente' : 'Criando agente'}
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">
                   {editingAgent ? editingAgent.name : 'Novo agente operacional'}
                 </h2>
               </div>
@@ -739,7 +739,7 @@ export default function AgentsPage() {
                     className={`rounded-full px-3 py-2 text-xs font-medium transition ${
                       step === index
                         ? 'bg-cyan-300 text-slate-950'
-                        : 'border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     {index + 1}. {item.title}
@@ -749,7 +749,7 @@ export default function AgentsPage() {
             </div>
 
             <div className="mt-6">
-              <p className="text-sm font-medium text-white">{steps[step].title}</p>
+              <p className="text-sm font-medium text-slate-900">{steps[step].title}</p>
               <p className="mt-1 text-sm text-slate-500">{steps[step].detail}</p>
             </div>
 
@@ -767,73 +767,73 @@ export default function AgentsPage() {
                       <button
                         key={preset.id}
                         onClick={() => applyPreset(preset)}
-                        className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4 text-left transition hover:border-cyan-300/20 hover:bg-cyan-400/10"
+                        className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-cyan-300/30 hover:bg-cyan-50"
                       >
-                        <p className="text-sm font-semibold text-white">{preset.name}</p>
-                        <p className="mt-2 text-xs leading-6 text-slate-400">{preset.summary}</p>
+                        <p className="text-sm font-semibold text-slate-900">{preset.name}</p>
+                        <p className="mt-2 text-xs leading-6 text-slate-500">{preset.summary}</p>
                       </button>
                     ))}
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Nome do agente</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Nome do agente</span>
                       <input
                         type="text"
                         value={draft.name}
                         onChange={(event) => updateDraft({ name: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Persona operacional</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Persona operacional</span>
                       <input
                         type="text"
                         value={draft.profile?.persona ?? ''}
                         onChange={(event) => updateProfile({ persona: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
                   </div>
 
                   <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-300">Objetivo principal</span>
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Objetivo principal</span>
                     <textarea
                       rows={3}
                       value={draft.profile?.objective ?? ''}
                       onChange={(event) => updateProfile({ objective: event.target.value })}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                     />
                   </label>
 
                   <div className="grid gap-4 md:grid-cols-3">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Tom</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Tom</span>
                       <input
                         type="text"
                         value={draft.profile?.tone ?? ''}
                         onChange={(event) => updateProfile({ tone: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Idioma</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Idioma</span>
                       <input
                         type="text"
                         value={draft.profile?.language ?? ''}
                         onChange={(event) => updateProfile({ language: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Tamanho da resposta</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Tamanho da resposta</span>
                       <select
                         value={draft.profile?.responseLength ?? DEFAULT_PROFILE.responseLength}
                         onChange={(event) => updateProfile({ responseLength: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       >
                         <option value="Curta">Curta</option>
                         <option value="Curta a média">Curta a média</option>
@@ -849,11 +849,11 @@ export default function AgentsPage() {
                 <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Pipeline</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Pipeline</span>
                       <select
                         value={selectedPipelineId ?? ''}
                         onChange={(event) => changePipeline(event.target.value)}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       >
                         <option value="" disabled>
                           Selecione um pipeline
@@ -867,11 +867,11 @@ export default function AgentsPage() {
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Etapa</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Etapa</span>
                       <select
                         value={draft.stageId ?? ''}
                         onChange={(event) => updateDraft({ stageId: event.target.value || null })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       >
                         <option value="">Sem etapa fixa</option>
                         {(selectedPipeline?.stages ?? []).map((stage) => (
@@ -885,11 +885,11 @@ export default function AgentsPage() {
 
                   <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Base de conhecimento</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Base de conhecimento</span>
                       <select
                         value={draft.knowledgeBaseId ?? ''}
                         onChange={(event) => updateDraft({ knowledgeBaseId: event.target.value || null })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       >
                         <option value="">Sem base vinculada</option>
                         {knowledgeBases.map((knowledgeBase) => (
@@ -906,61 +906,61 @@ export default function AgentsPage() {
                     <button
                       type="button"
                       onClick={() => openKnowledgeBaseModal(selectedKnowledgeBase ?? undefined)}
-                      className="self-start rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/[0.08]"
+                      className="self-start rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                     >
                       {selectedKnowledgeBase ? 'Editar base' : 'Criar base'}
                     </button>
                   </div>
 
                   {selectedKnowledgeBase ? (
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-white">{selectedKnowledgeBase.name}</p>
+                          <p className="text-sm font-semibold text-slate-900">{selectedKnowledgeBase.name}</p>
                           <p className="mt-2 text-xs uppercase tracking-[0.24em] text-slate-500">
                             {selectedKnowledgeBase.agentCount} agente(s) vinculado(s)
                           </p>
                         </div>
                         <Database className="h-5 w-5 text-cyan-200" />
                       </div>
-                      <p className="mt-3 text-sm leading-7 text-slate-300">
+                      <p className="mt-3 text-sm leading-7 text-slate-600">
                         {selectedKnowledgeBase.summary || 'Sem resumo. O agente usará diretamente o conteúdo salvo.'}
                       </p>
                     </div>
                   ) : (
-                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] p-4 text-sm text-slate-500">
+                    <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
                       Nenhuma base vinculada. O agente pode operar só com o prompt, mas perderá contexto persistente.
                     </div>
                   )}
 
                   <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-300">Contexto do negócio</span>
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Contexto do negócio</span>
                     <textarea
                       rows={4}
                       value={draft.profile?.businessContext ?? ''}
                       onChange={(event) => updateProfile({ businessContext: event.target.value })}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                     />
                   </label>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Público-alvo</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Público-alvo</span>
                       <textarea
                         rows={3}
                         value={draft.profile?.targetAudience ?? ''}
                         onChange={(event) => updateProfile({ targetAudience: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Proposta de valor</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Proposta de valor</span>
                       <textarea
                         rows={3}
                         value={draft.profile?.valueProposition ?? ''}
                         onChange={(event) => updateProfile({ valueProposition: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
                   </div>
@@ -991,12 +991,12 @@ export default function AgentsPage() {
                   />
 
                   <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-300">Call to action</span>
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Call to action</span>
                     <input
                       type="text"
                       value={draft.profile?.callToAction ?? ''}
                       onChange={(event) => updateProfile({ callToAction: event.target.value })}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                     />
                   </label>
                 </>
@@ -1005,17 +1005,17 @@ export default function AgentsPage() {
                 <>
                   <div className="grid gap-4 md:grid-cols-3">
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Modelo</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Modelo</span>
                       <input
                         type="text"
                         value={draft.profile?.model ?? DEFAULT_PROFILE.model}
                         onChange={(event) => updateProfile({ model: event.target.value })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Temperature</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Temperature</span>
                       <input
                         type="number"
                         min={0}
@@ -1023,12 +1023,12 @@ export default function AgentsPage() {
                         step={0.1}
                         value={draft.profile?.temperature ?? DEFAULT_PROFILE.temperature}
                         onChange={(event) => updateProfile({ temperature: Number(event.target.value) })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
 
                     <label className="block">
-                      <span className="mb-1 block text-sm font-medium text-slate-300">Max tokens</span>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">Max tokens</span>
                       <input
                         type="number"
                         min={100}
@@ -1036,18 +1036,18 @@ export default function AgentsPage() {
                         step={50}
                         value={draft.profile?.maxTokens ?? DEFAULT_PROFILE.maxTokens}
                         onChange={(event) => updateProfile({ maxTokens: Number(event.target.value) })}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                       />
                     </label>
                   </div>
 
-                  <details className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-                    <summary className="cursor-pointer list-none text-sm font-medium text-slate-200">
+                  <details open className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    <summary className="cursor-pointer list-none text-sm font-medium text-slate-800">
                       Avançado
                     </summary>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <label className="block">
-                        <span className="mb-1 block text-sm font-medium text-slate-300">
+                        <span className="mb-1 block text-sm font-medium text-slate-700">
                           Janela de histórico (mensagens)
                         </span>
                         <input
@@ -1056,7 +1056,7 @@ export default function AgentsPage() {
                           max={50}
                           value={draft.profile?.historyWindow ?? DEFAULT_PROFILE.historyWindow}
                           onChange={(event) => updateProfile({ historyWindow: Number(event.target.value) })}
-                          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                         />
                         <p className="mt-2 text-xs text-slate-500">
                           Quantas mensagens recentes o agente lê a cada turno (10 a 50).
@@ -1064,7 +1064,7 @@ export default function AgentsPage() {
                       </label>
 
                       <label className="block">
-                        <span className="mb-1 block text-sm font-medium text-slate-300">
+                        <span className="mb-1 block text-sm font-medium text-slate-700">
                           Limiar de sumarização (mensagens)
                         </span>
                         <input
@@ -1073,7 +1073,7 @@ export default function AgentsPage() {
                           max={20}
                           value={draft.profile?.summaryThreshold ?? DEFAULT_PROFILE.summaryThreshold}
                           onChange={(event) => updateProfile({ summaryThreshold: Number(event.target.value) })}
-                          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                         />
                         <p className="mt-2 text-xs text-slate-500">
                           Frequência com que a memória de longo prazo é resumida (5 a 20).
@@ -1083,31 +1083,31 @@ export default function AgentsPage() {
                   </details>
 
                   <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-300">Instruções customizadas do admin</span>
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Instruções customizadas do admin</span>
                     <textarea
                       rows={4}
                       value={draft.profile?.customInstructions ?? ''}
                       onChange={(event) => updateProfile({ customInstructions: event.target.value })}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                     />
                   </label>
 
                   <label className="block">
-                    <span className="mb-1 block text-sm font-medium text-slate-300">Fine-tuning manual do prompt</span>
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Fine-tuning manual do prompt</span>
                     <textarea
                       rows={5}
                       value={draft.systemPrompt ?? ''}
                       onChange={(event) => updateDraft({ systemPrompt: event.target.value })}
-                      className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                     />
                   </label>
 
-                  <label className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-200">
+                  <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                     <input
                       type="checkbox"
                       checked={draft.isActive ?? true}
                       onChange={(event) => updateDraft({ isActive: event.target.checked })}
-                      className="h-4 w-4 rounded border-white/20 bg-transparent text-cyan-300"
+                      className="h-4 w-4 rounded border-slate-300 bg-white text-cyan-300"
                     />
                     Ativar agente ao salvar
                   </label>
@@ -1116,15 +1116,15 @@ export default function AgentsPage() {
             </div>
 
             {formError ? (
-              <div className="mt-5 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {formError}
               </div>
             ) : null}
 
-            <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
               <button
                 onClick={closeWizard}
-                className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08]"
+                className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
               >
                 Cancelar
               </button>
@@ -1133,7 +1133,7 @@ export default function AgentsPage() {
                 <button
                   onClick={() => setStep((current) => Math.max(current - 1, 0))}
                   disabled={step === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Voltar
@@ -1161,49 +1161,49 @@ export default function AgentsPage() {
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-[rgba(7,16,29,0.82)] p-6 shadow-[0_20px_72px_rgba(0,0,0,0.24)]">
-            <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Preview operacional</p>
-                <h3 className="mt-2 text-xl font-semibold text-white">Prompt compilado</h3>
+                <h3 className="mt-2 text-xl font-semibold text-slate-900">Prompt compilado</h3>
               </div>
-              <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-emerald-100">
+              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-emerald-700">
                 {isPreviewLoading ? 'Atualizando...' : 'Ao vivo'}
               </div>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Etapa</p>
-                <p className="mt-3 text-sm font-medium text-white">{selectedStageLabel}</p>
+                <p className="mt-3 text-sm font-medium text-slate-900">{selectedStageLabel}</p>
               </div>
-              <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Modelo</p>
-                <p className="mt-3 text-sm font-medium text-white">
+                <p className="mt-3 text-sm font-medium text-slate-900">
                   {draft.profile?.model ?? DEFAULT_PROFILE.model} · temp {draft.profile?.temperature ?? DEFAULT_PROFILE.temperature}
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
               <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Objetivo</p>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
+              <p className="mt-3 text-sm leading-7 text-slate-600">
                 {draft.profile?.objective?.trim() || 'Defina um objetivo operacional claro para o agente.'}
               </p>
             </div>
 
-            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
               <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Base de conhecimento</p>
-              <p className="mt-3 text-sm font-medium text-white">
+              <p className="mt-3 text-sm font-medium text-slate-900">
                 {selectedKnowledgeBase?.name || 'Sem base vinculada'}
               </p>
-              <p className="mt-2 text-sm leading-7 text-slate-300">
+              <p className="mt-2 text-sm leading-7 text-slate-600">
                 {selectedKnowledgeBase?.summary ||
                   'Selecione uma base para trazer contexto persistente ao prompt e ao runtime do agente.'}
               </p>
             </div>
 
-            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
               <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Checklist</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {(draft.profile?.qualificationChecklist?.length
@@ -1211,7 +1211,7 @@ export default function AgentsPage() {
                   : ['Nenhum checkpoint definido']).map((item) => (
                   <span
                     key={item}
-                    className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-xs text-slate-200"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700"
                   >
                     {item}
                   </span>
@@ -1219,12 +1219,12 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-[28px] border border-cyan-300/10 bg-[linear-gradient(180deg,rgba(8,18,34,0.92),rgba(5,12,24,0.96))] p-5">
-              <div className="flex items-center gap-2 text-cyan-100">
+            <div className="mt-4 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+              <div className="flex items-center gap-2 text-[#594ded]">
                 <BrainCircuit className="h-4 w-4" />
                 <p className="text-sm font-medium">Prompt final</p>
               </div>
-              <pre className="mt-4 max-h-[30rem] overflow-auto whitespace-pre-wrap text-xs leading-6 text-slate-300">
+              <pre className="mt-4 max-h-[30rem] overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-6 text-slate-700">
                 {previewPrompt || 'O prompt compilado aparecerá aqui conforme você preencher a configuração.'}
               </pre>
             </div>
@@ -1236,39 +1236,39 @@ export default function AgentsPage() {
         {isLoading && agents.length === 0 ? (
           <p className="text-slate-400">Buscando agentes...</p>
         ) : agents.length === 0 ? (
-          <div className="col-span-full rounded-[30px] border border-dashed border-white/10 bg-[rgba(7,16,29,0.72)] py-20 text-center">
-            <Bot className="mx-auto mb-4 h-16 w-16 text-slate-700" />
-            <p className="font-medium text-slate-300">Nenhum agente configurado.</p>
+          <div className="col-span-full rounded-[30px] border border-dashed border-slate-300 bg-white py-20 text-center">
+            <Bot className="mx-auto mb-4 h-16 w-16 text-slate-400" />
+            <p className="font-medium text-slate-700">Nenhum agente configurado.</p>
             <p className="text-sm text-slate-500">Use o wizard para ativar o primeiro agente operacional.</p>
           </div>
         ) : (
           agents.map((agent) => (
             <article
               key={agent.id}
-              className="group relative rounded-[28px] border border-white/10 bg-[rgba(7,16,29,0.82)] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.2)] transition hover:border-cyan-300/20 hover:bg-[rgba(9,19,35,0.9)]"
+              className="group relative rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition hover:border-cyan-300/30 hover:shadow-[0_22px_48px_rgba(15,23,42,0.12)]"
             >
               <div className="mb-4 flex items-start justify-between">
-                <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-2">
-                  <Bot className="h-6 w-6 text-cyan-100" />
+                <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-2">
+                  <Bot className="h-6 w-6 text-[#594ded]" />
                 </div>
 
                 <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
                     onClick={() => openWizard(agent)}
-                    className="rounded-xl border border-white/10 bg-white/[0.05] p-1.5 text-slate-400 transition-colors hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
+                    className="rounded-xl border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:border-cyan-300/30 hover:bg-cyan-50 hover:text-[#594ded]"
                   >
                     <Settings className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => void handleDeleteAgent(agent)}
-                    className="rounded-xl border border-white/10 bg-white/[0.05] p-1.5 text-slate-400 transition-colors hover:border-rose-400/20 hover:bg-rose-500/10 hover:text-rose-100"
+                    className="rounded-xl border border-slate-200 bg-white p-1.5 text-slate-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold text-white">{agent.name}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{agent.name}</h3>
               <div className="mt-2 flex items-center gap-2">
                 <span className={`h-2 w-2 rounded-full ${agent.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
                 <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
@@ -1276,43 +1276,43 @@ export default function AgentsPage() {
                 </span>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-sm text-slate-300">
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                 <p className="line-clamp-3">
                   {agent.profile?.objective || 'Sem objetivo estruturado. Use o wizard para enriquecer este agente.'}
                 </p>
               </div>
 
               <div className="mt-4 grid gap-3 text-xs text-slate-500 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <p className="uppercase tracking-[0.2em] text-slate-400">Etapa</p>
-                  <p className="mt-2 font-medium text-slate-200">
+                  <p className="mt-2 font-medium text-slate-800">
                     {agent.stage ? `${agent.stage.pipeline.name} / ${agent.stage.name}` : 'Sem bind de etapa'}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <p className="uppercase tracking-[0.2em] text-slate-400">Tom / modelo</p>
-                  <p className="mt-2 font-medium text-slate-200">
+                  <p className="mt-2 font-medium text-slate-800">
                     {agent.profile?.tone || 'Tom padrão'} · {agent.profile?.model || 'gpt-4o-mini'}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs text-slate-500">
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
                 <p className="uppercase tracking-[0.2em] text-slate-400">Base</p>
-                <p className="mt-2 font-medium text-slate-200">
+                <p className="mt-2 font-medium text-slate-800">
                   {agent.knowledgeBase?.name || 'Sem base vinculada'}
                 </p>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-6 text-slate-200">
-                <div className="mb-2 flex items-center gap-2 text-cyan-200">
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-6 text-slate-700">
+                <div className="mb-2 flex items-center gap-2 text-[#594ded]">
                   <Sparkles className="h-3.5 w-3.5" />
                   Prompt compilado
                 </div>
                 <p className="line-clamp-5 whitespace-pre-wrap">{agent.compiledPrompt}</p>
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 text-xs text-slate-400">
+              <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
                 <div className="flex items-center gap-1">
                   <BrainCircuit className="h-3 w-3" />
                   <span>{agent.profile?.qualificationChecklist?.length ?? 0} checkpoints</span>
@@ -1327,8 +1327,8 @@ export default function AgentsPage() {
                     disabled={busyAgentId === agent.id}
                     className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                       agent.isActive
-                        ? 'border border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15'
-                        : 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/15'
+                        ? 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                        : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                     }`}
                   >
                     <Power className="h-3 w-3" />
@@ -1343,7 +1343,7 @@ export default function AgentsPage() {
                     className={`rounded-full px-3 py-1.5 font-medium transition ${
                       selectedHistoryAgentId === agent.id
                         ? 'bg-cyan-300 text-slate-950'
-                        : 'border border-white/10 bg-white/[0.04] text-slate-300 hover:border-cyan-300/20 hover:text-cyan-100'
+                        : 'border border-slate-200 bg-white text-slate-600 hover:border-cyan-300/30 hover:text-[#594ded]'
                     }`}
                   >
                     {selectedHistoryAgentId === agent.id ? 'Ocultar conversas' : 'Ver conversas'}
@@ -1355,19 +1355,19 @@ export default function AgentsPage() {
         )}
       </section>
 
-      <section className="rounded-[32px] border border-white/10 bg-[rgba(7,16,29,0.82)] p-6 shadow-[0_20px_72px_rgba(0,0,0,0.24)]">
-        <div className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+        <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Knowledge base</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Bases de conhecimento</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-400">
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Bases de conhecimento</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
               Contexto persistente, objeções, posicionamento e blocos de resposta que alimentam o prompt do agente.
             </p>
           </div>
 
           <button
             onClick={() => openKnowledgeBaseModal()}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/[0.08]"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
             <Plus className="h-4 w-4" />
             Nova base
@@ -1378,9 +1378,9 @@ export default function AgentsPage() {
           {isKnowledgeBaseLoading && knowledgeBases.length === 0 ? (
             <p className="text-sm text-slate-400">Carregando bases de conhecimento...</p>
           ) : knowledgeBases.length === 0 ? (
-            <div className="col-span-full rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-12 text-center">
+            <div className="col-span-full rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
               <Database className="mx-auto mb-4 h-12 w-12 text-slate-700" />
-              <p className="font-medium text-slate-200">Nenhuma base criada ainda.</p>
+              <p className="font-medium text-slate-700">Nenhuma base criada ainda.</p>
               <p className="mt-2 text-sm text-slate-500">
                 Crie a primeira base para organizar contexto persistente e vinculá-lo aos agentes.
               </p>
@@ -1389,11 +1389,11 @@ export default function AgentsPage() {
             knowledgeBases.map((knowledgeBase) => (
               <article
                 key={knowledgeBase.id}
-                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5"
+                className="rounded-[28px] border border-slate-200 bg-slate-50 p-5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-lg font-semibold text-white">{knowledgeBase.name}</p>
+                    <p className="text-lg font-semibold text-slate-900">{knowledgeBase.name}</p>
                     <p className="mt-2 text-xs uppercase tracking-[0.24em] text-slate-500">
                       {knowledgeBase.agentCount} agente(s) vinculado(s)
                     </p>
@@ -1401,11 +1401,11 @@ export default function AgentsPage() {
                   <Database className="h-5 w-5 text-cyan-200" />
                 </div>
 
-                <p className="mt-4 text-sm leading-7 text-slate-300">
+                <p className="mt-4 text-sm leading-7 text-slate-600">
                   {knowledgeBase.summary || 'Sem resumo. A base usará diretamente o conteúdo salvo abaixo.'}
                 </p>
 
-                <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm leading-7 text-slate-300">
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-700">
                   <p className="line-clamp-5 whitespace-pre-wrap">{knowledgeBase.content || 'Sem conteúdo salvo.'}</p>
                 </div>
 
@@ -1414,13 +1414,13 @@ export default function AgentsPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => openKnowledgeBaseModal(knowledgeBase)}
-                      className="rounded-full border border-white/10 px-3 py-1.5 font-medium text-slate-200 transition hover:bg-white/[0.08]"
+                      className="rounded-full border border-slate-200 px-3 py-1.5 font-medium text-slate-700 transition hover:bg-white"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => void handleDeleteKnowledgeBase(knowledgeBase)}
-                      className="rounded-full border border-rose-400/20 px-3 py-1.5 font-medium text-rose-100 transition hover:bg-rose-500/10"
+                      className="rounded-full border border-rose-200 px-3 py-1.5 font-medium text-rose-700 transition hover:bg-rose-50"
                     >
                       Excluir
                     </button>
@@ -1433,12 +1433,12 @@ export default function AgentsPage() {
       </section>
 
       {selectedHistoryAgent ? (
-        <section className="rounded-[32px] border border-white/10 bg-[rgba(7,16,29,0.82)] p-6 shadow-[0_20px_72px_rgba(0,0,0,0.24)]">
-          <div className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-center lg:justify-between">
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+          <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Monitoramento do agente</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">{selectedHistoryAgent.name}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-400">
+              <h2 className="mt-2 text-2xl font-semibold text-slate-900">{selectedHistoryAgent.name}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
                 Conversas reais capturadas pelo runner via WhatsApp. Use este painel para revisar tom, handoff e
                 qualidade da execução do prompt.
               </p>
@@ -1447,14 +1447,14 @@ export default function AgentsPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={refreshSelectedHistory}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/[0.08]"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 <RefreshCw className="h-4 w-4" />
                 Atualizar
               </button>
               <button
                 onClick={() => setSelectedHistoryAgentId(null)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/[0.08]"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 <X className="h-4 w-4" />
                 Fechar
@@ -1463,18 +1463,18 @@ export default function AgentsPage() {
           </div>
 
           {conversationLoadingAgentId === selectedHistoryAgent.id ? (
-            <div className="flex items-center gap-3 py-10 text-sm text-slate-300">
+            <div className="flex items-center gap-3 py-10 text-sm text-slate-600">
               <LoaderCircle className="h-4 w-4 animate-spin" />
               Buscando conversas mais recentes...
             </div>
           ) : conversationError ? (
-            <div className="mt-5 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {conversationError}
             </div>
           ) : selectedHistoryConversations.length === 0 ? (
-            <div className="mt-6 rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-14 text-center">
+            <div className="mt-6 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
               <Clock3 className="mx-auto mb-4 h-10 w-10 text-slate-600" />
-              <p className="font-medium text-slate-200">Nenhuma conversa registrada ainda.</p>
+              <p className="font-medium text-slate-700">Nenhuma conversa registrada ainda.</p>
               <p className="mt-2 text-sm text-slate-500">
                 Assim que um lead falar com este agente, o histórico operacional aparecerá aqui.
               </p>
@@ -1487,12 +1487,12 @@ export default function AgentsPage() {
                 return (
                   <article
                     key={conversation.id}
-                    className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))] p-5"
+                    className="rounded-[28px] border border-slate-200 bg-slate-50 p-5"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-lg font-semibold text-white">{conversation.contact.name}</p>
-                        <p className="mt-1 text-sm text-slate-400">
+                        <p className="text-lg font-semibold text-slate-900">{conversation.contact.name}</p>
+                        <p className="mt-1 text-sm text-slate-500">
                           {conversation.contact.phone || conversation.contact.email || 'Contato sem telefone ou e-mail'}
                         </p>
                       </div>
@@ -1504,24 +1504,24 @@ export default function AgentsPage() {
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Ultima atividade</p>
-                        <p className="mt-2 text-sm font-medium text-slate-200">
+                        <p className="mt-2 text-sm font-medium text-slate-800">
                           {formatDateTime(conversation.lastMessageAt || conversation.updatedAt)}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Card vinculado</p>
-                        <p className="mt-2 text-sm font-medium text-slate-200">
+                        <p className="mt-2 text-sm font-medium text-slate-800">
                           {conversation.card?.title || 'Sem card vinculado'}
                         </p>
                       </div>
                     </div>
 
                     {conversation.summary ? (
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Resumo</p>
-                        <p className="mt-2 text-sm leading-7 text-slate-300">{conversation.summary}</p>
+                        <p className="mt-2 text-sm leading-7 text-slate-600">{conversation.summary}</p>
                       </div>
                     ) : null}
 
@@ -1531,8 +1531,8 @@ export default function AgentsPage() {
                           key={message.id}
                           className={`rounded-2xl border px-4 py-3 text-sm leading-7 ${
                             message.role === 'AGENT'
-                              ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-50'
-                              : 'border-white/10 bg-white/[0.04] text-slate-200'
+                              ? 'border-cyan-200 bg-cyan-50 text-[#594ded]'
+                              : 'border-slate-200 bg-white text-slate-700'
                           }`}
                         >
                           <p className="text-[11px] uppercase tracking-[0.24em] opacity-70">
@@ -1552,23 +1552,23 @@ export default function AgentsPage() {
 
       {isKnowledgeBaseModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/72 px-4 py-10 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-[32px] border border-white/10 bg-[rgba(7,16,29,0.96)] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.4)]">
-            <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="w-full max-w-3xl rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.16)]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">
                   {editingKnowledgeBase ? 'Editando base' : 'Criando base'}
                 </p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">
+                <h3 className="mt-2 text-2xl font-semibold text-slate-900">
                   {editingKnowledgeBase?.name || 'Nova base de conhecimento'}
                 </h3>
-                <p className="mt-2 text-sm leading-7 text-slate-400">
+                <p className="mt-2 text-sm leading-7 text-slate-600">
                   Estruture aqui o contexto persistente que o agente deve carregar no prompt final e nas respostas.
                 </p>
               </div>
 
               <button
                 onClick={closeKnowledgeBaseModal}
-                className="rounded-2xl p-2 text-slate-300 transition hover:bg-white/[0.08]"
+                className="rounded-2xl p-2 text-slate-500 transition hover:bg-slate-100"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1576,38 +1576,38 @@ export default function AgentsPage() {
 
             <div className="mt-6 space-y-5">
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-300">Nome da base</span>
+                <span className="mb-1 block text-sm font-medium text-slate-700">Nome da base</span>
                 <input
                   type="text"
                   value={knowledgeBaseDraft.name}
                   onChange={(event) =>
                     setKnowledgeBaseDraft((current) => ({ ...current, name: event.target.value }))
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-300">Resumo</span>
+                <span className="mb-1 block text-sm font-medium text-slate-700">Resumo</span>
                 <textarea
                   rows={3}
                   value={knowledgeBaseDraft.summary ?? ''}
                   onChange={(event) =>
                     setKnowledgeBaseDraft((current) => ({ ...current, summary: event.target.value }))
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-300">Conteúdo operacional</span>
+                <span className="mb-1 block text-sm font-medium text-slate-700">Conteúdo operacional</span>
                 <textarea
                   rows={10}
                   value={knowledgeBaseDraft.content}
                   onChange={(event) =>
                     setKnowledgeBaseDraft((current) => ({ ...current, content: event.target.value }))
                   }
-                  className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#594ded]/35"
                 />
                 <p className="mt-2 text-xs leading-6 text-slate-500">
                   Use este campo para FAQs, argumentos de venda, posicionamento, objeções, diferenciais e limites do agente.
@@ -1616,15 +1616,15 @@ export default function AgentsPage() {
             </div>
 
             {knowledgeBaseError ? (
-              <div className="mt-5 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {knowledgeBaseError}
               </div>
             ) : null}
 
-            <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5">
+            <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-5">
               <button
                 onClick={closeKnowledgeBaseModal}
-                className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08]"
+                className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
               >
                 Cancelar
               </button>

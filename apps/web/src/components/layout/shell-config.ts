@@ -77,6 +77,7 @@ export const mainNavigation: ShellNavItem[] = [
   },
   {
     label: 'Agentes',
+    href: '/agentes',
     icon: Bot,
     description: 'Agentes autonomos, templates e base de conhecimento do workspace.',
     children: [
