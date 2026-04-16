@@ -22,6 +22,11 @@ export interface AgentPromptProfile {
   historyWindow?: number;
   // summaryThreshold: after this many AGENT turns the summarizer queue runs. Clamp [5, 20].
   summaryThreshold?: number;
+  // [Plan 05-02 G6 addition] blockedTerms: lowercase substring blacklist,
+  // stored in Agent.profile JSON (no DB migration). OutboundDispatcher scans
+  // the generated reply against this list BEFORE sending; a match holds the
+  // reply as AGENT_REFUSAL_REVIEW and emits a notification to the SDR.
+  blockedTerms?: string[];
 }
 
 export interface AgentPromptContext {
@@ -119,6 +124,7 @@ export function normalizeAgentPromptProfile(
     maxTokens: normalizeNumber(record.maxTokens as number | undefined),
     historyWindow: clampInteger(record.historyWindow, 10, 50),
     summaryThreshold: clampInteger(record.summaryThreshold, 5, 20),
+    blockedTerms: normalizeStringArray(record.blockedTerms),
   };
 
   const hasAnyValue = Object.values(profile).some((item) => {
