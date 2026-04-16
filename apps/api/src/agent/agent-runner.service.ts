@@ -20,17 +20,71 @@ import {
 } from './agent-prompt.builder';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { EmailService } from '../email/email.service';
+import { NotificationService } from '../notification/notification.service';
+import { AGENT_ACTIVITY_TYPES } from './constants/card-activity-types';
+import { ConversationHistoryLoader } from './handlers/conversation-history.loader';
+import {
+  AgentProviderError,
+  StructuredReplyGenerator,
+} from './handlers/structured-reply.generator';
+import { QualificationHandler } from './handlers/qualification.handler';
+import { HandoffHandler } from './handlers/handoff.handler';
+import { OutboundDispatcher } from './handlers/outbound.dispatcher';
+import { ConversationSummarizerQueue } from './workers/conversation-summarizer.queue';
+import { AgentRetryQueue } from './workers/agent-retry.queue';
+import type { AgentRetryJobPayload } from './workers/agent-retry.types';
 
 export interface AgentRunnerResult {
   status:
-    | 'agent_replied'
     | 'no_card'
     | 'no_agent'
-    | 'conversation_updated'
-    | 'handoff_required';
+    | 'handoff_required'
+    | 'replied'
+    | 'held'
+    | 'opted_out'
+    | 'retrying';
   conversationId?: string;
   agentId?: string;
-  responseMessageId?: string;
+  whatsAppMessageId?: string;
+  reason?: string;
+}
+
+type LegacyInboundMessageInput = {
+  tenantId: string;
+  contactId: string;
+  messageContent: string;
+  whatsAppMessageId: string | null;
+  cardId?: string;
+};
+
+type FutureInboundMessageInput = {
+  contactId: string;
+  content: string;
+  whatsAppMessageId: string | null;
+  tenantId?: string;
+  cardId?: string;
+};
+
+type RunnerInboundInput =
+  | LegacyInboundMessageInput
+  | FutureInboundMessageInput
+  | AgentRetryJobPayload;
+
+const OPT_OUT_PATTERN =
+  /\b(cancelar|descadastrar|parar de receber|não quero mais|unsubscribe|remover meus dados)\b/i;
+const DISCLOSURE_CHALLENGE_PATTERN =
+  /(é um (robô|bot|robo)|é (uma )?(ia|ai)|você é humano|é automático|isso é automatizado|fala(r)? com (pessoa|humano))/i;
+const OPT_OUT_CONFIRMATION =
+  'Entendido. Não enviaremos mais mensagens por aqui. Se mudar de ideia, é só responder este número.';
+
+interface NormalizedInbound {
+  contactId: string;
+  content: string;
+  whatsAppMessageId: string | null;
+  preresolvedConversationId?: string;
+  preresolvedCardId?: string;
+  preresolvedTenantId?: string;
+  preresolvedAgentId?: string;
 }
 
 const agentRuntimeInclude = Prisma.validator<Prisma.AgentInclude>()({
@@ -67,6 +121,40 @@ type AgentRuntime = Prisma.AgentGetPayload<{
   include: typeof agentRuntimeInclude;
 }>;
 
+type CardRuntime = Awaited<ReturnType<AgentRunnerService['resolveCard']>>;
+
+function normalizeInbound(input: RunnerInboundInput): NormalizedInbound {
+  if ('inboundContent' in input) {
+    return {
+      contactId: input.contactId,
+      content: input.inboundContent.trim(),
+      whatsAppMessageId: input.whatsAppMessageId ?? null,
+      preresolvedConversationId: input.conversationId,
+      preresolvedCardId: input.cardId,
+      preresolvedTenantId: input.tenantId,
+      preresolvedAgentId: input.agentId,
+    };
+  }
+
+  if ('messageContent' in input) {
+    return {
+      contactId: input.contactId,
+      content: input.messageContent.trim(),
+      whatsAppMessageId: input.whatsAppMessageId ?? null,
+      preresolvedCardId: input.cardId,
+      preresolvedTenantId: input.tenantId,
+    };
+  }
+
+  return {
+    contactId: input.contactId,
+    content: input.content.trim(),
+    whatsAppMessageId: input.whatsAppMessageId ?? null,
+    preresolvedCardId: input.cardId,
+    preresolvedTenantId: input.tenantId,
+  };
+}
+
 @Injectable()
 export class AgentRunnerService {
   private readonly logger = new Logger(AgentRunnerService.name);
@@ -77,90 +165,89 @@ export class AgentRunnerService {
     @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService,
     private readonly emailService: EmailService,
+    private readonly historyLoader: ConversationHistoryLoader,
+    private readonly replyGenerator: StructuredReplyGenerator,
+    private readonly qualificationHandler: QualificationHandler,
+    private readonly handoffHandler: HandoffHandler,
+    private readonly outboundDispatcher: OutboundDispatcher,
+    private readonly summarizerQueue: ConversationSummarizerQueue,
+    @Inject(forwardRef(() => AgentRetryQueue))
+    private readonly retryQueue: AgentRetryQueue,
+    private readonly notifications: NotificationService,
   ) {}
 
-  public async processInboundMessage(input: {
-    tenantId: string;
-    contactId: string;
-    messageContent: string;
-    whatsAppMessageId: string;
-    cardId?: string;
-  }): Promise<AgentRunnerResult> {
-    const activeCard = await this.resolveActiveCard(
-      input.tenantId,
-      input.contactId,
-      input.cardId,
-    );
-    if (!activeCard) {
+  public async processInboundMessage(
+    input: RunnerInboundInput,
+  ): Promise<AgentRunnerResult> {
+    const normalized = normalizeInbound(input);
+    const card = await this.resolveCard(normalized);
+    if (!card) {
       return { status: 'no_card' };
     }
 
-    const agent = await this.prisma.agent.findFirst({
-      where: {
-        tenantId: input.tenantId,
-        stageId: activeCard.stageId,
-        isActive: true,
-      },
-      include: agentRuntimeInclude,
-      orderBy: { updatedAt: 'desc' },
-    });
-
+    const agent = await this.resolveAgent(card, normalized);
     if (!agent) {
       return { status: 'no_agent' };
     }
 
     const conversation = await this.findOrCreateConversation({
-      tenantId: input.tenantId,
+      preferredConversationId: normalized.preresolvedConversationId,
+      tenantId: card.tenantId,
       agentId: agent.id,
-      contactId: input.contactId,
-      cardId: activeCard.id,
+      contactId: normalized.contactId,
+      cardId: card.id,
     });
+    const capturedAt = conversation.updatedAt;
 
-    const normalizedMessage = input.messageContent.trim();
-    const handoffRequired = this.shouldRequireHandoff(normalizedMessage);
-    const profile = normalizeAgentPromptProfile(agent.profile);
-
-    await this.prisma.agentMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: AgentMessageRole.USER,
-        content: normalizedMessage,
-        whatsAppMessageId: input.whatsAppMessageId,
-      },
-    });
-
-    if (conversation.status === AgentConversationStatus.HANDOFF_REQUIRED) {
-      await this.prisma.agentConversation.update({
-        where: { id: conversation.id },
+    if (OPT_OUT_PATTERN.test(normalized.content)) {
+      await this.prisma.cardActivity.create({
         data: {
-          lastMessageAt: new Date(),
+          cardId: card.id,
+          type: AGENT_ACTIVITY_TYPES.LEAD_OPT_OUT,
+          content: `Lead solicitou parar de receber mensagens: "${normalized.content.slice(0, 120)}"`,
         },
       });
-
+      await this.optimisticUpdate(conversation.id, capturedAt, {
+        status: AgentConversationStatus.CLOSED,
+        lastMessageAt: new Date(),
+      });
+      this.notifications.emit(card.tenantId, {
+        type: 'LEAD_OPT_OUT',
+        cardId: card.id,
+        cardTitle: card.title ?? 'Lead',
+        at: new Date().toISOString(),
+      });
+      try {
+        await this.whatsappService.logMessage(card.tenantId, {
+          contactId: normalized.contactId,
+          cardId: card.id,
+          content: OPT_OUT_CONFIRMATION,
+        });
+      } catch (error) {
+        this.logger.warn(`Opt-out confirmation failed: ${String(error)}`);
+      }
       return {
-        status: 'conversation_updated',
+        status: 'opted_out',
         conversationId: conversation.id,
         agentId: agent.id,
       };
     }
 
-    if (handoffRequired) {
-      await this.prisma.agentConversation.update({
-        where: { id: conversation.id },
+    if (!normalized.preresolvedConversationId) {
+      await this.prisma.agentMessage.create({
         data: {
-          status: AgentConversationStatus.HANDOFF_REQUIRED,
-          lastMessageAt: new Date(),
+          conversationId: conversation.id,
+          role: AgentMessageRole.USER,
+          content: normalized.content,
+          whatsAppMessageId: normalized.whatsAppMessageId,
         },
       });
+    }
 
-      await this.prisma.cardActivity.create({
-        data: {
-          cardId: activeCard.id,
-          type: 'AGENT_HANDOFF',
-          content: `Lead solicitou handoff humano na conversa do agente ${agent.name}.`,
-        },
+    if (conversation.status === AgentConversationStatus.HANDOFF_REQUIRED) {
+      await this.optimisticUpdate(conversation.id, capturedAt, {
+        lastMessageAt: new Date(),
       });
-
       return {
         status: 'handoff_required',
         conversationId: conversation.id,
@@ -168,6 +255,7 @@ export class AgentRunnerService {
       };
     }
 
+    const profile = normalizeAgentPromptProfile(agent.profile);
     const compiledPrompt = buildAgentCompiledPrompt({
       name: agent.name,
       systemPrompt: agent.systemPrompt,
@@ -182,109 +270,307 @@ export class AgentRunnerService {
         knowledgeBaseContent: agent.knowledgeBase?.content ?? null,
       },
     });
-
-    const aiReply = await this.aiService.generateResponse(
-      compiledPrompt,
-      normalizedMessage,
-      {
-        model: profile?.model,
-        temperature: profile?.temperature,
-        maxTokens: profile?.maxTokens,
-      },
-    );
-
-    const outboundMessage = await this.prisma.whatsAppMessage.create({
-      data: {
-        contactId: input.contactId,
-        content: aiReply,
-        direction: MessageDirection.OUTBOUND,
-        status: MessageStatus.SENT,
-      },
-    });
-
-    await this.prisma.agentMessage.create({
-      data: {
-        conversationId: conversation.id,
-        role: AgentMessageRole.AGENT,
-        content: aiReply,
-        whatsAppMessageId: outboundMessage.id,
-      },
-    });
-
-    await this.prisma.agentConversation.update({
-      where: { id: conversation.id },
-      data: {
-        status: AgentConversationStatus.OPEN,
-        lastMessageAt: outboundMessage.createdAt,
-      },
-    });
-
-    await this.prisma.cardActivity.create({
-      data: {
-        cardId: activeCard.id,
-        type: 'AGENT_RESPONSE',
-        content: `Agente ${agent.name} respondeu automaticamente via WhatsApp.`,
-      },
-    });
-
-    return {
-      status: 'agent_replied',
+    const history = await this.historyLoader.load({
       conversationId: conversation.id,
-      agentId: agent.id,
-      responseMessageId: outboundMessage.id,
-    };
-  }
+      windowSize: profile?.historyWindow ?? 20,
+    });
 
-  private async resolveActiveCard(
-    tenantId: string,
-    contactId: string,
-    cardId?: string,
-  ): Promise<{ id: string; stageId: string } | null> {
-    if (cardId) {
-      return this.prisma.card.findFirst({
-        where: {
-          id: cardId,
-          tenantId,
-          contactId,
+    let generated;
+    try {
+      generated = await this.replyGenerator.generate({
+        compiledPrompt,
+        userMessage: normalized.content,
+        history,
+        summary: conversation.summary,
+        profile,
+      });
+    } catch (error) {
+      if (!(error instanceof AgentProviderError)) {
+        throw error;
+      }
+
+      await this.prisma.cardActivity.create({
+        data: {
+          cardId: card.id,
+          type: AGENT_ACTIVITY_TYPES.AGENT_ERROR,
+          content:
+            'Erro transitório ao chamar o modelo; re-tentando em background.',
+          metadata: {
+            reason: error.reason,
+            raw: error.raw,
+          } as Prisma.InputJsonValue,
         },
-        select: {
-          id: true,
-          stageId: true,
+      });
+      await this.retryQueue.enqueue({
+        conversationId: conversation.id,
+        cardId: card.id,
+        tenantId: card.tenantId,
+        agentId: agent.id,
+        contactId: normalized.contactId,
+        inboundContent: normalized.content,
+        whatsAppMessageId: normalized.whatsAppMessageId,
+        enqueuedAt: new Date().toISOString(),
+      });
+      return {
+        status: 'retrying',
+        conversationId: conversation.id,
+        agentId: agent.id,
+      };
+    }
+
+    if (generated.fallback && generated.fallbackReason === 'parse') {
+      await this.prisma.cardActivity.create({
+        data: {
+          cardId: card.id,
+          type: AGENT_ACTIVITY_TYPES.AGENT_PARSE_FALLBACK,
+          content: 'Modelo retornou JSON inválido; usando fallback.',
+          metadata: {
+            raw_output: generated.rawOutput,
+          } as Prisma.InputJsonValue,
         },
       });
     }
 
+    if (generated.fallback && generated.fallbackReason === 'refusal') {
+      await this.prisma.cardActivity.create({
+        data: {
+          cardId: card.id,
+          type: AGENT_ACTIVITY_TYPES.AGENT_HELD,
+          content: 'Modelo recusou a resposta.',
+          metadata: {
+            reason: 'model_refusal',
+            raw_output: generated.rawOutput,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      this.notifications.emit(card.tenantId, {
+        type: 'AGENT_REFUSAL_REVIEW',
+        cardId: card.id,
+        cardTitle: card.title ?? 'Lead',
+        at: new Date().toISOString(),
+      });
+      await this.optimisticUpdate(conversation.id, capturedAt, {
+        lastMessageAt: new Date(),
+      });
+      return {
+        status: 'held',
+        conversationId: conversation.id,
+        agentId: agent.id,
+        reason: 'model_refusal',
+      };
+    }
+
+    if (generated.reply.request_handoff) {
+      const handoff = await this.handoffHandler.apply({
+        reply: generated.reply,
+        conversation: { id: conversation.id },
+        card: { id: card.id },
+        agentName: agent.name,
+        rawOutput: generated.rawOutput,
+      });
+      return {
+        status: 'handoff_required',
+        conversationId: handoff.conversationId,
+        agentId: agent.id,
+      };
+    }
+
+    if (generated.reply.mark_qualified) {
+      await this.qualificationHandler.apply({
+        reply: generated.reply,
+        card: {
+          id: card.id,
+          pipelineId: card.stage.pipelineId,
+          title: card.title,
+          tenantId: card.tenantId,
+        },
+        rawOutput: generated.rawOutput,
+      });
+    }
+
+    if (!generated.reply.should_respond) {
+      await this.prisma.cardActivity.create({
+        data: {
+          cardId: card.id,
+          type: AGENT_ACTIVITY_TYPES.AGENT_HELD,
+          content: 'Agente segurou resposta (fragmentação).',
+          metadata: {
+            reason: 'prompt_driven',
+            held_output: generated.reply as unknown as Prisma.InputJsonValue,
+            raw_output: generated.rawOutput,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      await this.optimisticUpdate(conversation.id, capturedAt, {
+        lastMessageAt: new Date(),
+      });
+      return {
+        status: 'held',
+        conversationId: conversation.id,
+        agentId: agent.id,
+        reason: 'prompt_driven',
+      };
+    }
+
+    const dispatch = await this.outboundDispatcher.send({
+      reply: generated.reply,
+      conversation: {
+        id: conversation.id,
+        contactId: normalized.contactId,
+      },
+      card: { id: card.id, tenantId: card.tenantId },
+      agent: {
+        id: agent.id,
+        name: agent.name,
+        knowledgeBase: agent.knowledgeBase
+          ? { content: agent.knowledgeBase.content ?? null }
+          : null,
+      },
+      tenant: { name: agent.tenant.name },
+      profile,
+      inboundIsDisclosureChallenge: DISCLOSURE_CHALLENGE_PATTERN.test(
+        normalized.content,
+      ),
+      rawOutput: generated.rawOutput,
+    });
+
+    if (dispatch.status === 'sent') {
+      const agentMessageCount = await this.prisma.agentMessage.count({
+        where: {
+          conversationId: conversation.id,
+          role: AgentMessageRole.AGENT,
+        },
+      });
+      const summaryThreshold = profile?.summaryThreshold ?? 10;
+      if (
+        agentMessageCount > 0 &&
+        agentMessageCount % summaryThreshold === 0
+      ) {
+        await this.summarizerQueue
+          .enqueue(conversation.id)
+          .catch((error) =>
+            this.logger.warn(`Summarizer enqueue failed: ${String(error)}`),
+          );
+      }
+      return {
+        status: 'replied',
+        conversationId: conversation.id,
+        agentId: agent.id,
+        whatsAppMessageId: dispatch.whatsAppMessageId,
+      };
+    }
+
+    if (dispatch.status === 'handoff_required') {
+      await this.optimisticUpdate(conversation.id, capturedAt, {
+        status: AgentConversationStatus.HANDOFF_REQUIRED,
+        lastMessageAt: new Date(),
+      });
+      return {
+        status: 'handoff_required',
+        conversationId: conversation.id,
+        agentId: agent.id,
+      };
+    }
+
+    await this.optimisticUpdate(conversation.id, capturedAt, {
+      lastMessageAt: new Date(),
+    });
+    return {
+      status: 'held',
+      conversationId: conversation.id,
+      agentId: agent.id,
+      reason: dispatch.reason,
+    };
+  }
+
+  private async resolveCard(normalized: NormalizedInbound) {
+    if (normalized.preresolvedCardId) {
+      const card = await this.prisma.card.findUnique({
+        where: { id: normalized.preresolvedCardId },
+        include: {
+          stage: { select: { id: true, name: true, pipelineId: true } },
+        },
+      });
+      if (
+        card &&
+        card.contactId === normalized.contactId &&
+        (!normalized.preresolvedTenantId ||
+          card.tenantId === normalized.preresolvedTenantId)
+      ) {
+        return card;
+      }
+      return null;
+    }
+
     return this.prisma.card.findFirst({
       where: {
-        tenantId,
-        contactId,
+        contactId: normalized.contactId,
+        ...(normalized.preresolvedTenantId
+          ? { tenantId: normalized.preresolvedTenantId }
+          : {}),
       },
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-      select: {
-        id: true,
-        stageId: true,
+      include: {
+        stage: { select: { id: true, name: true, pipelineId: true } },
       },
     });
   }
 
+  private async resolveAgent(
+    card: NonNullable<CardRuntime>,
+    normalized: NormalizedInbound,
+  ): Promise<AgentRuntime | null> {
+    if (normalized.preresolvedAgentId) {
+      return this.prisma.agent.findFirst({
+        where: {
+          id: normalized.preresolvedAgentId,
+          tenantId: card.tenantId,
+          isActive: true,
+        },
+        include: agentRuntimeInclude,
+      });
+    }
+
+    return this.prisma.agent.findFirst({
+      where: {
+        tenantId: card.tenantId,
+        stageId: card.stageId,
+        isActive: true,
+      },
+      include: agentRuntimeInclude,
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
   private async findOrCreateConversation(input: {
+    preferredConversationId?: string;
     tenantId: string;
     agentId: string;
     contactId: string;
     cardId: string;
   }) {
+    if (input.preferredConversationId) {
+      const preferred = await this.prisma.agentConversation.findFirst({
+        where: {
+          id: input.preferredConversationId,
+          tenantId: input.tenantId,
+          agentId: input.agentId,
+          contactId: input.contactId,
+          cardId: input.cardId,
+        },
+      });
+      if (preferred) {
+        return preferred;
+      }
+    }
+
     const existingConversation = await this.prisma.agentConversation.findFirst({
       where: {
         tenantId: input.tenantId,
         agentId: input.agentId,
         contactId: input.contactId,
         cardId: input.cardId,
-        status: {
-          in: [
-            AgentConversationStatus.OPEN,
-            AgentConversationStatus.HANDOFF_REQUIRED,
-          ],
-        },
+        status: { not: AgentConversationStatus.CLOSED },
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -303,6 +589,41 @@ export class AgentRunnerService {
         lastMessageAt: new Date(),
       },
     });
+  }
+
+  private async optimisticUpdate(
+    conversationId: string,
+    capturedAt: Date,
+    data: Prisma.AgentConversationUpdateManyMutationInput,
+  ): Promise<void> {
+    const initial = await this.prisma.agentConversation.updateMany({
+      where: { id: conversationId, updatedAt: capturedAt },
+      data,
+    });
+    if (initial.count > 0) {
+      return;
+    }
+
+    const fresh = await this.prisma.agentConversation.findFirst({
+      where: { id: conversationId },
+      select: { updatedAt: true },
+    });
+    if (!fresh) {
+      this.logger.warn(
+        `Optimistic lock miss on conversation ${conversationId}; conversation no longer exists.`,
+      );
+      return;
+    }
+
+    const retried = await this.prisma.agentConversation.updateMany({
+      where: { id: conversationId, updatedAt: fresh.updatedAt },
+      data,
+    });
+    if (retried.count === 0) {
+      this.logger.warn(
+        `Optimistic lock miss on conversation ${conversationId}; state advanced concurrently.`,
+      );
+    }
   }
 
   /**
@@ -585,21 +906,5 @@ export class AgentRunnerService {
     }
 
     return { status: nextStatus };
-  }
-
-  private shouldRequireHandoff(content: string): boolean {
-    const normalizedContent = content.toLowerCase();
-    const handoffKeywords = [
-      'humano',
-      'atendente',
-      'pessoa',
-      'consultor',
-      'ligacao',
-      'ligação',
-    ];
-
-    return handoffKeywords.some((keyword) =>
-      normalizedContent.includes(keyword),
-    );
   }
 }
