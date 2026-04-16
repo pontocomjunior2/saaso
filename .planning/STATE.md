@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-04-16T12:19:48.853Z"
+last_updated: "2026-04-16T12:59:00.115Z"
 progress:
   total_phases: 4
   completed_phases: 1
@@ -20,13 +20,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-13)
 
 **Core value:** Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutrição e automação via IA
-**Current focus:** Phase 04 — Form Editor + Embed
+**Current focus:** Phase 05 — agent-conversation-flow
 
 ## Current Position
 
-Phase: 04 (Form Editor + Embed) — EXECUTING
-Plan: 1 of 3
-Status: Ready to execute
+Phase: 05 (agent-conversation-flow) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 05
 
 Progress: [█████░░░░░] 57%
 
