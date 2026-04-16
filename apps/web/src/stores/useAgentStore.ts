@@ -18,6 +18,8 @@ export interface AgentPromptProfile {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  historyWindow?: number;
+  summaryThreshold?: number;
 }
 
 export interface AgentDraft {

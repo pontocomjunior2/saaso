@@ -2,12 +2,18 @@
 
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
+  BadgeCheck,
+  Ban,
   Mail,
   Megaphone,
   MessageSquare,
+  Pause,
   Plus,
   Send,
+  Shield,
+  ShieldAlert,
   Sparkles,
   Undo2,
   UserCheck,
@@ -20,9 +26,15 @@ import type { CardActivity } from './board-types';
 type IconName =
   | 'Plus'
   | 'ArrowRight'
+  | 'BadgeCheck'
+  | 'Ban'
   | 'MessageSquare'
   | 'AlertCircle'
+  | 'AlertTriangle'
   | 'Mail'
+  | 'Pause'
+  | 'Shield'
+  | 'ShieldAlert'
   | 'Workflow'
   | 'UserRound'
   | 'Sparkles'
@@ -34,9 +46,15 @@ type IconName =
 const ICON_MAP: Record<IconName, React.ComponentType<{ className?: string }>> = {
   Plus,
   ArrowRight,
+  BadgeCheck,
+  Ban,
   MessageSquare,
   AlertCircle,
+  AlertTriangle,
   Mail,
+  Pause,
+  Shield,
+  ShieldAlert,
   Workflow,
   UserRound,
   Sparkles,
@@ -52,7 +70,7 @@ interface TypeMeta {
   color: string;
 }
 
-const TYPE_LABELS: Record<string, TypeMeta> = {
+export const TYPE_LABELS: Record<string, TypeMeta> = {
   CREATED: { label: 'Card criado', icon: 'Plus', color: 'text-slate-500' },
   MOVED: { label: 'Card movido', icon: 'ArrowRight', color: 'text-blue-500' },
   WHATSAPP_OUTBOUND: { label: 'WhatsApp enviado', icon: 'MessageSquare', color: 'text-green-500' },
@@ -65,6 +83,14 @@ const TYPE_LABELS: Record<string, TypeMeta> = {
   AGENT_MOVED: { label: 'Agente moveu o card', icon: 'ArrowRight', color: 'text-[#22bd73]' },
   AGENT_HANDOFF_MANUAL: { label: 'SDR assumiu conversa', icon: 'UserCheck', color: 'text-amber-600' },
   AGENT_RESUMED: { label: 'Conversa devolvida ao agente', icon: 'Undo2', color: 'text-emerald-600' },
+  AGENT_QUALIFIED: { label: 'Agente sugere qualificação', icon: 'BadgeCheck', color: 'text-[#22bd73]' },
+  AGENT_HELD: { label: 'Agente em espera', icon: 'Pause', color: 'text-slate-400' },
+  AGENT_PARSE_FALLBACK: { label: 'Agente — resposta de fallback', icon: 'AlertTriangle', color: 'text-[#f5bd4f]' },
+  AGENT_ERROR: { label: 'Erro do provedor de IA', icon: 'AlertCircle', color: 'text-[#fc736f]' },
+  AGENT_DISCLOSURE_ENFORCED: { label: 'Aviso de IA inserido na resposta', icon: 'Shield', color: 'text-slate-500' },
+  AGENT_COMMERCIAL_DEFLECTION: { label: 'Pergunta comercial encaminhada para humano', icon: 'UserRound', color: 'text-amber-600' },
+  AGENT_REFUSAL_REVIEW: { label: 'Modelo recusou — revisar contexto', icon: 'ShieldAlert', color: 'text-[#fc736f]' },
+  LEAD_OPT_OUT: { label: 'Contato solicitou opt-out', icon: 'Ban', color: 'text-[#fc736f]' },
   META_LEAD_INGESTED: { label: 'Lead recebido via Meta Ads', icon: 'Megaphone', color: 'text-[#3b78f5]' },
   RULE_STEP_SENT: { label: 'Régua disparada', icon: 'Send', color: 'text-[#594ded]' },
 };

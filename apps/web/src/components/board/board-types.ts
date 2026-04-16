@@ -24,10 +24,61 @@ export interface CardActivity {
   id: string;
   type: string;
   content: string;
+  metadata?: Record<string, unknown> | null;
   channel?: string | null;
   templateName?: string | null;
   actorId?: string | null;
   createdAt: string;
+}
+
+export interface WhatsAppMessageDto {
+  id: string;
+  contactId: string;
+  content: string;
+  createdAt: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  externalId?: string | null;
+  status?: string;
+}
+
+export interface StructuredReplyMetadata {
+  should_respond: boolean;
+  reply: string | null;
+  mark_qualified: boolean;
+  qualification_reason: string | null;
+  suggested_next_stage_id: string | null;
+  request_handoff: boolean;
+  handoff_reason: string | null;
+}
+
+export interface AgentMessageDto {
+  id: string;
+  conversationId: string;
+  role: 'USER' | 'AGENT' | 'HUMAN' | 'SYSTEM';
+  content: string;
+  createdAt: string;
+  whatsAppMessageId?: string | null;
+  metadata: StructuredReplyMetadata | null;
+}
+
+export type TimelineEventSource = 'whatsapp' | 'activity' | 'agent';
+
+export interface LatestAgentSuggestion {
+  mark_qualified: boolean;
+  suggested_next_stage_id: string | null;
+  suggested_next_stage_name: string | null;
+  qualification_reason: string | null;
+  confirmedAt: string | null;
+}
+
+export type UnifiedTimelineEvent =
+  | { source: 'whatsapp'; createdAt: string; data: WhatsAppMessageDto }
+  | { source: 'activity'; createdAt: string; data: CardActivity }
+  | { source: 'agent'; createdAt: string; data: AgentMessageDto };
+
+export interface TimelineResponse {
+  items: UnifiedTimelineEvent[];
+  nextCursor: string | null;
 }
 
 export interface StageMessageTemplate {
@@ -70,6 +121,7 @@ export interface DetailedCard {
   id: string;
   title: string;
   stageId: string;
+  latestAgentSuggestion?: LatestAgentSuggestion | null;
   automation?: {
     status:
       | 'TAKEOVER'

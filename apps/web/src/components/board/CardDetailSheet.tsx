@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Bot,
@@ -18,6 +19,7 @@ import { ActivityTimeline } from './ActivityTimeline';
 import { MoveCardButtons } from './MoveCardButtons';
 import { CardRuleStatusPanel } from './CardRuleStatusPanel';
 import { AgentStatusBadge } from './AgentStatusBadge';
+import { TimelineTab } from './TimelineTab';
 
 function formatDateTime(value?: string | null) {
   if (!value) {
@@ -125,6 +127,7 @@ export function CardDetailSheet({
   onRefreshCard?: () => void;
   allStages?: StageRef[];
 }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'atendimento'>('overview');
   const { mode } = useUIMode();
   const activeConversation = card?.agentConversations?.[0] ?? null;
   const stageAgent = card?.stage.agents?.[0] ?? null;
@@ -145,6 +148,12 @@ export function CardDetailSheet({
   const handleRefresh = () => {
     if (onRefreshCard) onRefreshCard();
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('overview');
+    }
+  }, [card?.id, isOpen]);
 
   return (
     <div
@@ -210,6 +219,41 @@ export function CardDetailSheet({
               </div>
             ) : (
               <div className="space-y-5">
+                <section className="rounded-[24px] border border-slate-200 bg-white p-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('overview')}
+                      className={cn(
+                        'rounded-2xl px-4 py-2 text-sm font-medium transition',
+                        activeTab === 'overview'
+                          ? 'bg-[#e8e6fc] text-[#594ded]'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                      )}
+                    >
+                      Visão geral
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('atendimento')}
+                      className={cn(
+                        'rounded-2xl px-4 py-2 text-sm font-medium transition',
+                        activeTab === 'atendimento'
+                          ? 'bg-[#e8e6fc] text-[#594ded]'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                      )}
+                    >
+                      Atendimento
+                    </button>
+                  </div>
+                </section>
+
+                {activeTab === 'atendimento' ? (
+                  <section className="rounded-[24px] border border-slate-200 bg-white p-5">
+                    <TimelineTab cardId={card.id} stages={allStages} />
+                  </section>
+                ) : (
+                  <>
                 <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
                   <div className="rounded-[24px] bg-[linear-gradient(135deg,rgba(255,164,164,0.16),rgba(210,165,255,0.16),rgba(130,196,255,0.14))] p-4">
                     <div className="rounded-[22px] border border-white/60 bg-white/85 p-4">
@@ -349,6 +393,8 @@ export function CardDetailSheet({
                     )}
                   </div>
                 </section>
+                  </>
+                )}
               </div>
             )}
           </div>

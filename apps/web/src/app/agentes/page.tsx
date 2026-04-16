@@ -66,6 +66,8 @@ const DEFAULT_PROFILE: AgentPromptProfile = {
   model: 'gpt-4o-mini',
   temperature: 0.4,
   maxTokens: 450,
+  historyWindow: 20,
+  summaryThreshold: 10,
 };
 
 const DEFAULT_DRAFT: AgentDraft = {
@@ -188,6 +190,14 @@ function formatDateTime(value?: string | Date | null): string {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function isHistoryWindowValid(value?: number) {
+  return typeof value === 'number' && value >= 10 && value <= 50;
+}
+
+function isSummaryThresholdValid(value?: number) {
+  return typeof value === 'number' && value >= 5 && value <= 20;
 }
 
 function getConversationStatusMeta(status: string): { label: string; className: string } {
@@ -533,6 +543,18 @@ export default function AgentsPage() {
       return;
     }
 
+    if (!isHistoryWindowValid(draft.profile?.historyWindow)) {
+      setFormError('Janela de histórico deve ficar entre 10 e 50 mensagens.');
+      setStep(3);
+      return;
+    }
+
+    if (!isSummaryThresholdValid(draft.profile?.summaryThreshold)) {
+      setFormError('Limiar de sumarização deve ficar entre 5 e 20 mensagens.');
+      setStep(3);
+      return;
+    }
+
     setIsSubmitting(true);
     setFormError(null);
 
@@ -732,6 +754,12 @@ export default function AgentsPage() {
             </div>
 
             <div className="mt-6 space-y-5">
+              <aside className="rounded-md border-l-4 border-[#f5bd4f] bg-amber-50 p-4">
+                <p className="text-sm text-slate-800">
+                  <strong>⚠️ IMPORTANTE:</strong> O agente NÃO move cards automaticamente. Ele sugere estágios e sinaliza quando acredita que o lead está qualificado. O SDR é sempre quem confirma e avança o card no funil.
+                </p>
+              </aside>
+
               {step === 0 ? (
                 <>
                   <div className="grid gap-3 md:grid-cols-2">
@@ -1012,6 +1040,47 @@ export default function AgentsPage() {
                       />
                     </label>
                   </div>
+
+                  <details className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                    <summary className="cursor-pointer list-none text-sm font-medium text-slate-200">
+                      Avançado
+                    </summary>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <label className="block">
+                        <span className="mb-1 block text-sm font-medium text-slate-300">
+                          Janela de histórico (mensagens)
+                        </span>
+                        <input
+                          type="number"
+                          min={10}
+                          max={50}
+                          value={draft.profile?.historyWindow ?? DEFAULT_PROFILE.historyWindow}
+                          onChange={(event) => updateProfile({ historyWindow: Number(event.target.value) })}
+                          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        />
+                        <p className="mt-2 text-xs text-slate-500">
+                          Quantas mensagens recentes o agente lê a cada turno (10 a 50).
+                        </p>
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1 block text-sm font-medium text-slate-300">
+                          Limiar de sumarização (mensagens)
+                        </span>
+                        <input
+                          type="number"
+                          min={5}
+                          max={20}
+                          value={draft.profile?.summaryThreshold ?? DEFAULT_PROFILE.summaryThreshold}
+                          onChange={(event) => updateProfile({ summaryThreshold: Number(event.target.value) })}
+                          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-300/40 focus:bg-white/[0.08]"
+                        />
+                        <p className="mt-2 text-xs text-slate-500">
+                          Frequência com que a memória de longo prazo é resumida (5 a 20).
+                        </p>
+                      </label>
+                    </div>
+                  </details>
 
                   <label className="block">
                     <span className="mb-1 block text-sm font-medium text-slate-300">Instruções customizadas do admin</span>

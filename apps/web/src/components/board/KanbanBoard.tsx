@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { EmptyBoardState } from './EmptyBoardState';
 import { AddStageButton } from './AddStageButton';
 import { StageRuleDrawer } from './StageRuleDrawer';
+import { QualifiedBadge } from './QualifiedBadge';
 
 interface Props {
   pipelineId?: string;
@@ -454,6 +455,11 @@ export default function KanbanBoard({
 
                                   <div className="mt-4">
                                     <p className="text-[15px] font-bold leading-snug text-[#1a202c]">{card.title}</p>
+                                    {card.latestAgentSuggestion?.mark_qualified ? (
+                                      <div className="mt-2">
+                                        <QualifiedBadge />
+                                      </div>
+                                    ) : null}
                                     
                                     {card.contact && (
                                       <p className="mt-1 text-[13px] font-semibold text-[#594ded]">

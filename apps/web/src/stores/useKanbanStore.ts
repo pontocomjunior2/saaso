@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import api from '../lib/api';
-import type { StageMessageTemplate, StageRule } from '../components/board/board-types';
+import type { LatestAgentSuggestion, StageMessageTemplate, StageRule } from '../components/board/board-types';
 
 export interface Card {
   id: string;
   title: string;
   stageId: string;
   position: number;
+  latestAgentSuggestion?: LatestAgentSuggestion | null;
   automation?: {
     status:
       | 'TAKEOVER'
