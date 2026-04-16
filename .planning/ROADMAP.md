@@ -87,4 +87,4 @@ Plans:
 - [x] 05-03-PLAN.md — Queues: ConversationSummarizerQueue + AgentRetryQueue (BullMQ, exponential backoff)
 - [x] 05-04-PLAN.md — Runner refactor: thin orchestrator cascade (D-11) with optimistic lock + opt-out; delete shouldRequireHandoff (D-10)
 - [x] 05-05-PLAN.md — Timeline endpoint: GET /cards/:id/timeline (merged whatsapp+activity+agent, tenant-scoped, paginated)
-- [ ] 05-06-PLAN.md — Frontend: QualifiedBadge, SuggestedStageButton, Atendimento tab, IMPORTANTE banner, advanced prompt profile inputs
+- [x] 05-06-PLAN.md — Frontend: QualifiedBadge, SuggestedStageButton, Atendimento tab, IMPORTANTE banner, advanced prompt profile inputs
