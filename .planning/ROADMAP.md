@@ -83,8 +83,8 @@ Plans:
 
 Plans:
 - [x] 05-01-PLAN.md — Foundations: zod install, Prisma metadata columns, StructuredReplySchema, AiService.generateStructuredResponse
-- [ ] 05-02-PLAN.md — Handlers: ConversationHistoryLoader + StructuredReplyGenerator + QualificationHandler + HandoffHandler + OutboundDispatcher
-- [ ] 05-03-PLAN.md — Queues: ConversationSummarizerQueue + AgentRetryQueue (BullMQ, exponential backoff)
+- [x] 05-02-PLAN.md — Handlers: ConversationHistoryLoader + StructuredReplyGenerator + QualificationHandler + HandoffHandler + OutboundDispatcher
+- [x] 05-03-PLAN.md — Queues: ConversationSummarizerQueue + AgentRetryQueue (BullMQ, exponential backoff)
 - [ ] 05-04-PLAN.md — Runner refactor: thin orchestrator cascade (D-11) with optimistic lock + opt-out; delete shouldRequireHandoff (D-10)
 - [ ] 05-05-PLAN.md — Timeline endpoint: GET /cards/:id/timeline (merged whatsapp+activity+agent, tenant-scoped, paginated)
 - [ ] 05-06-PLAN.md — Frontend: QualifiedBadge, SuggestedStageButton, Atendimento tab, IMPORTANTE banner, advanced prompt profile inputs
