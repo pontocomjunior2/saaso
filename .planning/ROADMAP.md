@@ -10,7 +10,7 @@ Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutriç
 - [ ] **Phase 2: CRM v2 — Automação de Réguas** - Disparos automáticos por régua/dia, webhook Meta Lead Ads, agente IA por etapa
 - [x] **Phase 3: Agentes Efetivos + Formulários + Canais** - Evolution API WhatsApp, form entry com trigger de agente, rate limiting, channel fallback
 - [ ] **Phase 4: Form Editor + Embed + Frontend** - Editor visual de formulários, embed script, Meta Lead Forms integration, frontend form builder UI
-- [ ] **Phase 5: Agent Conversation Flow** - Multi-turn memory, hybrid qualification (agent marks + human confirms), structured output, unified audit timeline
+- [x] **Phase 5: Agent Conversation Flow** - Multi-turn memory, hybrid qualification (agent marks + human confirms), structured output, unified audit timeline
 
 ## Phase Details
 

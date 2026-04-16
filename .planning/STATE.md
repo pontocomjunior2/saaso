@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-04-16T14:38:34.705Z"
+stopped_at: Phase 05 closed; resuming Phase 02-05 frontend verification
+last_updated: "2026-04-16T16:20:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 1
@@ -20,15 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-13)
 
 **Core value:** Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutrição e automação via IA
-**Current focus:** Phase 05 — agent-conversation-flow
+**Current focus:** Phase 02 — crm-v2-automa-o-de-r-guas (`02-05` frontend + verification)
 
 ## Current Position
 
-Phase: 05 (agent-conversation-flow) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 05
+Phase: 02 (crm-v2-automa-o-de-r-guas) — EXECUTING
+Plan: 5 of 5
+Status: Verifying and finishing Plan 02-05
 
-Progress: [█████░░░░░] 57%
+Progress: [██████░░░░] resumido no roadmap; foco atual em `02-05`
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [█████░░░░░] 57%
 ### Roadmap Evolution
 
 - 2026-04-15: Phase 5 added — Agent Conversation Flow (Multi-turn Memory, Hybrid Qualification, Audit Timeline). CONTEXT gathered via brainstorming session; ready for `/gsd-plan-phase 5`.
+- 2026-04-16: Phase 5 closed after merge, verification, UI approval, and tracking finalization. Work resumed on Phase 02 Plan 05 to close the remaining frontend/admin gap.
 
 ### Pending Todos
 
@@ -83,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-15T22:20:12.307Z
-Stopped at: Phase 5 UI-SPEC approved
-Resume file: .planning/phases/05-agent-conversation-flow/05-UI-SPEC.md
+Last session: 2026-04-16T16:20:00.000Z
+Stopped at: Phase 05 closed; Phase 02-05 selected as next execution target
+Resume file: .planning/phases/02-crm-v2-automa-o-de-r-guas/02-05-PLAN.md
