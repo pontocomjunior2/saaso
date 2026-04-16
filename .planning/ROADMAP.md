@@ -82,7 +82,7 @@ Plans:
 **Plans:** 6 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Foundations: zod install, Prisma metadata columns, StructuredReplySchema, AiService.generateStructuredResponse
+- [x] 05-01-PLAN.md — Foundations: zod install, Prisma metadata columns, StructuredReplySchema, AiService.generateStructuredResponse
 - [ ] 05-02-PLAN.md — Handlers: ConversationHistoryLoader + StructuredReplyGenerator + QualificationHandler + HandoffHandler + OutboundDispatcher
 - [ ] 05-03-PLAN.md — Queues: ConversationSummarizerQueue + AgentRetryQueue (BullMQ, exponential backoff)
 - [ ] 05-04-PLAN.md — Runner refactor: thin orchestrator cascade (D-11) with optimistic lock + opt-out; delete shouldRequireHandoff (D-10)
