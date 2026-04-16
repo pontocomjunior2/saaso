@@ -6,7 +6,7 @@ Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutriç
 
 ## Phases
 
-- [ ] **Phase 1: CRM v1 — Funil Manual** - Kanban vazio por padrão, etapas configuráveis inline, templates de pipeline, click-to-send WhatsApp/Email por card
+- [x] **Phase 1: CRM v1 — Funil Manual** - Kanban vazio por padrão, etapas configuráveis inline, templates de pipeline, click-to-send WhatsApp/Email por card
 - [x] **Phase 2: CRM v2 — Automação de Réguas** - Disparos automáticos por régua/dia, webhook Meta Lead Ads, agente IA por etapa
 - [x] **Phase 3: Agentes Efetivos + Formulários + Canais** - Evolution API WhatsApp, form entry com trigger de agente, rate limiting, channel fallback
 - [ ] **Phase 4: Form Editor + Embed + Frontend** - Editor visual de formulários, embed script, Meta Lead Forms integration, frontend form builder UI
@@ -26,10 +26,10 @@ Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutriç
   5. Operador move o card entre etapas via drag-and-drop ou botão no card
 **Plans:** 4 plans
 Plans:
-- [ ] 01-01-PLAN.md — Schema + Backend Foundation (StageMessageTemplate, CardActivity expansion, CRUD REST)
-- [ ] 01-02-PLAN.md — Pipeline Templates + Send Message API + Email Service
-- [ ] 01-03-PLAN.md — Frontend Kanban (empty state, stage creation inline, template loader modal)
-- [ ] 01-04-PLAN.md — Frontend Card UX (send message section, activity log, move card buttons)
+- [x] 01-01-PLAN.md — Schema + Backend Foundation (StageMessageTemplate, CardActivity expansion, CRUD REST)
+- [x] 01-02-PLAN.md — Pipeline Templates + Send Message API + Email Service
+- [x] 01-03-PLAN.md — Frontend Kanban (empty state, stage creation inline, template loader modal)
+- [x] 01-04-PLAN.md — Frontend Card UX (send message section, activity log, move card buttons)
 
 ### Phase 2: CRM v2 — Automação de Réguas
 **Goal**: Réguas de mensagens disparam automaticamente por etapa e dia (D0, D+1, D+3...). Meta Lead Ads alimenta o Kanban sem intervenção manual. Agente IA pode ser atribuído por etapa.
@@ -70,7 +70,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. CRM v1 — Funil Manual | 0/4 | Planning complete | - |
+| 1. CRM v1 — Funil Manual | 4/4 | Complete | 2026-04-13 |
 | 2. CRM v2 — Automação de Réguas | 5/5 | Complete | 2026-04-16 |
 | 3. Agentes Efetivos + Formulários + Canais | 0/5 | Planning complete | 2026-04-14 |
 
