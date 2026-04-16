@@ -71,6 +71,13 @@ export class AgentPromptProfileDto {
   guardrails?: string[];
 
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(16)
+  @IsString({ each: true })
+  @MaxLength(120, { each: true })
+  blockedTerms?: string[];
+
+  @IsOptional()
   @IsString()
   @MaxLength(180)
   callToAction?: string;

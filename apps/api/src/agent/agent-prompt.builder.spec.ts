@@ -9,6 +9,7 @@ describe('agent-prompt.builder', () => {
       persona: '  SDR premium  ',
       objective: ' Qualificar leads ',
       qualificationChecklist: [' orçamento ', '', 'momento de compra'],
+      blockedTerms: [' preço ', '', 'DESCONTO'],
       temperature: 0.5,
       maxTokens: 550,
     });
@@ -17,6 +18,7 @@ describe('agent-prompt.builder', () => {
       persona: 'SDR premium',
       objective: 'Qualificar leads',
       qualificationChecklist: ['orçamento', 'momento de compra'],
+      blockedTerms: ['preço', 'DESCONTO'],
       temperature: 0.5,
       maxTokens: 550,
     });
