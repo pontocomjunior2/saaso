@@ -60,11 +60,11 @@ Plans:
   5. Meta Lead Forms integration captura leads de formulários do Facebook/Instagram
 **Plans:** 5 plans
 Plans:
-- [ ] 03-01-PLAN.md — Evolution API WhatsApp service + provider abstraction
-- [ ] 03-02-PLAN.md — Lead form entry flows + agent proactive trigger hooks
-- [ ] 03-03-PLAN.md — Form editor + embed script (iframe + postMessage secure)
-- [ ] 03-04-PLAN.md — Meta Lead Forms webhook integration
-- [ ] 03-05-PLAN.md — Frontend: form builder UI, embed code generator, form preview
+- [x] 03-01-PLAN.md — Evolution API WhatsApp service + provider abstraction
+- [x] 03-02-PLAN.md — Lead form entry flows + agent proactive trigger hooks
+- [x] 03-03-PLAN.md — Form editor + embed script (iframe + postMessage secure)
+- [x] 03-04-PLAN.md — Meta Lead Forms webhook integration
+- [x] 03-05-PLAN.md — Frontend: form builder UI, embed code generator, form preview
 
 ## Progress
 
