@@ -28,7 +28,7 @@ import type { AgentPromptProfile } from '../agent-prompt.builder';
 
 const AI_DISCLOSURE_AFFIRMATION = /sou.*(ia|assistente|agente|virtual|automatizado)/i;
 const COMMERCIAL_PATTERN =
-  /R\$\s*\d|%\s*(desconto|off)|\bsla\b|prazo de (entrega|implantação|pagamento)|emit[ei](mos|e)\s+(nf|nota)/i;
+  /R\$\s*\d+(?:[.,]\d+)*|%\s*(desconto|off)|\bsla\b|prazo de (entrega|implantação|pagamento)|emit[ei](mos|e)\s+(nf|nota)/i;
 
 export interface DispatchInput {
   reply: StructuredReply;
