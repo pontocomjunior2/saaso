@@ -10,6 +10,7 @@ import { EmptyBoardState } from './EmptyBoardState';
 import { AddStageButton } from './AddStageButton';
 import { StageRuleDrawer } from './StageRuleDrawer';
 import { QualifiedBadge } from './QualifiedBadge';
+import { AgentStatusBadge, conversationStatusToAgentStatus } from './AgentStatusBadge';
 
 interface Props {
   pipelineId?: string;
@@ -499,6 +500,15 @@ export default function KanbanBoard({
                                           {getInitials(person)}
                                         </div>
                                       ))}
+                                      {conversationStatusToAgentStatus(card.agentConversations?.[0]?.status) && (
+                                        <div className="ml-2">
+                                          <AgentStatusBadge
+                                            status={conversationStatusToAgentStatus(card.agentConversations?.[0]?.status)}
+                                            agentName={card.agentConversations?.[0]?.agent?.name ?? null}
+                                            compact
+                                          />
+                                        </div>
+                                      )}
                                     </div>
 
                                     <div className="flex items-center gap-4 text-[12px] font-medium text-[#a0aec0]">

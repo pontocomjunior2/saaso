@@ -18,7 +18,7 @@ import { SendMessageSection } from './SendMessageSection';
 import { ActivityTimeline } from './ActivityTimeline';
 import { MoveCardButtons } from './MoveCardButtons';
 import { CardRuleStatusPanel } from './CardRuleStatusPanel';
-import { AgentStatusBadge } from './AgentStatusBadge';
+import { AgentStatusBadge, conversationStatusToAgentStatus } from './AgentStatusBadge';
 import { TimelineTab } from './TimelineTab';
 
 function formatDateTime(value?: string | null) {
@@ -291,8 +291,7 @@ export function CardDetailSheet({
                     </p>
                     <AgentStatusBadge
                       agentName={effectiveAgent?.name ?? null}
-                      conversation={activeConversation ? { id: activeConversation.id, status: activeConversation.status } : null}
-                      onUpdated={handleRefresh}
+                      status={conversationStatusToAgentStatus(activeConversation?.status)}
                     />
                   </div>
 
