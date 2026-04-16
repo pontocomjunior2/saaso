@@ -128,6 +128,7 @@ model CardActivity {
   actorId      String?
   channel      String?
   templateName String?
+  metadata     Json?
   actor        User?    @relation(fields: [actorId], references: [id])
   card         Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
@@ -358,6 +359,7 @@ model AgentMessage {
   content           String
   whatsAppMessageId String?           @unique
   createdAt         DateTime          @default(now())
+  metadata          Json?
   conversation      AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   whatsAppMessage   WhatsAppMessage?  @relation(fields: [whatsAppMessageId], references: [id], onDelete: SetNull)
 }
