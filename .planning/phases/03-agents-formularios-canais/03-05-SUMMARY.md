@@ -128,6 +128,16 @@ None beyond the deviations documented above.
 - AgentStatusBadge compact display ready for all Kanban cards with active agent conversations
 - Form list analytics ready; backend needs to include `submissionCount`/`lastSubmissionAt` in GET /forms list response to populate counts (currently defaults to 0 if not present)
 
+## Self-Check: PASSED
+
+- WhatsAppSettingsSection.tsx: FOUND
+- AgentStatusBadge.tsx: FOUND
+- 03-05-SUMMARY.md: FOUND
+- Commit 6c5c2e8 (Task 1): FOUND
+- Commit 92a9647 (Task 2): FOUND
+- Commit c6ed111 (Task 3): FOUND
+- TypeScript: no errors
+
 ---
 *Phase: 03-agents-formularios-canais*
 *Completed: 2026-04-16*
