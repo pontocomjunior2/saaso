@@ -33,6 +33,9 @@ const mockPrisma = {
   leadFormSubmission: {
     create: jest.fn(),
   },
+  leadForm: {
+    findFirst: jest.fn(),
+  },
 };
 
 const mockCardService = {
@@ -338,6 +341,8 @@ describe('MetaWebhookService', () => {
       mockPrisma.metaLeadIngestion.update.mockResolvedValue({});
       mockPrisma.cardActivity.create.mockResolvedValue({});
       mockPrisma.leadFormSubmission.create.mockResolvedValue({ id: 'sub-1' });
+      // Provide matching internal LeadForm so LeadFormSubmission is created
+      mockPrisma.leadForm.findFirst.mockResolvedValue({ id: 'form-1', tenantId: 'tenant-1' });
 
       await service.ingestLead({
         entry: [{
@@ -345,7 +350,10 @@ describe('MetaWebhookService', () => {
         }],
       });
 
-      // Organic flow should create LeadFormSubmission
+      // Organic flow: Card created and CardActivity recorded (audit trail always present)
+      expect(mockCardService.create).toHaveBeenCalled();
+      expect(mockPrisma.cardActivity.create).toHaveBeenCalled();
+      // LeadFormSubmission created because internal LeadForm matched
       expect(mockPrisma.leadFormSubmission.create).toHaveBeenCalled();
     });
   });
@@ -371,6 +379,8 @@ describe('MetaWebhookService', () => {
       mockPrisma.metaLeadIngestion.update.mockResolvedValue({});
       mockPrisma.cardActivity.create.mockResolvedValue({});
       mockPrisma.leadFormSubmission.create.mockResolvedValue({ id: 'sub-1' });
+      // By default no internal LeadForm matches the mapping.metaFormId
+      mockPrisma.leadForm.findFirst.mockResolvedValue(null);
     });
 
     const ingestOrganic = (formId: string, leadgenId: string, pageId?: string) =>
@@ -378,12 +388,24 @@ describe('MetaWebhookService', () => {
         entry: [{ changes: [{ field: 'leadgen', value: { form_id: formId, leadgen_id: leadgenId, page_id: pageId } }] }],
       });
 
-    it('creates Contact + Card + LeadFormSubmission', async () => {
+    it('creates Contact + Card and LeadFormSubmission when internal LeadForm matches', async () => {
+      // Provide a matching internal LeadForm so LeadFormSubmission is created
+      mockPrisma.leadForm.findFirst.mockResolvedValue({ id: 'form-1', tenantId: 'tenant-1' });
+
       await ingestOrganic('form-1', 'lead-org', 'page-1');
 
       expect(mockPrisma.contact.create).toHaveBeenCalled();
       expect(mockCardService.create).toHaveBeenCalled();
       expect(mockPrisma.leadFormSubmission.create).toHaveBeenCalled();
+    });
+
+    it('creates Contact + Card without LeadFormSubmission when no internal LeadForm matches', async () => {
+      // Default: mockPrisma.leadForm.findFirst returns null (set in beforeEach)
+      await ingestOrganic('form-1', 'lead-org', 'page-1');
+
+      expect(mockPrisma.contact.create).toHaveBeenCalled();
+      expect(mockCardService.create).toHaveBeenCalled();
+      expect(mockPrisma.leadFormSubmission.create).not.toHaveBeenCalled();
     });
 
     it('sets customFields.source = meta-form', async () => {

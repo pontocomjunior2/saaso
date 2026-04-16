@@ -347,21 +347,31 @@ export class MetaWebhookService {
       },
     });
 
-    // Step 6: Create LeadFormSubmission (link card to form entry source)
-    await this.prisma.leadFormSubmission.create({
-      data: {
-        formId: formId,
-        tenantId: mapping.tenantId,
-        cardId: card.id,
-        contactId: contact.id,
-        payload: {
-          fieldData: fieldData ?? [],
-          pageId,
-          leadgenId,
-          ingestedAt: new Date().toISOString(),
-        },
-      },
-    });
+    // Step 6: Create LeadFormSubmission if an internal LeadForm exists matching the Meta form ID.
+    // The MetaWebhookMapping.metaFormId matches against LeadForm records created for Meta integration.
+    // If no internal LeadForm matches, skip LeadFormSubmission — audit trail is preserved via CardActivity.
+    if (mapping.metaFormId) {
+      const internalForm = await this.prisma.leadForm.findFirst({
+        where: { id: mapping.metaFormId, tenantId: mapping.tenantId },
+      });
+      if (internalForm) {
+        await this.prisma.leadFormSubmission.create({
+          data: {
+            formId: internalForm.id,
+            tenantId: mapping.tenantId,
+            cardId: card.id,
+            contactId: contact.id,
+            payload: {
+              fieldData: fieldData ?? [],
+              pageId,
+              leadgenId,
+              metaFormId: formId,
+              ingestedAt: new Date().toISOString(),
+            },
+          },
+        });
+      }
+    }
 
     // Step 7: Link MetaLeadIngestion to card
     await this.prisma.metaLeadIngestion.update({
