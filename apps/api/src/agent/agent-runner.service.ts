@@ -806,9 +806,7 @@ export class AgentRunnerService {
       html: htmlBody,
     });
 
-    const activityType = result.deliveryMode === 'smtp'
-      ? 'AGENT_PROACTIVE_EMAIL'
-      : 'AGENT_PROACTIVE_EMAIL';
+    const activityType = 'AGENT_PROACTIVE_EMAIL';
 
     // Create AgentConversation
     const conversation = await this.prisma.agentConversation.create({
