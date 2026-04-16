@@ -7,7 +7,7 @@ Plataforma SaaS multi-tenant de CRM com Kanban configurável, réguas de nutriç
 ## Phases
 
 - [ ] **Phase 1: CRM v1 — Funil Manual** - Kanban vazio por padrão, etapas configuráveis inline, templates de pipeline, click-to-send WhatsApp/Email por card
-- [ ] **Phase 2: CRM v2 — Automação de Réguas** - Disparos automáticos por régua/dia, webhook Meta Lead Ads, agente IA por etapa
+- [x] **Phase 2: CRM v2 — Automação de Réguas** - Disparos automáticos por régua/dia, webhook Meta Lead Ads, agente IA por etapa
 - [x] **Phase 3: Agentes Efetivos + Formulários + Canais** - Evolution API WhatsApp, form entry com trigger de agente, rate limiting, channel fallback
 - [ ] **Phase 4: Form Editor + Embed + Frontend** - Editor visual de formulários, embed script, Meta Lead Forms integration, frontend form builder UI
 - [x] **Phase 5: Agent Conversation Flow** - Multi-turn memory, hybrid qualification (agent marks + human confirms), structured output, unified audit timeline
@@ -46,7 +46,7 @@ Plans:
 - [x] 02-02-PLAN.md — StageRule CRUD module + BullMQ queue service (REQ-06 backend)
 - [x] 02-03-PLAN.md — Meta webhook module + mapping CRUD (REQ-07 backend)
 - [x] 02-04-PLAN.md — Card move hooks + agent proactive D0 + card-move endpoint (REQ-06+REQ-08 integration)
-- [ ] 02-05-PLAN.md — Frontend: StageRuleDrawer, CardRuleStatusPanel, AgentStatusBadge, MetaWebhookConfigSection
+- [x] 02-05-PLAN.md — Frontend: StageRuleDrawer, CardRuleStatusPanel, AgentStatusBadge, MetaWebhookConfigSection
 
 ### Phase 3: Agentes Efetivos + Formulários + Canais
 **Goal**: Agentes funcionam efetivamente — entrada de leads via formulário (próprio e Meta), integração WhatsApp via Evolution API, email via Mailtrap. Formulários embeddáveis no site do cliente com editor visual. Lead que entra no funil dispara agente proativo automaticamente.
@@ -71,7 +71,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. CRM v1 — Funil Manual | 0/4 | Planning complete | - |
-| 2. CRM v2 — Automação de Réguas | 4/5 | Executing | 2026-04-14 |
+| 2. CRM v2 — Automação de Réguas | 5/5 | Complete | 2026-04-16 |
 | 3. Agentes Efetivos + Formulários + Canais | 0/5 | Planning complete | 2026-04-14 |
 
 ### Phase 5: Agent Conversation Flow — Multi-turn Memory, Hybrid Qualification, Audit Timeline
