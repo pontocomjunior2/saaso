@@ -15,6 +15,7 @@ import { UpdateCardDto } from './dto/update-card.dto';
 import { MoveCardDto } from './dto/move-card.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { AgentMoveDto } from './dto/agent-move.dto';
+import { TimelineQueryDto } from './dto/timeline.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
@@ -48,6 +49,16 @@ export class CardController {
     @Param('id') id: string,
   ) {
     return this.cardService.findOne(tenantId, id);
+  }
+
+  @Get(':id/timeline')
+  public async getTimeline(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Query() query: TimelineQueryDto,
+  ) {
+    const before = query.before ? new Date(query.before) : undefined;
+    return this.cardService.getCardTimeline(id, tenantId, query.limit, before);
   }
 
   @Patch(':id')

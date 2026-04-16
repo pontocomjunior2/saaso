@@ -1,11 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CardService } from './card.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { EmailService } from '../email/email.service';
 import { StageRuleService } from '../stage-rule/stage-rule.service';
 import { AgentRunnerService } from '../agent/agent-runner.service';
+import { AGENT_ACTIVITY_TYPES } from '../agent/constants/card-activity-types';
 
 describe('CardService', () => {
   let service: CardService;
@@ -33,6 +38,7 @@ describe('CardService', () => {
       card: {
         aggregate: jest.fn(),
         count: jest.fn(),
+        findUnique: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn(),
@@ -40,6 +46,14 @@ describe('CardService', () => {
       },
       cardActivity: {
         create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+      },
+      whatsAppMessage: {
+        findMany: jest.fn(),
+      },
+      agentMessage: {
+        findMany: jest.fn(),
       },
       $transaction: jest.fn(),
     };
@@ -410,5 +424,344 @@ describe('CardService', () => {
         agentId: 'agent-404',
       }),
     ).rejects.toThrow('Agent not found');
+  });
+
+  describe('getCardTimeline', () => {
+    it('returns merged items sorted by createdAt DESC when all 3 sources have rows', async () => {
+      const before = new Date('2026-04-15T10:00:00.000Z');
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+      });
+      prismaService.whatsAppMessage.findMany.mockResolvedValue([
+        { id: 'wa-1', createdAt: new Date('2026-04-15T09:58:00.000Z') },
+      ]);
+      prismaService.cardActivity.findMany.mockResolvedValue([
+        { id: 'act-1', createdAt: new Date('2026-04-15T09:59:00.000Z') },
+      ]);
+      prismaService.agentMessage.findMany.mockResolvedValue([
+        {
+          id: 'agent-1',
+          createdAt: new Date('2026-04-15T09:57:00.000Z'),
+          metadata: { suggested_next_stage_id: 'stage-2' },
+        },
+      ]);
+
+      const result = await service.getCardTimeline('card-1', 'tenant-1', 100, before);
+
+      expect(result.items.map((item: any) => item.source)).toEqual([
+        'activity',
+        'whatsapp',
+        'agent',
+      ]);
+      expect(result.nextCursor).toBeNull();
+      expect(prismaService.whatsAppMessage.findMany).toHaveBeenCalledWith({
+        where: {
+          contact: { cards: { some: { id: 'card-1' } } },
+          createdAt: { lt: before },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
+      expect(prismaService.cardActivity.findMany).toHaveBeenCalledWith({
+        where: {
+          cardId: 'card-1',
+          createdAt: { lt: before },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
+      expect(prismaService.agentMessage.findMany).toHaveBeenCalledWith({
+        where: {
+          conversation: { cardId: 'card-1', tenantId: 'tenant-1' },
+          createdAt: { lt: before },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
+    });
+
+    it('throws ForbiddenException when card tenant does not match', async () => {
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-2',
+      });
+
+      await expect(
+        service.getCardTimeline('card-1', 'tenant-1'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prismaService.whatsAppMessage.findMany).not.toHaveBeenCalled();
+      expect(prismaService.cardActivity.findMany).not.toHaveBeenCalled();
+      expect(prismaService.agentMessage.findMany).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when card does not exist', async () => {
+      prismaService.card.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.getCardTimeline('missing-card', 'tenant-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('caps limit at 200 even if caller passes a larger number', async () => {
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+      });
+      prismaService.whatsAppMessage.findMany.mockResolvedValue([]);
+      prismaService.cardActivity.findMany.mockResolvedValue([]);
+      prismaService.agentMessage.findMany.mockResolvedValue([]);
+
+      await service.getCardTimeline('card-1', 'tenant-1', 10_000);
+
+      expect(prismaService.whatsAppMessage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 200 }),
+      );
+      expect(prismaService.cardActivity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 200 }),
+      );
+      expect(prismaService.agentMessage.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 200 }),
+      );
+    });
+
+    it('returns nextCursor as the oldest merged createdAt ISO when merged length equals limit', async () => {
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+      });
+      prismaService.whatsAppMessage.findMany.mockResolvedValue([
+        { id: 'wa-1', createdAt: new Date('2026-04-15T09:59:00.000Z') },
+      ]);
+      prismaService.cardActivity.findMany.mockResolvedValue([
+        { id: 'act-1', createdAt: new Date('2026-04-15T09:58:00.000Z') },
+      ]);
+      prismaService.agentMessage.findMany.mockResolvedValue([
+        { id: 'agent-1', createdAt: new Date('2026-04-15T09:57:00.000Z') },
+      ]);
+
+      const result = await service.getCardTimeline('card-1', 'tenant-1', 2);
+
+      expect(result.items).toHaveLength(2);
+      expect(result.nextCursor).toBe('2026-04-15T09:58:00.000Z');
+    });
+
+    it('exposes agent message metadata in the payload', async () => {
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+      });
+      prismaService.whatsAppMessage.findMany.mockResolvedValue([]);
+      prismaService.cardActivity.findMany.mockResolvedValue([]);
+      prismaService.agentMessage.findMany.mockResolvedValue([
+        {
+          id: 'agent-1',
+          createdAt: new Date('2026-04-15T09:57:00.000Z'),
+          metadata: {
+            mark_qualified: true,
+            qualification_reason: 'Lead pediu proposta',
+          },
+        },
+      ]);
+
+      const result = await service.getCardTimeline('card-1', 'tenant-1');
+
+      expect(result.items[0]).toMatchObject({
+        source: 'agent',
+        data: {
+          metadata: {
+            mark_qualified: true,
+            qualification_reason: 'Lead pediu proposta',
+          },
+        },
+      });
+    });
+
+    it('returns an empty timeline when the card has no messages or activities', async () => {
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+      });
+      prismaService.whatsAppMessage.findMany.mockResolvedValue([]);
+      prismaService.cardActivity.findMany.mockResolvedValue([]);
+      prismaService.agentMessage.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.getCardTimeline('card-1', 'tenant-1'),
+      ).resolves.toEqual({
+        items: [],
+        nextCursor: null,
+      });
+    });
+
+    it('keeps tenantId out of WhatsAppMessage and CardActivity where clauses while keeping it in AgentMessage conversation scope', async () => {
+      prismaService.card.findUnique.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+      });
+      prismaService.whatsAppMessage.findMany.mockResolvedValue([]);
+      prismaService.cardActivity.findMany.mockResolvedValue([]);
+      prismaService.agentMessage.findMany.mockResolvedValue([]);
+
+      await service.getCardTimeline('card-1', 'tenant-1');
+
+      expect(prismaService.whatsAppMessage.findMany.mock.calls[0][0].where).toEqual({
+        contact: { cards: { some: { id: 'card-1' } } },
+      });
+      expect(prismaService.cardActivity.findMany.mock.calls[0][0].where).toEqual({
+        cardId: 'card-1',
+      });
+      expect(prismaService.agentMessage.findMany.mock.calls[0][0].where).toEqual({
+        conversation: { cardId: 'card-1', tenantId: 'tenant-1' },
+      });
+    });
+  });
+
+  describe('latestAgentSuggestion', () => {
+    it('findAll returns latestAgentSuggestion as null when the card has no AGENT_QUALIFIED activity', async () => {
+      prismaService.card.findMany.mockResolvedValue([{ id: 'card-1', tenantId: 'tenant-1' }]);
+      prismaService.cardActivity.findFirst.mockResolvedValue(null);
+
+      await expect(service.findAll('tenant-1')).resolves.toEqual([
+        {
+          id: 'card-1',
+          tenantId: 'tenant-1',
+          latestAgentSuggestion: null,
+        },
+      ]);
+    });
+
+    it('findAll returns a populated latestAgentSuggestion when no later MOVED activity exists', async () => {
+      prismaService.card.findMany.mockResolvedValue([{ id: 'card-1', tenantId: 'tenant-1' }]);
+      prismaService.cardActivity.findFirst
+        .mockResolvedValueOnce({
+          id: 'activity-1',
+          createdAt: new Date('2026-04-15T10:00:00.000Z'),
+          metadata: {
+            qualification_reason: 'Lead pediu orçamento',
+            suggested_next_stage_id: 'stage-2',
+          },
+        })
+        .mockResolvedValueOnce(null);
+      prismaService.stage.findUnique.mockResolvedValue({ name: 'Qualificado' });
+
+      const result = await service.findAll('tenant-1');
+
+      expect(prismaService.cardActivity.findFirst).toHaveBeenNthCalledWith(1, {
+        where: {
+          cardId: 'card-1',
+          type: AGENT_ACTIVITY_TYPES.AGENT_QUALIFIED,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, createdAt: true, metadata: true },
+      });
+      expect(prismaService.cardActivity.findFirst).toHaveBeenNthCalledWith(2, {
+        where: {
+          cardId: 'card-1',
+          type: 'MOVED',
+          createdAt: { gt: new Date('2026-04-15T10:00:00.000Z') },
+        },
+        select: { id: true },
+      });
+      expect(result[0].latestAgentSuggestion).toEqual({
+        mark_qualified: true,
+        qualification_reason: 'Lead pediu orçamento',
+        suggested_next_stage_id: 'stage-2',
+        suggested_next_stage_name: 'Qualificado',
+        confirmedAt: '2026-04-15T10:00:00.000Z',
+      });
+    });
+
+    it('findAll nulls latestAgentSuggestion when a later MOVED activity exists', async () => {
+      prismaService.card.findMany.mockResolvedValue([{ id: 'card-1', tenantId: 'tenant-1' }]);
+      prismaService.cardActivity.findFirst
+        .mockResolvedValueOnce({
+          id: 'activity-1',
+          createdAt: new Date('2026-04-15T10:00:00.000Z'),
+          metadata: {},
+        })
+        .mockResolvedValueOnce({ id: 'move-1' });
+
+      const result = await service.findAll('tenant-1');
+
+      expect(result[0].latestAgentSuggestion).toBeNull();
+      expect(prismaService.stage.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('findOne returns latestAgentSuggestion with null stage name when suggested stage is missing', async () => {
+      prismaService.card.findFirst.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+        stageId: 'stage-1',
+        agentConversations: [],
+        sequenceRuns: [],
+        stage: {
+          id: 'stage-1',
+          name: 'Origem',
+          stageRule: null,
+          agents: [],
+          pipeline: { id: 'pipe-1', name: 'Pipe' },
+          messageTemplates: [],
+        },
+        activities: [],
+      });
+      prismaService.cardActivity.findFirst
+        .mockResolvedValueOnce({
+          id: 'activity-1',
+          createdAt: new Date('2026-04-15T10:00:00.000Z'),
+          metadata: {
+            qualification_reason: 'Pronto para comercial',
+            suggested_next_stage_id: 'missing-stage',
+          },
+        })
+        .mockResolvedValueOnce(null);
+      prismaService.stage.findUnique.mockResolvedValue(null);
+
+      const result = await service.findOne('tenant-1', 'card-1');
+
+      expect(result.latestAgentSuggestion).toEqual({
+        mark_qualified: true,
+        qualification_reason: 'Pronto para comercial',
+        suggested_next_stage_id: 'missing-stage',
+        suggested_next_stage_name: null,
+        confirmedAt: '2026-04-15T10:00:00.000Z',
+      });
+    });
+
+    it('findOne degrades gracefully when qualification metadata is null', async () => {
+      prismaService.card.findFirst.mockResolvedValue({
+        id: 'card-1',
+        tenantId: 'tenant-1',
+        stageId: 'stage-1',
+        agentConversations: [],
+        sequenceRuns: [],
+        stage: {
+          id: 'stage-1',
+          name: 'Origem',
+          stageRule: null,
+          agents: [],
+          pipeline: { id: 'pipe-1', name: 'Pipe' },
+          messageTemplates: [],
+        },
+        activities: [],
+      });
+      prismaService.cardActivity.findFirst
+        .mockResolvedValueOnce({
+          id: 'activity-1',
+          createdAt: new Date('2026-04-15T10:00:00.000Z'),
+          metadata: null,
+        })
+        .mockResolvedValueOnce(null);
+
+      const result = await service.findOne('tenant-1', 'card-1');
+
+      expect(result.latestAgentSuggestion).toEqual({
+        mark_qualified: true,
+        qualification_reason: null,
+        suggested_next_stage_id: null,
+        suggested_next_stage_name: null,
+        confirmedAt: '2026-04-15T10:00:00.000Z',
+      });
+    });
   });
 });

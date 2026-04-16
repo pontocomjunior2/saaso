@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Inject,
   Logger,
   forwardRef,
@@ -17,6 +18,12 @@ import { Card, Prisma } from '@prisma/client';
 import { StageRuleService } from '../stage-rule/stage-rule.service';
 import { AgentRunnerService } from '../agent/agent-runner.service';
 import { AgentMoveDto } from './dto/agent-move.dto';
+import { AGENT_ACTIVITY_TYPES } from '../agent/constants/card-activity-types';
+import {
+  LatestAgentSuggestion,
+  TimelineResponse,
+  UnifiedTimelineEvent,
+} from './dto/timeline.dto';
 
 @Injectable()
 export class CardService {
@@ -193,6 +200,145 @@ export class CardService {
     return value as Prisma.InputJsonValue;
   }
 
+  private async resolveLatestAgentSuggestion(
+    cardId: string,
+  ): Promise<LatestAgentSuggestion | null> {
+    const qualified = await this.prisma.cardActivity.findFirst({
+      where: {
+        cardId,
+        type: AGENT_ACTIVITY_TYPES.AGENT_QUALIFIED,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true, metadata: true },
+    });
+
+    if (!qualified) {
+      return null;
+    }
+
+    const laterMove = await this.prisma.cardActivity.findFirst({
+      where: {
+        cardId,
+        type: 'MOVED',
+        createdAt: { gt: qualified.createdAt },
+      },
+      select: { id: true },
+    });
+
+    if (laterMove) {
+      return null;
+    }
+
+    const meta =
+      qualified.metadata && typeof qualified.metadata === 'object' && !Array.isArray(qualified.metadata)
+        ? (qualified.metadata as Record<string, unknown>)
+        : {};
+
+    const suggestedStageId =
+      typeof meta.suggested_next_stage_id === 'string'
+        ? meta.suggested_next_stage_id
+        : null;
+
+    let suggestedStageName: string | null = null;
+
+    if (suggestedStageId) {
+      const stage = await this.prisma.stage.findUnique({
+        where: { id: suggestedStageId },
+        select: { name: true },
+      });
+      suggestedStageName = stage?.name ?? null;
+    }
+
+    return {
+      mark_qualified: true,
+      qualification_reason:
+        typeof meta.qualification_reason === 'string'
+          ? meta.qualification_reason
+          : null,
+      suggested_next_stage_id: suggestedStageId,
+      suggested_next_stage_name: suggestedStageName,
+      confirmedAt: qualified.createdAt.toISOString(),
+    };
+  }
+
+  public async getCardTimeline(
+    cardId: string,
+    tenantId: string,
+    limit = 100,
+    before?: Date,
+  ): Promise<TimelineResponse> {
+    const cappedLimit = Math.min(Math.max(limit, 1), 200);
+    const card = await this.prisma.card.findUnique({
+      where: { id: cardId },
+      select: { id: true, tenantId: true },
+    });
+
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+
+    if (card.tenantId !== tenantId) {
+      throw new ForbiddenException('Tenant mismatch');
+    }
+
+    const beforeClause = before ? { createdAt: { lt: before } } : {};
+
+    const [messages, activities, agentMsgs] = await Promise.all([
+      this.prisma.whatsAppMessage.findMany({
+        where: {
+          contact: { cards: { some: { id: cardId } } },
+          ...beforeClause,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: cappedLimit,
+      }),
+      this.prisma.cardActivity.findMany({
+        where: {
+          cardId,
+          ...beforeClause,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: cappedLimit,
+      }),
+      this.prisma.agentMessage.findMany({
+        where: {
+          conversation: { cardId, tenantId },
+          ...beforeClause,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: cappedLimit,
+      }),
+    ]);
+
+    const merged: UnifiedTimelineEvent[] = [
+      ...messages.map((message) => ({
+        source: 'whatsapp' as const,
+        createdAt: message.createdAt,
+        data: message,
+      })),
+      ...activities.map((activity) => ({
+        source: 'activity' as const,
+        createdAt: activity.createdAt,
+        data: activity,
+      })),
+      ...agentMsgs.map((agentMessage) => ({
+        source: 'agent' as const,
+        createdAt: agentMessage.createdAt,
+        data: agentMessage,
+      })),
+    ]
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+      .slice(0, cappedLimit);
+
+    return {
+      items: merged,
+      nextCursor:
+        merged.length === cappedLimit
+          ? merged[merged.length - 1].createdAt.toISOString()
+          : null,
+    };
+  }
+
   public async create(tenantId: string, dto: CreateCardDto): Promise<Card> {
     const stage = await this.prisma.stage.findFirst({
       where: {
@@ -297,7 +443,7 @@ export class CardService {
       whereClause.title = { contains: filters.search, mode: 'insensitive' };
     }
 
-    return this.prisma.card.findMany({
+    const cards = await this.prisma.card.findMany({
       where: whereClause,
       include: {
         assignee: { select: { id: true, name: true, email: true } },
@@ -305,6 +451,13 @@ export class CardService {
       },
       orderBy: { position: 'asc' },
     });
+
+    return Promise.all(
+      cards.map(async (card) => ({
+        ...card,
+        latestAgentSuggestion: await this.resolveLatestAgentSuggestion(card.id),
+      })),
+    );
   }
 
   public async findOne(tenantId: string, id: string): Promise<any> {
@@ -445,9 +598,11 @@ export class CardService {
     }
 
     const decoratedCard = this.attachLifecycleRuns(card as any);
+    const latestAgentSuggestion = await this.resolveLatestAgentSuggestion(id);
 
     return {
       ...decoratedCard,
+      latestAgentSuggestion,
       stage: decoratedCard.stage
         ? {
             ...decoratedCard.stage,
