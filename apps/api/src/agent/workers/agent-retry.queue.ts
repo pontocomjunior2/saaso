@@ -13,15 +13,6 @@ import { NotificationService } from '../../notification/notification.service';
 import { AgentRunnerService } from '../agent-runner.service';
 import type { AgentRetryJobPayload } from './agent-retry.types';
 
-/**
- * Minimal shape of the runner entrypoint the retry worker calls. The full
- * signature lands in plan 05-04 alongside AgentRunnerService refactor; this
- * structural alias keeps the compile unit decoupled.
- */
-type RunnerProcessInboundMessage = (
-  payload: AgentRetryJobPayload,
-) => Promise<unknown>;
-
 export interface AgentRetryRuntimeSnapshot {
   driver: 'bullmq' | 'disabled';
   queueConfigured: boolean;
@@ -237,20 +228,7 @@ export class AgentRetryQueue implements OnModuleInit, OnModuleDestroy {
    * retries per attempts/backoff.
    */
   public async processJob(job: Job<AgentRetryJobPayload>): Promise<void> {
-    const runnerFn = (this.runner as unknown as Record<string, unknown>)
-      .processInboundMessage as RunnerProcessInboundMessage | undefined;
-
-    if (typeof runnerFn !== 'function') {
-      // Runner signature not yet refactored to accept this payload shape
-      // (plan 05-04). Throw so BullMQ retries (and eventually emits
-      // AGENT_PERSISTENT_FAILURE via onJobFailed) rather than silently
-      // swallowing the inbound message.
-      throw new Error(
-        'AgentRunnerService.processInboundMessage not available for retry payload.',
-      );
-    }
-
-    await runnerFn.call(this.runner, job.data);
+    await this.runner.processInboundMessage(job.data);
   }
 
   /**
