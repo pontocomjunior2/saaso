@@ -258,3 +258,151 @@ const stopPolling = useCallback(() => {
 _Reviewed: 2026-04-17_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+
+---
+
+---
+
+# Addendum: Plan 04-04 Gap-Closure Review
+
+**Addendum Reviewed:** 2026-04-17
+**Depth:** standard
+**Files Re-Reviewed (gap-closure changes only):**
+- `apps/api/prisma/schema.prisma`
+- `apps/api/src/meta-webhook/meta-webhook.service.ts`
+- `apps/api/src/meta-webhook/meta-webhook.service.spec.ts`
+- `apps/api/src/lead-form/lead-form.service.ts`
+- `apps/api/src/lead-form/lead-form.service.spec.ts`
+
+## Addendum Summary
+
+The plan 04-04 gap-closure introduces four substantive changes: `LeadFormSubmission.formId` made nullable in the schema, `processOrganicLead` refactored to unconditionally create `LeadFormSubmission` with best-effort internal form lookup, `leadFormInclude` extended with `_count.submissions` and a latest-submission subquery, and `LeadFormResponse` enriched with `submissionCount`/`lastSubmissionAt`. The schema and `lead-form.service.ts` changes are correct. One critical logic bug was found in the internal-form lookup inside `processOrganicLead`: the service queries `LeadForm` by `id = mapping.metaFormId`, but `mapping.metaFormId` is Meta's external numeric form ID, not an internal UUID — the lookup will always return `null` in production. One additional warning was found in the test spec: `LeadFormService` is instantiated with only two constructor arguments, omitting `RateLimitService`, which causes a silent crash if `submitPublicForm` is ever called with an IP address in tests.
+
+---
+
+## Critical Issues (Addendum)
+
+### CR-A01: Internal `LeadForm` lookup always misses — `mapping.metaFormId` is a Meta external ID, not a Prisma UUID
+
+**File:** `apps/api/src/meta-webhook/meta-webhook.service.ts:355-369`
+
+**Issue:** The gap-closure intent is: when a mapping has a `metaFormId`, try to find a matching internal `LeadForm` record and link the submission via `formId`. The lookup is:
+
+```typescript
+const internalForm = await this.prisma.leadForm.findFirst({
+  where: { id: mapping.metaFormId, tenantId: mapping.tenantId },
+});
+```
+
+`mapping.metaFormId` is the Meta platform's external form ID (a numeric string such as `"1234567890123456"`). `LeadForm.id` is a `uuid()` primary key. These two namespaces never overlap. The query will always return `null`, `internalFormId` will always be `null`, and every `LeadFormSubmission` created by `processOrganicLead` will have `formId = null`. As a result:
+
+1. `LeadForm.submissionCount` will never reflect organic Meta leads — the metric is broken.
+2. `LeadForm.lastSubmissionAt` will never be populated from organic Meta leads.
+3. The entire gap-closure purpose (linking Meta organic leads to internal forms) is silently defeated.
+
+The test at line 391 of `meta-webhook.service.spec.ts` does not catch this because `baseMapping.metaFormId = 'form-1'` and the mocked `internalForm.id = 'form-1'` coincide — the test fabricates a scenario that cannot occur in production where `metaFormId` is an external numeric string.
+
+The correct linking strategy requires a separate field or a lookup table that maps Meta's external `form_id` to the internal `LeadForm.id`. One approach: add an `externalFormId` field to `LeadForm` (or store the Meta form ID in `MetaWebhookMapping.metaFormId` separately from the internal link), then query:
+
+```typescript
+const internalForm = await this.prisma.leadForm.findFirst({
+  where: { externalFormId: mapping.metaFormId, tenantId: mapping.tenantId },
+});
+```
+
+Alternatively, if `MetaWebhookMapping` is always created by the user who selects a specific internal `LeadForm`, store the internal `LeadForm.id` in a dedicated column (e.g. `MetaWebhookMapping.leadFormId`) and use that for the lookup:
+
+```typescript
+// In schema: MetaWebhookMapping gains an optional leadFormId FK
+let internalFormId: string | null = mapping.leadFormId ?? null;
+```
+
+**Fix (schema approach):**
+```prisma
+model MetaWebhookMapping {
+  // ... existing fields ...
+  leadFormId  String?   // internal LeadForm FK, separate from Meta's metaFormId
+  leadForm    LeadForm? @relation(fields: [leadFormId], references: [id], onDelete: SetNull)
+}
+```
+
+Then in `processOrganicLead`:
+```typescript
+const internalFormId = mapping.leadFormId ?? null;
+// No DB lookup needed — the relation is pre-resolved at mapping creation time
+```
+
+---
+
+## Warnings (Addendum)
+
+### WR-A01: `LeadFormService` test instantiation omits `RateLimitService` — silent crash path if IP rate-limiting is exercised in tests
+
+**File:** `apps/api/src/lead-form/lead-form.service.spec.ts:31`
+
+**Issue:**
+```typescript
+service = new LeadFormService(prismaService as PrismaService, journeyService);
+```
+
+`LeadFormService`'s constructor signature (line 130-135 of `lead-form.service.ts`) requires three dependencies: `PrismaService`, `JourneyService`, and `RateLimitService`. The test omits `RateLimitService`, so `this.rateLimitService` is `undefined`. Any test that calls `submitPublicForm` with a non-null `ip` will throw `TypeError: Cannot read properties of undefined (reading 'check')` at line 421. The existing tests happen to call `submitPublicForm` without `ip`, which avoids the crash — but the omission leaves a coverage gap and will break any future test that passes an IP.
+
+**Fix:**
+```typescript
+const rateLimitService = {
+  check: jest.fn(), // no-op for tests
+} as any;
+
+service = new LeadFormService(
+  prismaService as PrismaService,
+  journeyService,
+  rateLimitService,
+);
+```
+
+---
+
+## Info (Addendum)
+
+### IN-A01: `remove()` manually deletes `LeadFormSubmission` rows that would now cascade-delete automatically
+
+**File:** `apps/api/src/lead-form/lead-form.service.ts:332-344`
+
+**Issue:** `remove()` runs a transaction that explicitly calls `tx.leadFormSubmission.deleteMany({ where: { formId: id, tenantId } })` before deleting the `LeadForm`. With the 04-04 schema change, `LeadFormSubmission.form` now has `onDelete: Cascade`, so submissions where `formId = id` are automatically deleted when the parent `LeadForm` is deleted. The manual `deleteMany` is redundant.
+
+This is harmless (the end result is the same) but is now misleading boilerplate. It also means submissions where `formId IS NULL` (organic Meta leads) are NOT deleted when a form is removed, which is correct — but future maintainers may incorrectly assume the `deleteMany` covers the full cleanup.
+
+**Fix:** Remove the explicit `deleteMany` and rely on the cascade:
+```typescript
+public async remove(tenantId: string, id: string): Promise<LeadForm> {
+  await this.findOne(tenantId, id);
+  return this.prisma.leadForm.delete({ where: { id } });
+  // LeadFormSubmission rows with formId = id cascade-delete via schema onDelete: Cascade
+  // Submissions with formId = null (organic Meta leads) are intentionally preserved
+}
+```
+If the transaction is still needed for other reasons, retain it but add a comment explaining that the `deleteMany` is no longer required by the cascade.
+
+---
+
+### IN-A02: `leadFormInclude` subquery fetches the latest submission per form on every list call — no pagination guard
+
+**File:** `apps/api/src/lead-form/lead-form.service.ts:118-122`
+
+**Issue:**
+```typescript
+submissions: {
+  select: { createdAt: true },
+  orderBy: { createdAt: 'desc' },
+  take: 1,
+},
+```
+`take: 1` correctly limits the result to one row. The index `@@index([tenantId, createdAt])` on `LeadFormSubmission` supports ordering by `createdAt` globally, but the subquery for `findAll` orders within each form's submissions. For a tenant with many forms and large submission counts, PostgreSQL will perform one subquery per form. This is acceptable for current scale but worth noting. No action required unless the tenant list grows beyond ~100 forms.
+
+This is informational only — no code change is needed.
+
+---
+
+_Addendum Reviewed: 2026-04-17_
+_Reviewer: Claude (gsd-code-reviewer)_
+_Depth: standard_
