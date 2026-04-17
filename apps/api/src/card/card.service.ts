@@ -642,13 +642,8 @@ export class CardService {
   }
 
   public async remove(tenantId: string, id: string): Promise<Card> {
-    const card = await this.findOne(tenantId, id);
-
-    // Remove activities before removing card due to foreign key
-    return this.prisma.$transaction(async (tx) => {
-      await tx.cardActivity.deleteMany({ where: { cardId: id } });
-      return tx.card.delete({ where: { id } });
-    });
+    await this.findOne(tenantId, id);
+    return this.prisma.card.delete({ where: { id } });
   }
 
   public async sendMessage(
