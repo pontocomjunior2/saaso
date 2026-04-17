@@ -154,28 +154,32 @@ export class OutboundDispatcher {
     }
 
     // G7 — commercial-commitment fabrication guard (KB grounding check).
-    const commercialMatch = COMMERCIAL_PATTERN.exec(replyText);
-    if (commercialMatch) {
-      const kbContent = input.agent.knowledgeBase?.content ?? '';
-      const needle = commercialMatch[0] ?? '';
-      const grounded =
-        needle.length > 0 &&
-        kbContent.toLowerCase().includes(needle.toLowerCase());
-      if (!grounded) {
-        await this.prisma.cardActivity.create({
-          data: {
-            cardId: input.card.id,
-            type: AGENT_ACTIVITY_TYPES.AGENT_COMMERCIAL_DEFLECTION,
-            content:
-              'Resposta com compromisso comercial não confirmado — encaminhado para humano.',
-            metadata: {
-              matched_pattern: needle,
-              reply_redacted: replyText,
-              raw_output: input.rawOutput,
-            } as Prisma.InputJsonValue,
-          },
-        });
-        return { status: 'handoff_required', reason: 'commercial_deflection' };
+    // Only applies when a knowledge base is configured; without a KB there
+    // is nothing to ground against and the guard must be skipped.
+    const kbContent = input.agent.knowledgeBase?.content;
+    if (kbContent != null) {
+      const commercialMatch = COMMERCIAL_PATTERN.exec(replyText);
+      if (commercialMatch) {
+        const needle = commercialMatch[0] ?? '';
+        const grounded =
+          needle.length > 0 &&
+          kbContent.toLowerCase().includes(needle.toLowerCase());
+        if (!grounded) {
+          await this.prisma.cardActivity.create({
+            data: {
+              cardId: input.card.id,
+              type: AGENT_ACTIVITY_TYPES.AGENT_COMMERCIAL_DEFLECTION,
+              content:
+                'Resposta com compromisso comercial não confirmado — encaminhado para humano.',
+              metadata: {
+                matched_pattern: needle,
+                reply_redacted: replyText,
+                raw_output: input.rawOutput,
+              } as Prisma.InputJsonValue,
+            },
+          });
+          return { status: 'handoff_required', reason: 'commercial_deflection' };
+        }
       }
     }
 
