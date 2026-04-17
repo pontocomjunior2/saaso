@@ -347,31 +347,43 @@ export class MetaWebhookService {
       },
     });
 
-    // Step 6: Create LeadFormSubmission if an internal LeadForm exists matching the Meta form ID.
-    // The MetaWebhookMapping.metaFormId matches against LeadForm records created for Meta integration.
-    // If no internal LeadForm matches, skip LeadFormSubmission — audit trail is preserved via CardActivity.
+    // Step 6: Create LeadFormSubmission UNCONDITIONALLY for every organic lead.
+    // When mapping.metaFormId resolves to an internal LeadForm, link via internalForm.id.
+    // Otherwise (page-level catch-all mappings, metaFormId=null, or no internal record),
+    // store formId = null and preserve Meta's external form_id inside the JSON payload.
+    let internalFormId: string | null = null;
     if (mapping.metaFormId) {
-      const internalForm = await this.prisma.leadForm.findFirst({
-        where: { id: mapping.metaFormId, tenantId: mapping.tenantId },
-      });
-      if (internalForm) {
-        await this.prisma.leadFormSubmission.create({
-          data: {
-            formId: internalForm.id,
-            tenantId: mapping.tenantId,
-            cardId: card.id,
-            contactId: contact.id,
-            payload: {
-              fieldData: fieldData ?? [],
-              pageId,
-              leadgenId,
-              metaFormId: formId,
-              ingestedAt: new Date().toISOString(),
-            },
-          },
+      try {
+        const internalForm = await this.prisma.leadForm.findFirst({
+          where: { id: mapping.metaFormId, tenantId: mapping.tenantId },
         });
+        if (internalForm) {
+          internalFormId = internalForm.id;
+        }
+      } catch (err) {
+        this.logger.warn(
+          `[processOrganicLead] internal LeadForm lookup failed for mapping.metaFormId=${mapping.metaFormId}`,
+          err,
+        );
       }
     }
+
+    await this.prisma.leadFormSubmission.create({
+      data: {
+        formId: internalFormId,
+        tenantId: mapping.tenantId,
+        cardId: card.id,
+        contactId: contact.id,
+        payload: {
+          fieldData: fieldData ?? [],
+          pageId,
+          leadgenId,
+          metaFormId: formId,
+          source: 'meta-form',
+          ingestedAt: new Date().toISOString(),
+        },
+      },
+    });
 
     // Step 7: Link MetaLeadIngestion to card
     await this.prisma.metaLeadIngestion.update({

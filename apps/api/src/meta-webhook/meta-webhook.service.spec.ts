@@ -388,24 +388,65 @@ describe('MetaWebhookService', () => {
         entry: [{ changes: [{ field: 'leadgen', value: { form_id: formId, leadgen_id: leadgenId, page_id: pageId } }] }],
       });
 
-    it('creates Contact + Card and LeadFormSubmission when internal LeadForm matches', async () => {
-      // Provide a matching internal LeadForm so LeadFormSubmission is created
+    it('uses internal LeadForm id when mapping.metaFormId resolves to an internal form', async () => {
       mockPrisma.leadForm.findFirst.mockResolvedValue({ id: 'form-1', tenantId: 'tenant-1' });
 
       await ingestOrganic('form-1', 'lead-org', 'page-1');
 
       expect(mockPrisma.contact.create).toHaveBeenCalled();
       expect(mockCardService.create).toHaveBeenCalled();
-      expect(mockPrisma.leadFormSubmission.create).toHaveBeenCalled();
+      expect(mockPrisma.leadFormSubmission.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            formId: 'form-1',
+            tenantId: 'tenant-1',
+            cardId: 'card-2',
+            contactId: 'contact-1',
+          }),
+        }),
+      );
     });
 
-    it('creates Contact + Card without LeadFormSubmission when no internal LeadForm matches', async () => {
-      // Default: mockPrisma.leadForm.findFirst returns null (set in beforeEach)
+    it('creates Contact + Card + LeadFormSubmission with null formId for page-level catch-all', async () => {
+      // Page-level catch-all mapping has metaFormId=null — lookup is skipped entirely.
+      mockPrisma.metaWebhookMapping.findFirst.mockResolvedValue({
+        ...baseMapping,
+        metaFormId: null,
+      });
+
       await ingestOrganic('form-1', 'lead-org', 'page-1');
 
       expect(mockPrisma.contact.create).toHaveBeenCalled();
       expect(mockCardService.create).toHaveBeenCalled();
-      expect(mockPrisma.leadFormSubmission.create).not.toHaveBeenCalled();
+      expect(mockPrisma.leadFormSubmission.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            formId: null,
+            tenantId: 'tenant-1',
+            cardId: 'card-2',
+            contactId: 'contact-1',
+            payload: expect.objectContaining({
+              metaFormId: 'form-1',
+              pageId: 'page-1',
+              leadgenId: 'lead-org',
+              source: 'meta-form',
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('creates LeadFormSubmission with null formId when internal LeadForm lookup returns nothing', async () => {
+      // mapping has metaFormId set, but internal LeadForm does NOT exist
+      mockPrisma.leadForm.findFirst.mockResolvedValue(null);
+
+      await ingestOrganic('form-1', 'lead-org', 'page-1');
+
+      expect(mockPrisma.leadFormSubmission.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ formId: null }),
+        }),
+      );
     });
 
     it('sets customFields.source = meta-form', async () => {
