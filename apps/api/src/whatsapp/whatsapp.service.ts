@@ -986,9 +986,12 @@ export class WhatsappService {
         : typeof query.challenge === 'string'
           ? query.challenge
           : null;
-    const expectedToken =
-      process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN?.trim() ||
-      'saaso-dev-webhook-token';
+    const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN?.trim();
+    if (!expectedToken) {
+      throw new ForbiddenException(
+        'Erro no Backend: WHATSAPP_WEBHOOK_VERIFY_TOKEN não configurado.',
+      );
+    }
 
     if (mode !== 'subscribe' || !challenge) {
       throw new BadRequestException(
