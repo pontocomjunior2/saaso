@@ -66,6 +66,8 @@ describe('LeadFormService', () => {
           name: 'Inbound',
         },
       },
+      _count: { submissions: 0 },
+      submissions: [],
     });
 
     const result = await service.create('tenant-1', {
@@ -308,5 +310,84 @@ describe('LeadFormService', () => {
         },
       ],
     });
+  });
+
+  it('findAll returns submissionCount and lastSubmissionAt for each form', async () => {
+    const recent = new Date('2026-04-16T10:00:00.000Z');
+    prismaService.leadForm.findMany.mockResolvedValue([
+      {
+        id: 'form-1',
+        name: 'Form A',
+        slug: 'form-a',
+        headline: null,
+        description: null,
+        submitButtonLabel: 'Enviar',
+        successTitle: null,
+        successMessage: null,
+        isActive: true,
+        stageId: 'stage-1',
+        tenantId: 'tenant-1',
+        fields: [],
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+        stage: { id: 'stage-1', name: 'Entrada', pipeline: { id: 'pipeline-1', name: 'Inbound' } },
+        _count: { submissions: 5 },
+        submissions: [{ createdAt: recent }],
+      },
+      {
+        id: 'form-2',
+        name: 'Form B',
+        slug: 'form-b',
+        headline: null,
+        description: null,
+        submitButtonLabel: 'Enviar',
+        successTitle: null,
+        successMessage: null,
+        isActive: true,
+        stageId: 'stage-1',
+        tenantId: 'tenant-1',
+        fields: [],
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-01T00:00:00.000Z'),
+        stage: { id: 'stage-1', name: 'Entrada', pipeline: { id: 'pipeline-1', name: 'Inbound' } },
+        _count: { submissions: 0 },
+        submissions: [],
+      },
+    ]);
+
+    const result = await service.findAll('tenant-1');
+
+    expect(result).toHaveLength(2);
+    expect(result[0].submissionCount).toBe(5);
+    expect(result[0].lastSubmissionAt).toBe(recent.toISOString());
+    expect(result[1].submissionCount).toBe(0);
+    expect(result[1].lastSubmissionAt).toBeNull();
+  });
+
+  it('findOne returns submissionCount = 0 and lastSubmissionAt = null when form has no submissions', async () => {
+    prismaService.leadForm.findFirst.mockResolvedValue({
+      id: 'form-empty',
+      name: 'Empty Form',
+      slug: 'empty-form',
+      headline: null,
+      description: null,
+      submitButtonLabel: 'Enviar',
+      successTitle: null,
+      successMessage: null,
+      isActive: true,
+      stageId: 'stage-1',
+      tenantId: 'tenant-1',
+      fields: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stage: { id: 'stage-1', name: 'Entrada', pipeline: { id: 'pipeline-1', name: 'Inbound' } },
+      _count: { submissions: 0 },
+      submissions: [],
+    });
+
+    const result = await service.findOne('tenant-1', 'form-empty');
+
+    expect(result.submissionCount).toBe(0);
+    expect(result.lastSubmissionAt).toBeNull();
   });
 });

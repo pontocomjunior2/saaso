@@ -54,6 +54,8 @@ export interface LeadFormResponse {
   createdAt: Date;
   updatedAt: Date;
   fields: LeadFormField[];
+  submissionCount: number;
+  lastSubmissionAt: string | null;
   stage: {
     id: string;
     name: string;
@@ -109,6 +111,14 @@ const leadFormInclude = Prisma.validator<Prisma.LeadFormInclude>()({
         },
       },
     },
+  },
+  _count: {
+    select: { submissions: true },
+  },
+  submissions: {
+    select: { createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
   },
 });
 
@@ -909,6 +919,7 @@ export class LeadFormService {
   }
 
   private mapLeadForm(form: LeadFormWithStage): LeadFormResponse {
+    const latestSubmission = form.submissions?.[0]?.createdAt ?? null;
     return {
       id: form.id,
       name: form.name,
@@ -923,6 +934,8 @@ export class LeadFormService {
       createdAt: form.createdAt,
       updatedAt: form.updatedAt,
       fields: this.normalizeStoredFields(form.fields),
+      submissionCount: form._count?.submissions ?? 0,
+      lastSubmissionAt: latestSubmission instanceof Date ? latestSubmission.toISOString() : null,
       stage: form.stage,
     };
   }
