@@ -702,11 +702,15 @@ export class CardService {
       });
       deliveryMode = 'whatsapp';
 
-      // Atualizar o CardActivity criado pelo logMessage com templateName e actorId
+      // Atualizar o CardActivity criado pelo logMessage com templateName e actorId.
+      // A janela de 2 segundos reduz o risco de atribuição errada em envios concorrentes.
+      const now = new Date();
+      const windowStart = new Date(now.getTime() - 2000);
       const latestActivity = await this.prisma.cardActivity.findFirst({
         where: {
           cardId: card.id,
           type: { startsWith: 'WHATSAPP_OUTBOUND' },
+          createdAt: { gte: windowStart },
         },
         orderBy: { createdAt: 'desc' },
       });
