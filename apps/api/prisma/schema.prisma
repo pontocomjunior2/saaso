@@ -463,7 +463,7 @@ model LeadForm {
 
 model LeadFormSubmission {
   id        String   @id @default(uuid())
-  formId    String
+  formId    String?
   tenantId  String
   contactId String?
   cardId    String?
@@ -471,7 +471,7 @@ model LeadFormSubmission {
   createdAt DateTime @default(now())
   card      Card?    @relation(fields: [cardId], references: [id], onDelete: Cascade)
   contact   Contact? @relation(fields: [contactId], references: [id])
-  form      LeadForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form      LeadForm? @relation(fields: [formId], references: [id], onDelete: Cascade)
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, formId])
