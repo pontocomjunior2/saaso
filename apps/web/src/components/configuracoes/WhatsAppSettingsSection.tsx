@@ -109,7 +109,7 @@ export function WhatsAppSettingsSection() {
       pollRef.current = setInterval(async () => {
         try {
           const state = await fetchConnectionState(name);
-          if (state === 'connected' || state === 'CONNECTED') {
+          if (state === 'open' || state === 'connected' || state === 'CONNECTED') {
             stopPolling();
             clearQrCode();
             void fetchAccounts();
