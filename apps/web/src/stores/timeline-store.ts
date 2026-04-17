@@ -67,11 +67,17 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
       const response = await api.get<TimelineResponse>(
         `/cards/${cardId}/timeline?limit=100&before=${encodeURIComponent(nextCursor)}`,
       );
-      set((state) => ({
-        items: [...state.items, ...response.data.items],
-        nextCursor: response.data.nextCursor,
-        isLoadingMore: false,
-      }));
+      set((state) => {
+        if (state.currentCardId !== cardId) {
+          // Response arrived for a card the user has already navigated away from.
+          return { isLoadingMore: false };
+        }
+        return {
+          items: [...state.items, ...response.data.items],
+          nextCursor: response.data.nextCursor,
+          isLoadingMore: false,
+        };
+      });
     } catch {
       set({
         error: getErrorMessage(),
