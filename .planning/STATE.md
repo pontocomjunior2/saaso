@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 02 closed (02-05 SUMMARY created, tracking updated)
-last_updated: "2026-04-17T13:57:59.731Z"
+stopped_at: Phase 06 context gathered
+last_updated: "2026-04-22T22:00:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -74,6 +74,7 @@ Progress: [████████░░] Phases 01, 02, 05 complete; 03 in pro
 
 - 2026-04-15: Phase 5 added — Agent Conversation Flow (Multi-turn Memory, Hybrid Qualification, Audit Timeline). CONTEXT gathered via brainstorming session; ready for `/gsd-plan-phase 5`.
 - 2026-04-16: Phase 5 closed after merge, verification, UI approval, and tracking finalization. Work resumed on Phase 02 Plan 05 to close the remaining frontend/admin gap.
+- 2026-04-22: Phase 6 added — Skills + Auto-movement de cards por agente. Skill como entidade N:N por agente, toggle MANUAL/AUTO por etapa, auto-apply de suggested_next_stage_id com gates, audit trail. Depende de Phase 5.
 
 ### Pending Todos
 
