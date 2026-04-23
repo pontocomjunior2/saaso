@@ -170,7 +170,8 @@ export class AiService {
     input.push({ role: 'user', content: userMessage.trim() });
 
     // 2) Zod -> JSON Schema inline; $refStrategy:'none' required by strict mode (Pitfall #5).
-    const jsonSchema = zodToJsonSchema(schema as ZodTypeAny, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jsonSchema = zodToJsonSchema(schema as any, {
       target: 'openApi3',
       $refStrategy: 'none',
     }) as Record<string, unknown>;
