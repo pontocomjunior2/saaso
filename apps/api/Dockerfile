@@ -24,7 +24,7 @@ COPY . .
 
 WORKDIR /app/apps/api
 
-RUN ./node_modules/.bin/prisma generate --schema prisma/schema.prisma
+RUN /app/node_modules/.bin/prisma generate --schema prisma/schema.prisma
 RUN npm run build
 
 FROM node:22-alpine AS runtime
