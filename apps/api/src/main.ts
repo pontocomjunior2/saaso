@@ -1,9 +1,8 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
-
-type CorsOriginCallback = (error: Error | null, allow?: boolean) => void;
 
 function buildAllowedOrigins(frontendUrl?: string) {
   const configuredOrigins = (frontendUrl ?? '')
@@ -32,21 +31,26 @@ async function bootstrap() {
   console.log('[CORS] FRONTEND_URL:', frontendUrl);
   console.log('[CORS] allowedOrigins:', allowedOrigins);
 
-  app.enableCors({
-    origin: (origin: string | undefined, callback: CorsOriginCallback) => {
-      const allowed = !origin || allowedOrigins.includes(origin);
-      console.log('[CORS] request origin:', JSON.stringify(origin), '| allowed:', allowed);
-      if (allowed) {
-        callback(null, true);
-        return;
-      }
-      callback(new Error(`Origin ${origin} not allowed by CORS`), false);
-    },
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
+  // Raw Express middleware — runs before all NestJS handlers
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin as string | undefined;
+    const allowed = !origin || allowedOrigins.includes(origin);
+    console.log('[CORS-RAW]', req.method, origin ?? '(no origin)', '| allowed:', allowed);
+
+    if (allowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With');
+    }
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    next();
   });
 
   app.useGlobalPipes(
