@@ -17,7 +17,7 @@ RUN apk add --no-cache libc6-compat openssl
 COPY --from=base /app/node_modules ./node_modules
 COPY . .
 
-RUN node_modules/.bin/prisma generate --schema prisma/schema.prisma
+RUN DATABASE_URL="postgresql://x:x@x:5432/x" node_modules/.bin/prisma generate --schema prisma/schema.prisma
 RUN npm run build
 
 FROM node:22-alpine AS runtime
