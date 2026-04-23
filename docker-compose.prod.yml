@@ -70,8 +70,8 @@ services:
       PROSPECT_RUNTIME_DRIVER: ${PROSPECT_RUNTIME_DRIVER:-bullmq}
       PROSPECT_RUNTIME_POLL_MS: ${PROSPECT_RUNTIME_POLL_MS:-5000}
       PROSPECT_RUNTIME_WORKER_CONCURRENCY: ${PROSPECT_RUNTIME_WORKER_CONCURRENCY:-4}
-    ports:
-      - '3001:3001'
+    expose:
+      - '3001'
 
   web:
     build:
@@ -88,8 +88,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-    ports:
-      - '3000:3000'
+    expose:
+      - '3000'
 
 volumes:
   postgres_data:
