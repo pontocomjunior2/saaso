@@ -45,4 +45,4 @@ COPY --from=build /app/apps/api/prisma ./prisma
 
 EXPOSE 3001
 
-CMD ["node", "dist/src/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema ./prisma/schema.prisma && node dist/src/main.js"]
