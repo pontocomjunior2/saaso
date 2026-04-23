@@ -44,4 +44,4 @@ COPY --from=build /app/apps/api/prisma ./prisma
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema ./prisma/schema.prisma && node dist/src/main.js"]
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate resolve --applied 20260416_add_pageid_to_meta_webhook_mapping --schema ./prisma/schema.prisma 2>/dev/null || true && /app/node_modules/.bin/prisma migrate deploy --schema ./prisma/schema.prisma && node dist/src/main.js"]

@@ -16,9 +16,15 @@ ADD COLUMN IF NOT EXISTS "pageId" TEXT;
 -- Step 4: Add composite unique constraint [pageId, metaFormId]
 -- This allows page-level catch-all mappings (pageId set, metaFormId null)
 -- and granular form-level mappings (both pageId and metaFormId set)
-ALTER TABLE "MetaWebhookMapping"
-ADD CONSTRAINT "MetaWebhookMapping_pageId_metaFormId_key"
-UNIQUE ("pageId", "metaFormId");
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'MetaWebhookMapping_pageId_metaFormId_key'
+  ) THEN
+    ALTER TABLE "MetaWebhookMapping"
+    ADD CONSTRAINT "MetaWebhookMapping_pageId_metaFormId_key"
+    UNIQUE ("pageId", "metaFormId");
+  END IF;
+END $$;
 
 -- Step 5: Add index on pageId for fast lookup by page in processOrganicLead
 CREATE INDEX IF NOT EXISTS "MetaWebhookMapping_pageId_idx"
