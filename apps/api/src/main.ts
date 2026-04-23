@@ -29,6 +29,9 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('FRONTEND_URL');
   const allowedOrigins = buildAllowedOrigins(frontendUrl);
 
+  console.log('[CORS] FRONTEND_URL:', frontendUrl);
+  console.log('[CORS] allowedOrigins:', allowedOrigins);
+
   app.enableCors({
     origin: (origin: string | undefined, callback: CorsOriginCallback) => {
       if (!origin || allowedOrigins.includes(origin)) {
