@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-saaso}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-saaso}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-saaso} -d ${POSTGRES_DB:-saaso}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-saaso}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-saaso}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      FRONTEND_URL: ${FRONTEND_URL}
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+      WHATSAPP_CLOUD_API_BASE_URL: ${WHATSAPP_CLOUD_API_BASE_URL:-https://graph.facebook.com/v23.0}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_BASE_URL: ${OPENAI_API_BASE_URL:-https://api.openai.com/v1}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Saaso CRM}
+      MAILTRAP_API_TOKEN: ${MAILTRAP_API_TOKEN:-}
+      MAILTRAP_MODE: ${MAILTRAP_MODE:-}
+      MAILTRAP_INBOX_ID: ${MAILTRAP_INBOX_ID:-}
+      CAMPAIGN_RUNTIME_DRIVER: ${CAMPAIGN_RUNTIME_DRIVER:-bullmq}
+      CAMPAIGN_RUNTIME_POLL_MS: ${CAMPAIGN_RUNTIME_POLL_MS:-5000}
+      CAMPAIGN_RUNTIME_WORKER_CONCURRENCY: ${CAMPAIGN_RUNTIME_WORKER_CONCURRENCY:-4}
+      JOURNEY_RUNTIME_DRIVER: ${JOURNEY_RUNTIME_DRIVER:-bullmq}
+      JOURNEY_RUNTIME_POLL_MS: ${JOURNEY_RUNTIME_POLL_MS:-5000}
+      JOURNEY_RUNTIME_WORKER_CONCURRENCY: ${JOURNEY_RUNTIME_WORKER_CONCURRENCY:-4}
+      PROSPECT_RUNTIME_DRIVER: ${PROSPECT_RUNTIME_DRIVER:-bullmq}
+      PROSPECT_RUNTIME_POLL_MS: ${PROSPECT_RUNTIME_POLL_MS:-5000}
+      PROSPECT_RUNTIME_WORKER_CONCURRENCY: ${PROSPECT_RUNTIME_WORKER_CONCURRENCY:-4}
+    ports:
+      - '3001:3001'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_DEMO_TENANT_SLUG: ${NEXT_PUBLIC_DEMO_TENANT_SLUG:-}
+        NEXT_PUBLIC_DEMO_EMAIL: ${NEXT_PUBLIC_DEMO_EMAIL:-}
+        NEXT_PUBLIC_DEMO_PASSWORD: ${NEXT_PUBLIC_DEMO_PASSWORD:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - '3000:3000'
+
+volumes:
+  postgres_data:
+  redis_data:
