@@ -34,14 +34,19 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin: string | undefined, callback: CorsOriginCallback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const allowed = !origin || allowedOrigins.includes(origin);
+      console.log('[CORS] request origin:', JSON.stringify(origin), '| allowed:', allowed);
+      if (allowed) {
         callback(null, true);
         return;
       }
-
       callback(new Error(`Origin ${origin} not allowed by CORS`), false);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   app.useGlobalPipes(
