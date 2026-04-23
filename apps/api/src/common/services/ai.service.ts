@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { z } from 'zod';
+import type { z, ZodTypeAny } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export interface GenerateAgentResponseOptions {
@@ -170,7 +170,7 @@ export class AiService {
     input.push({ role: 'user', content: userMessage.trim() });
 
     // 2) Zod -> JSON Schema inline; $refStrategy:'none' required by strict mode (Pitfall #5).
-    const jsonSchema = zodToJsonSchema(schema, {
+    const jsonSchema = zodToJsonSchema(schema as ZodTypeAny, {
       target: 'openApi3',
       $refStrategy: 'none',
     }) as Record<string, unknown>;
