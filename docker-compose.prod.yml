@@ -42,6 +42,13 @@ services:
       PORT: 3000
     expose:
       - '3000'
+    networks:
+      - default
+      - easypanel
+
+networks:
+  easypanel:
+    external: true
 
 volumes:
   postgres_data:
