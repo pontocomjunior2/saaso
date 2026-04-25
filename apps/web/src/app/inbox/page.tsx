@@ -23,7 +23,6 @@ import {
   UserRoundCog,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useUIMode } from '@/components/layout/UIModeProvider';
 
 function formatDateTime(value?: string | null) {
   if (!value) {
@@ -51,7 +50,7 @@ function getConversationStatusMeta(status?: ConversationStatus | null, assignedA
   if (status === 'HANDOFF_REQUIRED') {
     return {
       label: 'Manual',
-      badgeClassName: 'border-amber-300/20 bg-amber-300/10 text-amber-100',
+      badgeClassName: 'border-amber-300 bg-amber-100 text-amber-700',
       description: 'Humano assumiu esta conversa. O agente pode retomar quando o piloto automatico for religado.',
       actionLabel: 'Religar piloto automático',
       nextStatus: 'OPEN' as ConversationStatus,
@@ -61,7 +60,7 @@ function getConversationStatusMeta(status?: ConversationStatus | null, assignedA
   if (status === 'CLOSED') {
     return {
       label: 'Encerrada',
-      badgeClassName: 'border-white/10 bg-white/5 text-slate-200',
+      badgeClassName: 'border-slate-200 bg-slate-100 text-slate-600',
       description: 'Conversa encerrada e fora da fila operacional.',
       actionLabel: 'Reabrir conversa',
       nextStatus: 'OPEN' as ConversationStatus,
@@ -71,7 +70,7 @@ function getConversationStatusMeta(status?: ConversationStatus | null, assignedA
   if (!assignedAgent) {
     return {
       label: 'Sem agente',
-      badgeClassName: 'border-white/10 bg-white/5 text-slate-200',
+      badgeClassName: 'border-slate-200 bg-slate-100 text-slate-600',
       description: 'Nenhum agente esta configurado para a etapa atual do card.',
       actionLabel: 'Assumir manualmente',
       nextStatus: 'HANDOFF_REQUIRED' as ConversationStatus,
@@ -81,7 +80,7 @@ function getConversationStatusMeta(status?: ConversationStatus | null, assignedA
   if (!assignedAgent.isActive) {
     return {
       label: 'Agente pausado',
-      badgeClassName: 'border-amber-300/20 bg-amber-300/10 text-amber-100',
+      badgeClassName: 'border-amber-300 bg-amber-100 text-amber-700',
       description: 'O agente desta etapa foi desligado globalmente. A conversa depende de operacao humana.',
       actionLabel: 'Assumir manualmente',
       nextStatus: 'HANDOFF_REQUIRED' as ConversationStatus,
@@ -90,7 +89,7 @@ function getConversationStatusMeta(status?: ConversationStatus | null, assignedA
 
   return {
     label: 'Autônoma',
-    badgeClassName: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100',
+    badgeClassName: 'border-emerald-300 bg-emerald-100 text-emerald-700',
     description: 'Agente conduzindo a conversa de forma automatica enquanto o takeover estiver desligado.',
     actionLabel: 'Assumir manualmente',
     nextStatus: 'HANDOFF_REQUIRED' as ConversationStatus,
@@ -106,7 +105,6 @@ function buildThreadPreview(thread: InboxThreadSummary) {
 }
 
 export default function InboxPage() {
-  const { mode } = useUIMode();
   const {
     threads,
     selectedContactId,
@@ -203,23 +201,23 @@ export default function InboxPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 p-6 lg:p-8">
       {error ? (
-        <div className="rounded-3xl border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">
+        <div className="rounded-3xl border border-rose-300 bg-rose-50 px-5 py-4 text-sm text-rose-700">
           {error}
         </div>
       ) : null}
 
-      <section className={cn('overflow-hidden rounded-[32px] border', mode === 'simple' ? 'border-slate-200 bg-[rgba(255,255,255,0.86)] shadow-[0_18px_44px_rgba(15,23,42,0.08)]' : 'border-white/10 bg-[rgba(7,16,29,0.86)] shadow-[0_20px_72px_rgba(0,0,0,0.2)]')}>
+      <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-[rgba(255,255,255,0.86)] shadow-[0_18px_44px_rgba(15,23,42,0.08)]">
         <div className="grid min-h-[52rem] gap-0 xl:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className={cn('flex min-h-[52rem] flex-col overflow-hidden xl:border-r', mode === 'simple' ? 'border-slate-200 bg-[rgba(255,255,255,0.92)]' : 'border-white/10 bg-[rgba(7,16,29,0.9)]')}>
-          <div className={cn('p-5', mode === 'simple' ? 'border-b border-slate-200' : 'border-b border-white/10')}>
+        <aside className="flex min-h-[52rem] flex-col overflow-hidden border-slate-200 bg-[rgba(255,255,255,0.92)] xl:border-r">
+          <div className="border-b border-slate-200 p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.32em] text-slate-500">Conversas</p>
-                <h3 className={cn('mt-2 text-xl font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>Todas</h3>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950">Todas</h3>
               </div>
               <button
                 onClick={() => void fetchInbox()}
-                className={cn('inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition', mode === 'simple' ? 'border-slate-200 bg-white text-slate-500 hover:border-slate-300' : 'border-white/10 bg-white/[0.04] text-slate-300')}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300"
               >
                 <RefreshCcw className={cn('h-4 w-4', isLoading ? 'animate-spin' : '')} />
               </button>
@@ -237,7 +235,7 @@ export default function InboxPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar contato, empresa ou conteúdo..."
-                className={cn('w-full rounded-2xl border py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40', mode === 'simple' ? 'border-slate-200 bg-slate-50 text-slate-950 focus:bg-white' : 'border-white/10 bg-white/[0.06] text-white focus:bg-white/[0.08]')}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white"
               />
             </div>
           </div>
@@ -264,14 +262,12 @@ export default function InboxPage() {
                       'mb-3 w-full rounded-[24px] border p-4 text-left transition',
                       isActive
                         ? 'border-cyan-300/30 bg-cyan-300/[0.08] shadow-[0_18px_44px_rgba(89,211,255,0.1)]'
-                        : mode === 'simple'
-                          ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]',
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className={cn('truncate text-sm font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>{thread.contact.name}</p>
+                        <p className="truncate text-sm font-semibold text-slate-950">{thread.contact.name}</p>
                         <p className="mt-1 truncate text-xs text-slate-500">
                           {thread.contact.company?.name || thread.contact.phone || thread.contact.email || 'Contato sem dados'}
                         </p>
@@ -284,7 +280,7 @@ export default function InboxPage() {
                       </div>
                     </div>
 
-                    <p className={cn('mt-4 line-clamp-2 text-sm leading-6', mode === 'simple' ? 'text-slate-600' : 'text-slate-300')}>{buildThreadPreview(thread)}</p>
+                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-600">{buildThreadPreview(thread)}</p>
 
                     <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
                       <span>{thread.messageCount} mensagens</span>
@@ -297,8 +293,8 @@ export default function InboxPage() {
           </div>
         </aside>
 
-        <div className={cn('flex min-h-[52rem] flex-col overflow-hidden', mode === 'simple' ? 'bg-[rgba(255,255,255,0.76)]' : 'bg-[rgba(7,16,29,0.86)]')}>
-          <div className={cn('p-5', mode === 'simple' ? 'border-b border-slate-200 bg-white/70' : 'border-b border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))]')}>
+        <div className="flex min-h-[52rem] flex-col overflow-hidden bg-[rgba(255,255,255,0.76)]">
+          <div className="border-b border-slate-200 bg-white/70 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-3">
@@ -306,7 +302,7 @@ export default function InboxPage() {
                     {selectedThread?.contact.name?.slice(0, 1) || 'C'}
                   </div>
                   <div className="min-w-0">
-                  <h3 className={cn('truncate text-xl font-semibold', mode === 'simple' ? 'text-slate-950' : 'text-white')}>
+                  <h3 className="truncate text-xl font-semibold text-slate-950">
                     {selectedThread?.contact.name || 'Selecione uma thread'}
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
@@ -359,7 +355,7 @@ export default function InboxPage() {
             </div>
           </div>
 
-          <div className={cn('flex-1 overflow-y-auto px-6 py-6', mode === 'simple' ? 'bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,250,252,0.75))]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.015),rgba(255,255,255,0.03))]')}>
+          <div className="flex-1 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,250,252,0.75))] px-6 py-6">
             {isThreadLoading ? (
               <div className="flex h-full min-h-[24rem] items-center justify-center text-sm text-slate-400">
                 Carregando histórico da thread...
@@ -370,8 +366,8 @@ export default function InboxPage() {
               </div>
             ) : selectedThread.messages.length === 0 ? (
               <div className="flex h-full min-h-[24rem] items-center justify-center px-10">
-                <div className={cn('max-w-xl rounded-[24px] border px-6 py-5 text-center', mode === 'simple' ? 'border-slate-200 bg-white' : 'border-white/10 bg-white/[0.04]')}>
-                  <p className={cn('text-sm font-medium', mode === 'simple' ? 'text-slate-950' : 'text-white')}>Thread sem mensagens de canal ainda</p>
+                <div className="max-w-xl rounded-[24px] border border-slate-200 bg-white px-6 py-5 text-center">
+                  <p className="text-sm font-medium text-slate-950">Thread sem mensagens de canal ainda</p>
                   <p className="mt-3 text-sm leading-7 text-slate-400">
                     {selectedThread.latestConversation?.summary ||
                       'Ainda nao existem mensagens registradas para este contato.'}
@@ -399,24 +395,24 @@ export default function InboxPage() {
             )}
           </div>
 
-          <div className={cn('p-5', mode === 'simple' ? 'border-t border-slate-200 bg-white/80' : 'border-t border-white/10 bg-white/[0.02]')}>
-            <form onSubmit={handleSubmit} className={cn('rounded-[28px] border p-4', mode === 'simple' ? 'border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.04)]' : 'border-white/10 bg-white/[0.04]')}>
+          <div className="border-t border-slate-200 bg-white/80 p-5">
+            <form onSubmit={handleSubmit} className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
               <textarea
                 value={draftMessage}
                 onChange={(event) => setDraftMessage(event.target.value)}
                 placeholder={selectedThread ? `Escreva a mensagem para ${selectedThread.contact.name}` : 'Selecione uma thread para responder'}
                 rows={4}
                 disabled={!selectedThread || isSending}
-                className={cn('w-full resize-none bg-transparent text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-60', mode === 'simple' ? 'text-slate-950' : 'text-white')}
+                className="w-full resize-none bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
-              <div className={cn('mt-4 flex items-center justify-between gap-3 pt-3', mode === 'simple' ? 'border-t border-slate-200' : 'border-t border-white/10')}>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
                 <div className="flex items-center gap-2">
-                  <button type="button" className={cn('inline-flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm', mode === 'simple' ? 'border-slate-200 bg-white text-slate-700' : 'border-white/10 bg-white/[0.04] text-slate-300')}>
+                  <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
                     <Paperclip className="h-4 w-4" />
                     Anexar
                   </button>
-                  <button type="button" className={cn('rounded-2xl border p-2.5', mode === 'simple' ? 'border-slate-200 bg-white text-slate-500' : 'border-white/10 bg-white/[0.04] text-slate-300')}>
+                  <button type="button" className="rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-500">
                     <Mic className="h-4 w-4" />
                   </button>
                 </div>
