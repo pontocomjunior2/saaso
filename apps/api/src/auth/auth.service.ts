@@ -78,24 +78,17 @@ export class AuthService {
   }
 
   public async login(dto: LoginDto) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { slug: dto.tenantSlug },
+    const user = await this.prisma.user.findFirst({
+      where: { email: dto.email },
+      include: { tenant: true },
     });
-    if (!tenant) {
-      throw new UnauthorizedException(
-        'Erro no Backend: Credenciais inválidas ou tenant não existe.',
-      );
-    }
-
-    const user = await this.userService.findByEmailAndTenant(
-      dto.email,
-      tenant.id,
-    );
     if (!user) {
       throw new UnauthorizedException(
         'Erro no Backend: Credenciais inválidas.',
       );
     }
+
+    const tenant = user.tenant;
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
     if (!isMatch) {

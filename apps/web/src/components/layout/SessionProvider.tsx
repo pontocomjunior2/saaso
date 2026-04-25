@@ -205,19 +205,6 @@ function AuthExperience({
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-300">Workspace</span>
-            <input
-              type="text"
-              value={form.tenantSlug}
-              onChange={(event) => setForm((current) => ({ ...current, tenantSlug: event.target.value.trim() }))}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
-              placeholder="minha-empresa"
-              required
-              autoComplete="organization"
-            />
-          </label>
-
-          <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-300">E-mail</span>
             <input
               type="email"
