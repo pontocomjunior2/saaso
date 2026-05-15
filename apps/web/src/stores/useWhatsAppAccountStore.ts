@@ -65,6 +65,7 @@ interface WhatsAppAccountState {
   fetchQrCode: (instanceName: string) => Promise<string>;
   fetchConnectionState: (instanceName: string) => Promise<string>;
   simulateInbound: (dto: SimulateInboundInput) => Promise<void>;
+  syncInstanceStatus: (instanceName: string) => Promise<void>;
   clearQrCode: () => void;
   switchProvider: (provider: 'meta_cloud' | 'evolution') => void;
   selectedProvider: 'meta_cloud' | 'evolution';
@@ -242,6 +243,14 @@ export const useWhatsAppAccountStore = create<WhatsAppAccountState>((set, get) =
         isLoading: false,
       });
       throw error;
+    }
+  },
+
+  syncInstanceStatus: async (instanceName) => {
+    try {
+      await api.post(`/whatsapp/evolution/instance/${instanceName}/sync`);
+    } catch {
+      // Non-fatal — fetchAccounts will still refresh UI
     }
   },
 

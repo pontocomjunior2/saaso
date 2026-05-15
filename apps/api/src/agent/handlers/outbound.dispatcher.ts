@@ -22,6 +22,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../../notification/notification.service';
+import { EvolutionApiService } from '../../whatsapp/evolution.service';
 import { AGENT_ACTIVITY_TYPES } from '../constants/card-activity-types';
 import type { StructuredReply } from '../schemas/structured-reply.schema';
 import type { AgentPromptProfile } from '../agent-prompt.builder';
@@ -58,6 +59,7 @@ export class OutboundDispatcher {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationService,
+    private readonly evolutionApiService: EvolutionApiService,
   ) {}
 
   async send(input: DispatchInput): Promise<DispatchResult> {
@@ -223,6 +225,31 @@ export class OutboundDispatcher {
         } as Prisma.InputJsonValue,
       },
     });
+
+    // Deliver via WhatsApp channel
+    const [contact, account] = await Promise.all([
+      this.prisma.contact.findUnique({
+        where: { id: input.conversation.contactId },
+        select: { phone: true },
+      }),
+      this.prisma.whatsAppAccount.findFirst({
+        where: { tenantId: input.card.tenantId },
+        select: { provider: true, instanceName: true },
+      }),
+    ]);
+
+    if (contact?.phone && account?.provider === 'evolution' && account.instanceName) {
+      try {
+        await this.evolutionApiService.sendMessage(
+          contact.phone,
+          replyText,
+          undefined,
+          { instanceName: account.instanceName },
+        );
+      } catch (err) {
+        this.logger.error(`Agent reply delivery failed via Evolution API: ${String(err)}`);
+      }
+    }
 
     return { status: 'sent', whatsAppMessageId: outboundMessage.id };
   }

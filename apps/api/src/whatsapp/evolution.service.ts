@@ -100,6 +100,14 @@ export class EvolutionApiService implements IWhatsAppProvider {
     }
   }
 
+  async deleteInstance(instanceName: string): Promise<void> {
+    try {
+      await this.httpDelete(`/instance/delete/${instanceName}`);
+    } catch {
+      // Instance may not exist on Evolution API side — proceed with local deletion
+    }
+  }
+
   // -- Status Sync --
 
   async syncInstanceStatus(
@@ -292,5 +300,17 @@ export class EvolutionApiService implements IWhatsAppProvider {
       throw new Error(`Evolution API ${path} failed: ${response.status} ${text}`);
     }
     return response.json();
+  }
+
+  private async httpDelete(path: string): Promise<any> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'DELETE',
+      headers: this.buildHeaders(),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Evolution API ${path} failed: ${response.status} ${text}`);
+    }
+    return response.json().catch(() => null);
   }
 }

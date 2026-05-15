@@ -424,6 +424,9 @@ export class WhatsappService {
         'Erro no Backend: Conta WhatsApp nao encontrada neste tenant.',
       );
     }
+    if (existing.provider === 'evolution' && existing.instanceName) {
+      await this.evolutionProvider.deleteInstance(existing.instanceName);
+    }
     await this.prisma.whatsAppAccount.delete({ where: { id } });
     return { ok: true };
   }
@@ -800,7 +803,7 @@ export class WhatsappService {
               : 'WHATSAPP_OUTBOUND',
           content:
             dispatchResult.status === MessageStatus.FAILED
-              ? `Falha ao enviar mensagem outbound via WhatsApp (${dispatchResult.deliveryMode}).`
+              ? `Falha ao enviar mensagem outbound via WhatsApp (${dispatchResult.deliveryMode})${dispatchResult.deliveryError ? `: ${dispatchResult.deliveryError}` : ''}.`
               : `Mensagem outbound enviada via WhatsApp (${dispatchResult.deliveryMode}).`,
         },
       });

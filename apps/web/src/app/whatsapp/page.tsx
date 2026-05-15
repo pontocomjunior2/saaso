@@ -5,7 +5,22 @@ import api from '@/lib/api';
 import { useWhatsAppAccountStore, type WhatsAppAccountSummary } from '@/stores/useWhatsAppAccountStore';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, CheckCircle2, Copy, MessageSquarePlus, Plus, QrCode, RefreshCcw, Save, Sparkles, Trash2, Unplug, Webhook, XCircle } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Copy,
+  Loader2,
+  MessageSquarePlus,
+  Plus,
+  QrCode,
+  RefreshCcw,
+  Sparkles,
+  Trash2,
+  Unplug,
+  Webhook,
+
+  XCircle,
+} from 'lucide-react';
 
 interface PipelineOption {
   id: string;
@@ -13,13 +28,16 @@ interface PipelineOption {
   stages: Array<{ id: string; name: string }>;
 }
 
-interface ChannelFormState {
-  provider: 'meta_cloud' | 'evolution';
+interface EvolutionFormState {
+  instanceName: string;
+  phoneNumber: string;
+}
+
+interface MetaFormState {
   phoneNumber: string;
   phoneNumberId: string;
   wabaId: string;
   accessToken: string;
-  instanceName: string;
 }
 
 interface SimulatorFormState {
@@ -30,28 +48,19 @@ interface SimulatorFormState {
   message: string;
 }
 
-const emptyChannelForm: ChannelFormState = {
-  provider: 'evolution',
-  phoneNumber: '',
-  phoneNumberId: '',
-  wabaId: '',
-  accessToken: '',
-  instanceName: '',
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  CONNECTED: { label: 'Conectado', cls: 'bg-emerald-50 text-emerald-700' },
+  QR_READY: { label: 'Aguardando QR', cls: 'bg-amber-50 text-amber-700' },
+  DISCONNECTED: { label: 'Desconectado', cls: 'bg-gray-100 text-gray-500' },
+  ERROR: { label: 'Erro', cls: 'bg-rose-50 text-rose-600' },
 };
 
-const emptySimulatorForm: SimulatorFormState = {
-  fromPhoneNumber: '',
-  contactName: '',
-  companyName: '',
-  stageId: '',
-  message: 'Olá, quero entender como vocês estruturam o diagnóstico comercial.',
-};
+function accountLabel(account: WhatsAppAccountSummary): string {
+  return account.phoneNumber || account.instanceName || account.id;
+}
 
-function getConnectionModeLabel(account: WhatsAppAccountSummary | null): string {
-  if (!account) return 'Sem conta';
-  if (account.connectionMode === 'cloud_api') return 'Cloud API oficial';
-  if (account.connectionMode === 'local_demo') return 'Demo local';
-  return 'Configuração parcial';
+function providerLabel(provider: string): string {
+  return provider === 'evolution' ? 'Evolution API' : 'Meta Cloud API';
 }
 
 export default function WhatsAppPage() {
@@ -70,136 +79,173 @@ export default function WhatsAppPage() {
     createEvolutionInstance,
     fetchQrCode,
     fetchConnectionState,
+    syncInstanceStatus,
     simulateInbound,
     clearQrCode,
   } = useWhatsAppAccountStore();
+
   const [pipelines, setPipelines] = useState<PipelineOption[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
-  const [channelForm, setChannelForm] = useState<ChannelFormState>(emptyChannelForm);
-  const [simulatorForm, setSimulatorForm] = useState<SimulatorFormState>(emptySimulatorForm);
+  const [evoForm, setEvoForm] = useState<EvolutionFormState>({ instanceName: '', phoneNumber: '' });
+  const [metaForm, setMetaForm] = useState<MetaFormState>({ phoneNumber: '', phoneNumberId: '', wabaId: '', accessToken: '' });
+  const [simulatorForm, setSimulatorForm] = useState<SimulatorFormState>({
+    fromPhoneNumber: '',
+    contactName: '',
+    companyName: '',
+    stageId: '',
+    message: 'Olá, quero entender como vocês estruturam o diagnóstico comercial.',
+  });
   const [pageMessage, setPageMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingInstance, setIsCreatingInstance] = useState(false);
   const [isFetchingQr, setIsFetchingQr] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
 
   useEffect(() => {
     let active = true;
     void fetchAccounts();
-
     const loadPipelines = async () => {
       try {
         const response = await api.get<PipelineOption[]>('/pipelines');
         if (!active) return;
         setPipelines(response.data);
-        setSimulatorForm((current) => ({
-          ...current,
-          stageId: current.stageId || response.data[0]?.stages[0]?.id || '',
-        }));
+        setSimulatorForm((c) => ({ ...c, stageId: c.stageId || response.data[0]?.stages[0]?.id || '' }));
       } catch {
         if (active) setPipelines([]);
       }
     };
-
     void loadPipelines();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [fetchAccounts]);
 
   useEffect(() => {
-    if (!selectedAccountId && accounts[0]) {
-      setSelectedAccountId(accounts[0].id);
-    }
+    if (!selectedAccountId && accounts[0]) setSelectedAccountId(accounts[0].id);
   }, [accounts, selectedAccountId]);
 
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
+  const selectedAccount = accounts.find((a) => a.id === selectedAccountId) ?? null;
 
   useEffect(() => {
+    clearQrCode();
+    setPageMessage(null);
     if (!selectedAccount) {
-      setChannelForm(emptyChannelForm);
-      clearQrCode();
+      setEvoForm({ instanceName: '', phoneNumber: '' });
+      setMetaForm({ phoneNumber: '', phoneNumberId: '', wabaId: '', accessToken: '' });
       return;
     }
-
-    setChannelForm({
-      provider: (selectedAccount.provider as 'meta_cloud' | 'evolution') ?? 'evolution',
-      phoneNumber: selectedAccount.phoneNumber ?? '',
-      phoneNumberId: selectedAccount.phoneNumberId ?? '',
-      wabaId: selectedAccount.wabaId ?? '',
-      accessToken: '',
-      instanceName: selectedAccount.instanceName ?? '',
-    });
-    clearQrCode();
+    if (selectedAccount.provider === 'evolution') {
+      setEvoForm({ instanceName: selectedAccount.instanceName ?? '', phoneNumber: selectedAccount.phoneNumber ?? '' });
+    } else {
+      setMetaForm({ phoneNumber: selectedAccount.phoneNumber ?? '', phoneNumberId: selectedAccount.phoneNumberId ?? '', wabaId: selectedAccount.wabaId ?? '', accessToken: '' });
+    }
   }, [clearQrCode, selectedAccount]);
 
   const selectedStageLabel = useMemo(() => {
-    for (const pipeline of pipelines) {
-      const stage = pipeline.stages.find((item) => item.id === simulatorForm.stageId);
-      if (stage) return `${pipeline.name} / ${stage.name}`;
+    for (const p of pipelines) {
+      const s = p.stages.find((st) => st.id === simulatorForm.stageId);
+      if (s) return `${p.name} / ${s.name}`;
     }
     return 'Sem etapa definida';
   }, [pipelines, simulatorForm.stageId]);
 
   const webhookUrl = `${apiBaseUrl.replace(/\/$/, '')}/whatsapp/webhook`;
 
-  const handleSaveAccount = async (event: React.FormEvent<HTMLFormElement>) => {
+  // ── Evolution handlers ──────────────────────────────────────────────────
+
+  const handleSaveEvolution = async (event: React.FormEvent) => {
     event.preventDefault();
-    setPageMessage(null);
+    if (!evoForm.instanceName.trim()) return;
     setIsSaving(true);
+    setPageMessage(null);
     try {
-      const payload = {
-        provider: channelForm.provider,
-        phoneNumber: channelForm.phoneNumber || undefined,
-        phoneNumberId: channelForm.phoneNumberId || undefined,
-        wabaId: channelForm.wabaId || undefined,
-        accessToken: channelForm.accessToken || undefined,
-        instanceName: channelForm.instanceName || undefined,
-      };
-      const account = selectedAccount ? await updateAccount(selectedAccount.id, payload) : await createAccount(payload);
-      setSelectedAccountId(account.id);
-      setChannelForm((current) => ({ ...current, accessToken: '' }));
+      const payload = { provider: 'evolution' as const, instanceName: evoForm.instanceName.trim(), phoneNumber: evoForm.phoneNumber.trim() || undefined };
+      const saved = selectedAccount ? await updateAccount(selectedAccount.id, payload) : await createAccount(payload);
+      setSelectedAccountId(saved.id);
       await fetchAccounts();
-      setPageMessage('Conta WhatsApp salva com sucesso.');
+      setPageMessage('Conta salva. Agora crie/atualize a instância na Evolution API para gerar o QR Code.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleNewAccount = () => {
-    setSelectedAccountId('');
-    setChannelForm(emptyChannelForm);
-    clearQrCode();
-    setPageMessage(null);
-  };
-
-  const handleCreateEvolutionInstance = async () => {
-    if (!selectedAccount || channelForm.provider !== 'evolution' || !channelForm.instanceName) return;
+  const handleCreateInstance = async () => {
+    if (!selectedAccount || !evoForm.instanceName.trim()) return;
     setIsCreatingInstance(true);
     setPageMessage(null);
     try {
-      await createEvolutionInstance({
-        name: channelForm.instanceName,
-        phoneNumber: channelForm.phoneNumber || undefined,
-      });
+      await createEvolutionInstance({ name: evoForm.instanceName.trim(), phoneNumber: evoForm.phoneNumber.trim() || undefined });
       await fetchAccounts();
-      setPageMessage('Instância Evolution criada/atualizada. Agora leia o QR Code para conectar.');
+      await fetchQrCode(evoForm.instanceName.trim());
+      setPageMessage('Instância criada. Escaneie o QR Code com o WhatsApp.');
+      startQrPolling(evoForm.instanceName.trim());
+    } catch {
+      // error shown via store
     } finally {
       setIsCreatingInstance(false);
     }
   };
 
-  const handleLoadQrCode = async () => {
-    if (!channelForm.instanceName) return;
+  const handleLoadQr = async () => {
+    const name = evoForm.instanceName.trim() || selectedAccount?.instanceName;
+    if (!name) return;
     setIsFetchingQr(true);
-    setPageMessage(null);
     try {
-      await fetchQrCode(channelForm.instanceName);
-      await fetchConnectionState(channelForm.instanceName);
-      setPageMessage('QR Code carregado.');
+      await fetchQrCode(name);
+      startQrPolling(name);
     } finally {
       setIsFetchingQr(false);
     }
+  };
+
+  const startQrPolling = (name: string) => {
+    setIsPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const state = await fetchConnectionState(name);
+        if (state === 'open' || state === 'connected' || state === 'CONNECTED') {
+          clearInterval(interval);
+          setIsPolling(false);
+          clearQrCode();
+          await syncInstanceStatus(name);
+          await fetchAccounts();
+          setPageMessage('WhatsApp conectado com sucesso!');
+        }
+      } catch {
+        // non-fatal
+      }
+    }, 3000);
+  };
+
+  // ── Meta Cloud handlers ─────────────────────────────────────────────────
+
+  const handleSaveMeta = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setPageMessage(null);
+    try {
+      const payload = {
+        provider: 'meta_cloud' as const,
+        phoneNumber: metaForm.phoneNumber.trim() || undefined,
+        phoneNumberId: metaForm.phoneNumberId.trim() || undefined,
+        wabaId: metaForm.wabaId.trim() || undefined,
+        accessToken: metaForm.accessToken.trim() || undefined,
+      };
+      const saved = selectedAccount ? await updateAccount(selectedAccount.id, payload) : await createAccount(payload);
+      setSelectedAccountId(saved.id);
+      setMetaForm((c) => ({ ...c, accessToken: '' }));
+      await fetchAccounts();
+      setPageMessage('Conta Meta Cloud salva com sucesso.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ── Common handlers ─────────────────────────────────────────────────────
+
+  const handleNewAccount = () => {
+    setSelectedAccountId('');
+    clearQrCode();
+    setPageMessage(null);
   };
 
   const handleDisconnect = async () => {
@@ -217,7 +263,7 @@ export default function WhatsAppPage() {
     setPageMessage('Conta removida.');
   };
 
-  const handleSimulate = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSimulate = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSimulating(true);
     setPageMessage(null);
@@ -229,14 +275,8 @@ export default function WhatsAppPage() {
         stageId: simulatorForm.stageId || undefined,
         message: simulatorForm.message,
       });
-      setPageMessage('Mensagem inbound simulada. Revise o Inbox para acompanhar card, thread e resposta do agente.');
-      setSimulatorForm((current) => ({
-        ...current,
-        fromPhoneNumber: '',
-        contactName: '',
-        companyName: '',
-        message: emptySimulatorForm.message,
-      }));
+      setPageMessage('Mensagem simulada. Revise o Inbox para acompanhar card, thread e resposta do agente.');
+      setSimulatorForm((c) => ({ ...c, fromPhoneNumber: '', contactName: '', companyName: '', message: 'Olá, quero entender como vocês estruturam o diagnóstico comercial.' }));
     } finally {
       setIsSimulating(false);
     }
@@ -245,30 +285,32 @@ export default function WhatsAppPage() {
   const handleCopy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      setPageMessage('Valor copiado para a área de transferência.');
+      setPageMessage('Copiado para a área de transferência.');
     } catch {
-      setPageMessage('Não foi possível copiar automaticamente. Copie manualmente.');
+      setPageMessage('Não foi possível copiar automaticamente.');
     }
   };
 
+
   return (
     <div className="mx-auto flex w-full max-w-[1560px] flex-col gap-6 p-6 lg:p-8">
-      {/* Page header */}
+
+      {/* Header */}
       <section className="rounded-[30px] border border-[#e8e8e8] bg-white p-5 shadow-sm lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.32em] text-[#9e9e9e]">WhatsApp</p>
-            <h1 className="mt-2 text-3xl font-semibold text-[#393939]">Múltiplas contas, providers e conexão operacional.</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-[#6b6b6b]">
-              Gerencie várias contas no mesmo tenant, escolha Evolution ou Meta Cloud por conta, leia o QR Code e vincule cada canal ao pipeline correto.
+            <h1 className="mt-2 text-3xl font-semibold text-[#393939]">Central WhatsApp</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-[#6b6b6b]">
+              Gerencie contas Evolution API e Meta Cloud, leia o QR Code e vincule cada canal ao pipeline correto.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button onClick={() => void fetchAccounts()} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-3 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#f2f2f2]">
+            <button onClick={() => void fetchAccounts()} className="inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-3 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#f2f2f2]">
               <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Recarregar status
+              Recarregar
             </button>
-            <Link href="/inbox" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#594ded] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4d42cc]">
+            <Link href="/inbox" className="inline-flex items-center gap-2 rounded-2xl bg-[#594ded] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4d42cc]">
               Abrir inbox
               <ArrowUpRight className="h-4 w-4" />
             </Link>
@@ -276,15 +318,16 @@ export default function WhatsAppPage() {
         </div>
       </section>
 
-      {/* Messages */}
+      {/* Feedback */}
       {(error || pageMessage) && (
         <div className={`rounded-3xl px-5 py-4 text-sm ${error ? 'border border-rose-200 bg-rose-50 text-rose-600' : 'border border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
           {error || pageMessage}
         </div>
       )}
 
-      {/* Accounts list + detail */}
+      {/* Main grid */}
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+
         {/* Account list */}
         <div className="rounded-[30px] border border-[#e8e8e8] bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3">
@@ -301,107 +344,186 @@ export default function WhatsAppPage() {
           <div className="mt-6 space-y-3">
             {accounts.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-[#d0d0d0] bg-[#fafafa] px-5 py-6 text-sm text-[#6b6b6b]">
-                Nenhuma conta configurada ainda. Crie a primeira conta para conectar um funil.
+                Nenhuma conta configurada ainda.
               </div>
             ) : (
-              accounts.map((account) => (
-                <button key={account.id} type="button" onClick={() => setSelectedAccountId(account.id)} className={`w-full rounded-[24px] border p-4 text-left transition ${selectedAccountId === account.id ? 'border-[#594ded] bg-[#e8e6fc]' : 'border-[#e8e8e8] bg-[#fafafa] hover:border-[#d0d0d0]'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-[#393939]">{account.phoneNumber || account.instanceName || account.id}</p>
-                      <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[#9e9e9e]">{account.provider}</p>
+              accounts.map((account) => {
+                const badge = STATUS_BADGE[account.status] ?? { label: account.status, cls: 'bg-gray-100 text-gray-500' };
+                return (
+                  <button
+                    key={account.id}
+                    type="button"
+                    onClick={() => setSelectedAccountId(account.id)}
+                    className={`w-full rounded-[24px] border p-4 text-left transition ${selectedAccountId === account.id ? 'border-[#594ded] bg-[#e8e6fc]' : 'border-[#e8e8e8] bg-[#fafafa] hover:border-[#d0d0d0]'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-[#393939]">{accountLabel(account)}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.22em] text-[#9e9e9e]">{providerLabel(account.provider)}</p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${badge.cls}`}>{badge.label}</span>
                     </div>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] ${account.isOperational ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                      {getConnectionModeLabel(account)}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-[#6b6b6b]">{account.assignedPipelineName ? `Pipeline ${account.assignedPipelineName}` : 'Sem pipeline vinculado'}</p>
-                </button>
-              ))
+                    <p className="mt-3 text-xs text-[#9e9e9e]">{account.assignedPipelineName ? `Pipeline: ${account.assignedPipelineName}` : 'Sem pipeline vinculado'}</p>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
 
         {/* Detail column */}
         <div className="space-y-6">
-          {/* Provider credentials */}
-          <section className="rounded-[30px] border border-[#e8e8e8] bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#e8e8e8] bg-[#fafafa] text-[#594ded]">
-                {selectedAccount?.isOperational ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.28em] text-[#9e9e9e]">Conta ativa</p>
-                <h2 className="mt-1 text-xl font-semibold text-[#393939]">Provider e credenciais</h2>
-              </div>
-            </div>
 
-            <form className="mt-6 space-y-4" onSubmit={handleSaveAccount}>
-              <select value={channelForm.provider} onChange={(event) => setChannelForm((current) => ({ ...current, provider: event.target.value as 'meta_cloud' | 'evolution' }))} className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none focus:border-[#594ded]">
-                <option value="evolution">Evolution API</option>
-                <option value="meta_cloud">Meta Cloud API</option>
-              </select>
-              <input value={channelForm.phoneNumber} onChange={(event) => setChannelForm((current) => ({ ...current, phoneNumber: event.target.value }))} placeholder="Número do WhatsApp com DDI/DDD" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
-              {channelForm.provider === 'evolution' ? <input value={channelForm.instanceName} onChange={(event) => setChannelForm((current) => ({ ...current, instanceName: event.target.value }))} placeholder="Nome da instance Evolution" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" /> : null}
-              {channelForm.provider === 'meta_cloud' ? (
-                <>
-                  <input value={channelForm.phoneNumberId} onChange={(event) => setChannelForm((current) => ({ ...current, phoneNumberId: event.target.value }))} placeholder="Phone Number ID da Meta" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
-                  <input value={channelForm.wabaId} onChange={(event) => setChannelForm((current) => ({ ...current, wabaId: event.target.value }))} placeholder="WABA ID" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
-                </>
-              ) : null}
-              <input type="password" value={channelForm.accessToken} onChange={(event) => setChannelForm((current) => ({ ...current, accessToken: event.target.value }))} placeholder={selectedAccount?.hasAccessToken ? 'Token configurado. Informe outro para substituir.' : 'Access token / API key'} className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
-
-              <div className="flex flex-wrap gap-3">
-                <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl bg-[#594ded] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#4d42cc]">
-                  <Save className="h-4 w-4" />
-                  {isSaving ? 'Salvando...' : 'Salvar conta'}
-                </button>
-                {selectedAccount ? (
-                  <>
-                    <button type="button" onClick={handleDisconnect} className="inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-3 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#f2f2f2]">
-                      <Unplug className="h-4 w-4" />
-                      Desconectar
-                    </button>
-                    <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600 transition hover:border-rose-300 hover:bg-rose-100">
-                      <Trash2 className="h-4 w-4" />
-                      Remover
-                    </button>
-                  </>
-                ) : null}
-              </div>
-            </form>
-          </section>
-
-          {/* Evolution QR */}
-          {channelForm.provider === 'evolution' ? (
+          {/* Evolution form */}
+          {(!selectedAccount || selectedAccount.provider === 'evolution') && (
             <section className="rounded-[30px] border border-[#e8e8e8] bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#e8e8e8] bg-[#fafafa] text-[#594ded]">
-                  <QrCode className="h-5 w-5" />
+                  {selectedAccount?.status === 'CONNECTED' ? <CheckCircle2 className="h-5 w-5" /> : <QrCode className="h-5 w-5" />}
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-[#9e9e9e]">Evolution</p>
-                  <h2 className="mt-1 text-xl font-semibold text-[#393939]">QR Code e estado da conexão</h2>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-[#9e9e9e]">Evolution API</p>
+                  <h2 className="mt-1 text-xl font-semibold text-[#393939]">
+                    {selectedAccount ? 'Instância configurada' : 'Nova instância Evolution'}
+                  </h2>
                 </div>
               </div>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button type="button" onClick={handleCreateEvolutionInstance} disabled={!selectedAccount || !channelForm.instanceName || isCreatingInstance} className="inline-flex items-center gap-2 rounded-2xl bg-[#594ded] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#4d42cc]">
-                  {isCreatingInstance ? 'Criando...' : 'Criar/atualizar instância'}
-                </button>
-                <button type="button" onClick={handleLoadQrCode} disabled={!channelForm.instanceName || isFetchingQr} className="inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-3 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#f2f2f2] disabled:opacity-50">
-                  {isFetchingQr ? 'Carregando...' : 'Ler QR Code'}
-                </button>
-              </div>
-              <div className="mt-4 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] p-4 text-sm text-[#6b6b6b]">
-                Estado atual: <span className="font-medium text-[#393939]">{connectionState || selectedAccount?.status || 'Sem leitura'}</span>
-              </div>
-              {qrCode ? (
-                <div className="mt-4 rounded-2xl border border-[#e8e8e8] bg-white p-4">
-                  <img src={qrCode} alt="QR Code da instância Evolution" className="mx-auto max-h-[22rem] w-auto" />
+
+              <form className="mt-6 space-y-4" onSubmit={handleSaveEvolution}>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6b6b6b]">Nome da instância <span className="text-rose-500">*</span></label>
+                  <input
+                    value={evoForm.instanceName}
+                    onChange={(e) => setEvoForm((c) => ({ ...c, instanceName: e.target.value }))}
+                    placeholder="ex: minha-empresa"
+                    required
+                    className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]"
+                  />
+                  <p className="mt-1 text-xs text-[#9e9e9e]">Identificador único da instância na Evolution API. Use letras, números e hífens.</p>
                 </div>
-              ) : null}
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6b6b6b]">Número de telefone <span className="text-[#9e9e9e]">(opcional)</span></label>
+                  <input
+                    value={evoForm.phoneNumber}
+                    onChange={(e) => setEvoForm((c) => ({ ...c, phoneNumber: e.target.value }))}
+                    placeholder="+5511999999999"
+                    className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <button type="submit" disabled={isSaving || !evoForm.instanceName.trim()} className="inline-flex items-center gap-2 rounded-2xl bg-[#594ded] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#4d42cc]">
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {selectedAccount ? 'Salvar alterações' : 'Salvar conta'}
+                  </button>
+                  {selectedAccount && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCreateInstance}
+                        disabled={isCreatingInstance || !evoForm.instanceName.trim()}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-[#594ded] bg-white px-4 py-3 text-sm font-semibold text-[#594ded] disabled:opacity-50 hover:bg-[#f0effe]"
+                      >
+                        {isCreatingInstance ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                        {selectedAccount.status === 'CONNECTED' ? 'Reconectar instância' : 'Criar instância e gerar QR'}
+                      </button>
+                      <button type="button" onClick={handleDisconnect} className="inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-3 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0]">
+                        <Unplug className="h-4 w-4" />
+                        Desconectar
+                      </button>
+                      <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600 transition hover:border-rose-300 hover:bg-rose-100">
+                        <Trash2 className="h-4 w-4" />
+                        Remover
+                      </button>
+                    </>
+                  )}
+                </div>
+              </form>
+
+              {/* QR Code area */}
+              {selectedAccount && selectedAccount.status !== 'CONNECTED' && (
+                <div className="mt-6 rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] p-5">
+                  {qrCode ? (
+                    <>
+                      <p className="mb-3 text-sm font-medium text-[#393939]">Escaneie com o WhatsApp para conectar</p>
+                      <img src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`} alt="QR Code" className="mx-auto max-h-64 w-auto rounded-xl bg-white p-3" />
+                      {isPolling && (
+                        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-[#9e9e9e]">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Aguardando conexão...
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm text-[#6b6b6b]">
+                        Estado: <span className="font-medium text-[#393939]">{connectionState || selectedAccount.status}</span>
+                      </p>
+                      <button type="button" onClick={handleLoadQr} disabled={isFetchingQr} className="inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-white px-4 py-2.5 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0] disabled:opacity-50">
+                        {isFetchingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                        Ler QR Code
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedAccount?.status === 'CONNECTED' && (
+                <div className="mt-6 flex items-center gap-2 rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                  WhatsApp conectado e operacional.
+                </div>
+              )}
             </section>
-          ) : null}
+          )}
+
+          {/* Meta Cloud form */}
+          {selectedAccount?.provider === 'meta_cloud' && (
+            <section className="rounded-[30px] border border-[#e8e8e8] bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#e8e8e8] bg-[#fafafa] text-[#594ded]">
+                  {selectedAccount.isOperational ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.28em] text-[#9e9e9e]">Meta Cloud API</p>
+                  <h2 className="mt-1 text-xl font-semibold text-[#393939]">Credenciais oficiais</h2>
+                </div>
+              </div>
+
+              <form className="mt-6 space-y-4" onSubmit={handleSaveMeta}>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6b6b6b]">Número de telefone</label>
+                  <input value={metaForm.phoneNumber} onChange={(e) => setMetaForm((c) => ({ ...c, phoneNumber: e.target.value }))} placeholder="+5511999999999" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6b6b6b]">Phone Number ID</label>
+                  <input value={metaForm.phoneNumberId} onChange={(e) => setMetaForm((c) => ({ ...c, phoneNumberId: e.target.value }))} placeholder="ID do número na Meta" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6b6b6b]">WABA ID</label>
+                  <input value={metaForm.wabaId} onChange={(e) => setMetaForm((c) => ({ ...c, wabaId: e.target.value }))} placeholder="WhatsApp Business Account ID" className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#6b6b6b]">Access Token</label>
+                  <input type="password" value={metaForm.accessToken} onChange={(e) => setMetaForm((c) => ({ ...c, accessToken: e.target.value }))} placeholder={selectedAccount.hasAccessToken ? 'Token configurado — informe outro para substituir' : 'Token de acesso da Meta'} className="w-full rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
+                </div>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl bg-[#594ded] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#4d42cc]">
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Salvar conta
+                  </button>
+                  <button type="button" onClick={handleDisconnect} className="inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] px-4 py-3 text-sm font-medium text-[#393939] transition hover:border-[#d0d0d0]">
+                    <Unplug className="h-4 w-4" />
+                    Desconectar
+                  </button>
+                  <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600 transition hover:border-rose-300 hover:bg-rose-100">
+                    <Trash2 className="h-4 w-4" />
+                    Remover
+                  </button>
+                </div>
+              </form>
+            </section>
+          )}
 
           {/* Webhook URL */}
           <section className="rounded-[30px] border border-[#e8e8e8] bg-white p-6 shadow-sm">
@@ -411,17 +533,17 @@ export default function WhatsAppPage() {
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-[0.28em] text-[#9e9e9e]">Webhook</p>
-                <h2 className="mt-1 text-xl font-semibold text-[#393939]">Endpoint operacional</h2>
+                <h2 className="mt-1 text-xl font-semibold text-[#393939]">Endpoint de recebimento</h2>
               </div>
             </div>
-            <div className="mt-6 rounded-[26px] border border-[#e8e8e8] bg-[#fafafa] p-5">
-              <p className="text-sm font-medium text-[#393939]">URL pública de recebimento</p>
-              <p className="mt-3 break-all text-sm leading-7 font-mono text-[#6b6b6b]">{webhookUrl}</p>
-              <button onClick={() => void handleCopy(webhookUrl)} className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#fafafa]">
+            <div className="mt-5 rounded-[24px] border border-[#e8e8e8] bg-[#fafafa] p-4">
+              <p className="break-all font-mono text-sm text-[#6b6b6b]">{webhookUrl}</p>
+              <button onClick={() => void handleCopy(webhookUrl)} className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-[#e8e8e8] bg-white px-4 py-2.5 text-sm text-[#393939] transition hover:border-[#d0d0d0] hover:bg-[#fafafa]">
                 <Copy className="h-4 w-4" />
-                Copiar endpoint
+                Copiar
               </button>
             </div>
+            <p className="mt-3 text-xs text-[#9e9e9e]">Configure este endpoint na Evolution API (ou na Meta) para receber mensagens inbound.</p>
           </section>
         </div>
       </section>
@@ -439,23 +561,19 @@ export default function WhatsAppPage() {
         </div>
 
         <form className="mt-6 grid gap-4 xl:grid-cols-[repeat(4,minmax(0,1fr))]" onSubmit={handleSimulate}>
-          <input value={simulatorForm.fromPhoneNumber} onChange={(event) => setSimulatorForm((current) => ({ ...current, fromPhoneNumber: event.target.value }))} placeholder="Telefone de origem" className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" required />
-          <input value={simulatorForm.contactName} onChange={(event) => setSimulatorForm((current) => ({ ...current, contactName: event.target.value }))} placeholder="Nome do contato" className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
-          <input value={simulatorForm.companyName} onChange={(event) => setSimulatorForm((current) => ({ ...current, companyName: event.target.value }))} placeholder="Empresa (opcional)" className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
-          <select value={simulatorForm.stageId} onChange={(event) => setSimulatorForm((current) => ({ ...current, stageId: event.target.value }))} className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none focus:border-[#594ded]">
+          <input value={simulatorForm.fromPhoneNumber} onChange={(e) => setSimulatorForm((c) => ({ ...c, fromPhoneNumber: e.target.value }))} placeholder="Telefone de origem" className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" required />
+          <input value={simulatorForm.contactName} onChange={(e) => setSimulatorForm((c) => ({ ...c, contactName: e.target.value }))} placeholder="Nome do contato" className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
+          <input value={simulatorForm.companyName} onChange={(e) => setSimulatorForm((c) => ({ ...c, companyName: e.target.value }))} placeholder="Empresa (opcional)" className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" />
+          <select value={simulatorForm.stageId} onChange={(e) => setSimulatorForm((c) => ({ ...c, stageId: e.target.value }))} className="rounded-2xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none focus:border-[#594ded]">
             <option value="">Usar primeira etapa do pipeline</option>
-            {pipelines.flatMap((pipeline) => pipeline.stages.map((stage) => (
-              <option key={stage.id} value={stage.id}>
-                {pipeline.name} / {stage.name}
-              </option>
+            {pipelines.flatMap((p) => p.stages.map((s) => (
+              <option key={s.id} value={s.id}>{p.name} / {s.name}</option>
             )))}
           </select>
-          <textarea value={simulatorForm.message} onChange={(event) => setSimulatorForm((current) => ({ ...current, message: event.target.value }))} rows={4} className="xl:col-span-4 rounded-[24px] border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" placeholder="Mensagem inbound recebida" required />
+          <textarea value={simulatorForm.message} onChange={(e) => setSimulatorForm((c) => ({ ...c, message: e.target.value }))} rows={3} className="xl:col-span-4 rounded-[24px] border border-[#e8e8e8] bg-white px-4 py-3 text-sm text-[#393939] outline-none placeholder:text-[#9e9e9e] focus:border-[#594ded]" placeholder="Mensagem inbound" required />
           <div className="xl:col-span-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[#6b6b6b]">
-              O simulador cria ou reaproveita o contato, abre card se necessário e aciona o agente da etapa. Etapa atual: <span className="font-medium text-[#393939]">{selectedStageLabel}</span>.
-            </p>
-            <button type="submit" disabled={isSimulating} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#594ded] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#4d42cc]">
+            <p className="text-sm text-[#6b6b6b]">Etapa: <span className="font-medium text-[#393939]">{selectedStageLabel}</span></p>
+            <button type="submit" disabled={isSimulating} className="inline-flex items-center gap-2 rounded-2xl bg-[#594ded] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50 hover:bg-[#4d42cc]">
               <Sparkles className="h-4 w-4" />
               {isSimulating ? 'Simulando...' : 'Simular inbound'}
             </button>
