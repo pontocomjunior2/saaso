@@ -21,6 +21,7 @@ import React, {
 } from 'react';
 
 type SessionStatus = 'checking' | 'authenticated' | 'unauthenticated';
+type AppUserRole = 'OWNER' | 'ADMIN' | 'MANAGER' | 'AGENT';
 
 interface LoginInput {
   tenantSlug: string;
@@ -30,6 +31,12 @@ interface LoginInput {
 
 interface LoginResponse {
   access_token: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: AppUserRole;
+  };
   tenant?: {
     id: string;
     name: string;
@@ -49,6 +56,7 @@ interface AppSessionContextValue {
   isDemoSession: boolean;
   login: (input: LoginInput) => Promise<void>;
   logout: () => void;
+  role: AppUserRole | null;
   status: SessionStatus;
   tenantName: string;
   tenantSlug: string;
@@ -115,6 +123,31 @@ function formatTenantName(tenantSlug: string) {
     .join(' ');
 }
 
+function parseRoleFromAccessToken(token: string | null): AppUserRole | null {
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) {
+      return null;
+    }
+
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const normalizedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    const decodedPayload =
+      typeof window !== 'undefined'
+        ? window.atob(normalizedBase64)
+        : Buffer.from(normalizedBase64, 'base64').toString('utf8');
+    const parsed = JSON.parse(decodedPayload) as { role?: AppUserRole };
+
+    return parsed.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function buildLoginInput(hint: SessionHint, password = ''): LoginInput {
   return {
     tenantSlug: hint.tenantSlug,
@@ -128,6 +161,7 @@ function buildSessionHint(input: LoginInput, response?: LoginResponse): SessionH
     tenantName: response?.tenant?.name ?? formatTenantName(input.tenantSlug),
     tenantSlug: input.tenantSlug,
     email: input.email,
+    role: response?.user?.role,
     workspaceName: response?.workspace?.name ?? 'Workspace principal',
     workspaceSlug: response?.workspace?.slug ?? 'principal',
   };
@@ -309,14 +343,25 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
     const token = readAccessToken();
     const storedSessionHint = readSessionHint(DEFAULT_SESSION_HINT);
+    const resolvedRole = storedSessionHint.role ?? parseRoleFromAccessToken(token);
     const shouldAttemptDemoLogin = shouldAutoLogin(storedSessionHint);
     const nextSessionInput = buildLoginInput(
       storedSessionHint,
       shouldAttemptDemoLogin ? DEFAULT_SESSION.password : '',
     );
+    const nextSessionHint = resolvedRole
+      ? {
+          ...storedSessionHint,
+          role: resolvedRole,
+        }
+      : storedSessionHint;
 
-    setSessionHint(storedSessionHint);
+    setSessionHint(nextSessionHint);
     setSessionInput(nextSessionInput);
+
+    if (resolvedRole && resolvedRole !== storedSessionHint.role) {
+      writeSessionHint(nextSessionHint);
+    }
 
     if (token) {
       setStatus('authenticated');
@@ -358,6 +403,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
         sessionHint.tenantSlug === DEFAULT_SESSION.tenantSlug && sessionHint.email === DEFAULT_SESSION.email,
       login,
       logout,
+      role: (sessionHint.role as AppUserRole | undefined) ?? null,
       status,
       tenantName: sessionHint.tenantName ?? formatTenantName(sessionHint.tenantSlug),
       tenantSlug: sessionHint.tenantSlug,

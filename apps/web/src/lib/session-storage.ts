@@ -4,6 +4,7 @@ export interface SessionHint {
   tenantName?: string;
   tenantSlug: string;
   email: string;
+  role?: string;
   workspaceName?: string;
   workspaceSlug?: string;
 }
@@ -79,6 +80,7 @@ export function readSessionHint(fallback: SessionHint): SessionHint {
       tenantName: parsed.tenantName ?? fallback.tenantName,
       tenantSlug: parsed.tenantSlug ?? fallback.tenantSlug,
       email: parsed.email ?? fallback.email,
+      role: parsed.role ?? fallback.role,
       workspaceName: parsed.workspaceName ?? fallback.workspaceName,
       workspaceSlug: parsed.workspaceSlug ?? fallback.workspaceSlug,
     };

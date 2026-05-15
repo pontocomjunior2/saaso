@@ -97,14 +97,20 @@ export class AuthService {
       );
     }
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      tenantId: user.tenantId,
+      const payload = {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
     };
     return {
       access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
       tenant: {
         id: tenant.id,
         name: tenant.name,

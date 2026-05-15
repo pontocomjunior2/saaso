@@ -22,6 +22,7 @@ import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
 import { MetaWebhookConfigSection } from './MetaWebhookConfigSection';
 import { WhatsAppSettingsSection } from '@/components/configuracoes/WhatsAppSettingsSection';
+import { UserManagementSection } from '@/components/configuracoes/UserManagementSection';
 
 type ApiStatus = 'checking' | 'online' | 'offline';
 
@@ -305,6 +306,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <UserManagementSection />
 
       {/* Forms published + Next steps */}
       <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
