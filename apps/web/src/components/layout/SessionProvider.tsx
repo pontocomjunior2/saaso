@@ -22,9 +22,17 @@ import React, {
 
 type SessionStatus = 'checking' | 'authenticated' | 'unauthenticated';
 type AppUserRole = 'OWNER' | 'ADMIN' | 'MANAGER' | 'AGENT';
+type AuthMode = 'login' | 'register';
 
 interface LoginInput {
   tenantSlug: string;
+  email: string;
+  password: string;
+}
+
+interface RegisterInput {
+  tenantName: string;
+  userName: string;
   email: string;
   password: string;
 }
@@ -43,6 +51,20 @@ interface LoginResponse {
     slug: string;
   };
   workspace?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+interface RegisterResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: AppUserRole;
+  };
+  tenant: {
     id: string;
     name: string;
     slug: string;
@@ -198,24 +220,37 @@ function LoadingExperience() {
 function AuthExperience({
   authError,
   initialValues,
-  onSubmit,
+  onLogin,
+  onRegister,
 }: {
   authError: string | null;
   initialValues: LoginInput;
-  onSubmit: (input: LoginInput) => Promise<void>;
+  onLogin: (input: LoginInput) => Promise<void>;
+  onRegister: (input: RegisterInput) => Promise<void>;
 }) {
-  const [form, setForm] = useState<LoginInput>(initialValues);
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [loginForm, setLoginForm] = useState<LoginInput>(initialValues);
+  const [registerForm, setRegisterForm] = useState<RegisterInput>({
+    tenantName: '',
+    userName: '',
+    email: '',
+    password: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setForm(initialValues);
+    setLoginForm(initialValues);
   }, [initialValues]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     try {
-      await onSubmit(form);
+      if (mode === 'login') {
+        await onLogin(loginForm);
+      } else {
+        await onRegister(registerForm);
+      }
     } catch {
       // authError já é definido pelo provider
     } finally {
@@ -230,39 +265,137 @@ function AuthExperience({
         <div className="absolute -bottom-32 -right-32 h-[600px] w-[600px] animate-pulse rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.18)_0%,transparent_65%)]" style={{ animationDelay: '1.5s' }} />
       </div>
 
-      <div className="relative w-full max-w-sm rounded-3xl border border-violet-500/20 bg-[rgba(15,10,30,0.88)] p-8 shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+      <div className="relative w-full max-w-md rounded-3xl border border-violet-500/20 bg-[rgba(15,10,30,0.88)] p-8 shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
         <div className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10">
           <KeyRound className="h-5 w-5 text-violet-300" />
         </div>
-        <h1 className="mt-4 text-2xl font-semibold text-white">Entrar</h1>
-        <p className="mt-1 text-sm text-slate-400">{formatTenantName(initialValues.tenantSlug)}</p>
+        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
+          <button
+            type="button"
+            onClick={() => setMode('login')}
+            className={cn(
+              'flex-1 rounded-xl px-3 py-2 text-sm font-medium transition',
+              mode === 'login' ? 'bg-white text-[#171326]' : 'text-slate-300 hover:text-white',
+            )}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('register')}
+            className={cn(
+              'flex-1 rounded-xl px-3 py-2 text-sm font-medium transition',
+              mode === 'register' ? 'bg-white text-[#171326]' : 'text-slate-300 hover:text-white',
+            )}
+          >
+            Criar empresa
+          </button>
+        </div>
+        <h1 className="mt-5 text-2xl font-semibold text-white">
+          {mode === 'login' ? 'Entrar' : 'Criar novo workspace'}
+        </h1>
+        <p className="mt-1 text-sm text-slate-400">
+          {mode === 'login'
+            ? formatTenantName(initialValues.tenantSlug)
+            : 'Cadastre a empresa e o primeiro usuário owner.'}
+        </p>
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-300">E-mail</span>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
-              placeholder="seu@email.com"
-              required
-              autoComplete="email"
-            />
-          </label>
+          {mode === 'login' ? (
+            <>
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">E-mail</span>
+                <input
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(event) =>
+                    setLoginForm((current) => ({ ...current, email: event.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+                  placeholder="seu@email.com"
+                  required
+                  autoComplete="email"
+                />
+              </label>
 
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-300">Senha</span>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
-              placeholder="Digite sua senha"
-              required
-              autoComplete="current-password"
-            />
-          </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">Senha</span>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(event) =>
+                    setLoginForm((current) => ({ ...current, password: event.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+                  placeholder="Digite sua senha"
+                  required
+                  autoComplete="current-password"
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">Empresa</span>
+                <input
+                  type="text"
+                  value={registerForm.tenantName}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({ ...current, tenantName: event.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+                  placeholder="Nome da empresa"
+                  required
+                  autoComplete="organization"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">Primeiro usuário</span>
+                <input
+                  type="text"
+                  value={registerForm.userName}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({ ...current, userName: event.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+                  placeholder="Nome do responsável"
+                  required
+                  autoComplete="name"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">E-mail</span>
+                <input
+                  type="email"
+                  value={registerForm.email}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({ ...current, email: event.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+                  placeholder="responsavel@empresa.com"
+                  required
+                  autoComplete="email"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-slate-300">Senha inicial</span>
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(event) =>
+                    setRegisterForm((current) => ({ ...current, password: event.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60 focus:bg-white/[0.08]"
+                  placeholder="Mínimo de 6 caracteres"
+                  required
+                  autoComplete="new-password"
+                />
+              </label>
+            </>
+          )}
 
           {authError && (
             <div className="flex gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-100">
@@ -282,7 +415,13 @@ function AuthExperience({
             )}
           >
             {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            {isSubmitting ? 'Autenticando...' : 'Entrar no workspace'}
+            {isSubmitting
+              ? mode === 'login'
+                ? 'Autenticando...'
+                : 'Criando workspace...'
+              : mode === 'login'
+                ? 'Entrar no workspace'
+                : 'Criar empresa e entrar'}
           </button>
         </form>
       </div>
@@ -328,6 +467,37 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
       throw error;
     }
   }, []);
+
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      const normalizedInput: RegisterInput = {
+        tenantName: input.tenantName.trim(),
+        userName: input.userName.trim(),
+        email: input.email.trim(),
+        password: input.password,
+      };
+
+      setAuthError(null);
+
+      try {
+        const response = await api.post<RegisterResponse>(
+          '/auth/register',
+          normalizedInput,
+        );
+
+        await login({
+          tenantSlug: response.data.tenant.slug,
+          email: normalizedInput.email,
+          password: normalizedInput.password,
+        });
+      } catch (error) {
+        setAuthError(getErrorMessage(error));
+        setStatus('unauthenticated');
+        throw error;
+      }
+    },
+    [login],
+  );
 
   const logout = useCallback(() => {
     clearAccessToken();
@@ -419,7 +589,12 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
       {status === 'authenticated' ? children : null}
       {status === 'checking' ? <LoadingExperience /> : null}
       {status === 'unauthenticated' ? (
-        <AuthExperience authError={authError} initialValues={sessionInput} onSubmit={login} />
+        <AuthExperience
+          authError={authError}
+          initialValues={sessionInput}
+          onLogin={login}
+          onRegister={register}
+        />
       ) : null}
     </AppSessionContext.Provider>
   );
